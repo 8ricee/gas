@@ -22,94 +22,97 @@
  * @return {string} Mã nhập kho
  */
 function nhapKho(data) {
-  var maNK = generateId("NK", SHEET_NAMES.NHAP_KHO);
-  var nguonNhap = data.nguonNhap || "Điện thoại";
-  var maSP = "";
-  var tenSP = "";
-  var soLuong = Number(data.soLuong) || 1;
-  var giaNhap = Number(data.giaNhap) || 0;
-  var chiNhanh = data.chiNhanh;
+  return runWithLock(function() {
+    initializeColumnEnums();
+    var maNK = generateId("NK", SHEET_NAMES.NHAP_KHO);
+    var nguonNhap = data.nguonNhap || "Điện thoại";
+    var maSP = "";
+    var tenSP = "";
+    var soLuong = Number(data.soLuong) || 1;
+    var giaNhap = Number(data.giaNhap) || 0;
+    var chiNhanh = data.chiNhanh;
 
-  if (!chiNhanh) {
-    throw new Error("Vui lòng chọn chi nhánh nhập kho!");
-  }
+    if (!chiNhanh) {
+      throw new Error("Vui lòng chọn chi nhánh nhập kho!");
+    }
 
-  if (nguonNhap === "Điện thoại") {
-    // Tạo sản phẩm mới trong danh mục điện thoại
-    maSP = addDienThoai({
-      tenSP: data.tenSP,
-      thuongHieu: data.thuongHieu,
-      imei: data.imei,
-      mauSac: data.mauSac,
-      dungLuong: data.dungLuong,
-      tinhTrang: data.tinhTrang || "Mới 100%",
-      giaNhap: giaNhap,
-      giaBan: Number(data.giaBan) || 0,
-      giaTraGop: Number(data.giaTraGop) || 0,
-      ghiChu: data.ghiChu || "",
-      chiNhanh: chiNhanh,
-    });
-    tenSP = data.tenSP;
-    soLuong = 1; // Mỗi lần nhập 1 máy
-  } else {
-    // Phụ kiện
-    if (data.maSP) {
-      // Phụ kiện đã tồn tại → cộng tồn kho
-      maSP = data.maSP;
-      tenSP = lookupValue(SHEET_NAMES.PHU_KIEN, 1, maSP, 2) || "";
-      updateTonKhoPhuKien(maSP, soLuong, "nhap", chiNhanh);
-
-      // Cập nhật giá nhập mới nếu có (cho đúng dòng chi nhánh!)
-      if (giaNhap > 0) {
-        var row = findPhuKienRow(maSP, chiNhanh);
-        if (row !== -1) {
-          updateCell(SHEET_NAMES.PHU_KIEN, row, 5, giaNhap);
-        }
-      }
-    } else {
-      // Phụ kiện mới → tạo mới trong danh mục
-      maSP = addPhuKien({
+    if (nguonNhap === "Điện thoại") {
+      // Tạo sản phẩm mới trong danh mục điện thoại
+      maSP = addDienThoai({
         tenSP: data.tenSP,
-        loaiPK: data.loaiPK || "Khác",
-        thuongHieu: data.thuongHieu || "",
+        thuongHieu: data.thuongHieu,
+        imei: data.imei,
+        mauSac: data.mauSac,
+        dungLuong: data.dungLuong,
+        tinhTrang: data.tinhTrang || "Mới 100%",
         giaNhap: giaNhap,
         giaBan: Number(data.giaBan) || 0,
-        soLuongTon: soLuong,
-        moTa: data.moTa || "",
+        giaTraGop: Number(data.giaTraGop) || 0,
+        ghiChu: data.ghiChu || "",
         chiNhanh: chiNhanh,
       });
       tenSP = data.tenSP;
+      soLuong = 1; // Mỗi lần nhập 1 máy
+    } else {
+      // Phụ kiện
+      if (data.maSP) {
+        // Phụ kiện đã tồn tại → cộng tồn kho
+        maSP = data.maSP;
+        tenSP = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, maSP, COL_PK.TEN_SP) || "";
+        updateTonKhoPhuKien(maSP, soLuong, "nhap", chiNhanh);
+
+        // Cập nhật giá nhập mới nếu có (cho đúng dòng chi nhánh!)
+        if (giaNhap > 0) {
+          var row = findPhuKienRow(maSP, chiNhanh);
+          if (row !== -1) {
+            updateCell(SHEET_NAMES.PHU_KIEN, row, COL_PK.GIA_NHAP, giaNhap);
+          }
+        }
+      } else {
+        // Phụ kiện mới → tạo mới trong danh mục
+        maSP = addPhuKien({
+          tenSP: data.tenSP,
+          loaiPK: data.loaiPK || "Khác",
+          thuongHieu: data.thuongHieu || "",
+          giaNhap: giaNhap,
+          giaBan: Number(data.giaBan) || 0,
+          soLuongTon: soLuong,
+          moTa: data.moTa || "",
+          chiNhanh: chiNhanh,
+        });
+        tenSP = data.tenSP;
+      }
     }
-  }
 
-  // Ghi vào sheet NhapKho
-  var rowData = [
-    maNK,
-    new Date(), // NgayNhap
-    nguonNhap,
-    maSP,
-    tenSP,
-    soLuong,
-    giaNhap,
-    soLuong * giaNhap, // ThanhTien
-    data.nhaCungCap || "",
-    data.ghiChu || "",
-    chiNhanh, // 11th column
-  ];
+    // Ghi vào sheet NhapKho
+    var rowData = [
+      maNK,
+      new Date(), // NgayNhap
+      nguonNhap,
+      maSP,
+      tenSP,
+      soLuong,
+      giaNhap,
+      soLuong * giaNhap, // ThanhTien
+      data.nhaCungCap || "",
+      data.ghiChu || "",
+      chiNhanh, // 11th column
+    ];
 
-  appendRow(SHEET_NAMES.NHAP_KHO, rowData);
-  showToast(
-    "✅ Đã nhập kho: " +
-      tenSP +
-      " (" +
-      maNK +
-      ")\nSố lượng: " +
-      soLuong +
-      " | Tổng: " +
-      formatCurrency(soLuong * giaNhap) +
-      "đ",
-  );
-  return maNK;
+    appendRow(SHEET_NAMES.NHAP_KHO, rowData);
+    showToast(
+      "✅ Đã nhập kho: " +
+        tenSP +
+        " (" +
+        maNK +
+        ")\nSố lượng: " +
+        soLuong +
+        " | Tổng: " +
+        formatCurrency(soLuong * giaNhap) +
+        "đ",
+    );
+    return maNK;
+  });
 }
 
 /**

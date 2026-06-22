@@ -13,11 +13,12 @@
  * @return {string} Mã trả góp mới
  */
 function taoHopDongTraGop(data) {
+  initializeColumnEnums();
   var maTG = generateId("TG", SHEET_NAMES.TRA_GOP);
 
   var tongTien = Number(data.tongTien) || 0;
-  var traTruoc = data.traTruoc;
-  var conLai = tongTien - parseAmountVal(traTruoc);
+  var traTruocNum = parseAmountVal(data.traTruoc);
+  var conLai = tongTien - traTruocNum;
   var soKy = Number(data.soKy) || 1;
   
   var loaiTraGop = data.loaiTraGop || "Cửa hàng";
@@ -32,25 +33,45 @@ function taoHopDongTraGop(data) {
   var ngayKetThuc = new Date();
   ngayKetThuc.setMonth(ngayKetThuc.getMonth() + soKy);
 
-  var rowData = [
-    maTG,
-    data.maDH || "",
-    data.maKH || "",
-    tenKH,
-    tongTien,
-    traTruoc,
-    conLai,
-    soKy,
-    tienMoiKy,
-    ngayBatDau,
-    ngayKetThuc,
-    isCTTC ? soKy : 0, // DaTraSoKy: Nếu CTTC, ghi nhận hoàn tất ngay
-    isCTTC ? tongTien : traTruoc, // DaTraSoTien: Nếu CTTC, ghi nhận nhận đủ 100% (cả phần CTTC giải ngân)
-    loaiTraGop,
-    data.congTyTC || "",
-    isCTTC ? "Hoàn tất" : "Đang trả", // TrangThai
-    data.chiNhanh || "", // 17th column
-  ];
+  var tienMat = 0;
+  var chuyenKhoan = 0;
+  if (typeof data.traTruoc === "string" && data.traTruoc.indexOf(",") !== -1) {
+    var parts = data.traTruoc.split(",");
+    chuyenKhoan = Number(parts[0]) || 0;
+    tienMat = Number(parts[1]) || 0;
+  } else {
+    if (data.splitTienMat !== undefined || data.splitChuyenKhoan !== undefined) {
+      tienMat = Number(data.splitTienMat) || 0;
+      chuyenKhoan = Number(data.splitChuyenKhoan) || 0;
+    } else {
+      if (data.hinhThucThanhToan === "Chuyển khoản" || data.hinhThucThanhToan === "Quẹt thẻ (POS)") {
+        chuyenKhoan = traTruocNum;
+      } else {
+        tienMat = traTruocNum;
+      }
+    }
+  }
+
+  var rowData = [];
+  rowData[COL_TG.MA_TG - 1] = maTG;
+  rowData[COL_TG.MA_DH - 1] = data.maDH || "";
+  rowData[COL_TG.MA_KH - 1] = data.maKH || "";
+  rowData[COL_TG.TEN_KH - 1] = tenKH;
+  rowData[COL_TG.TONG_TIEN - 1] = tongTien;
+  rowData[COL_TG.TRA_TRUOC - 1] = traTruocNum;
+  rowData[COL_TG.CON_LAI - 1] = conLai;
+  rowData[COL_TG.SO_KY - 1] = soKy;
+  rowData[COL_TG.TIEN_MO_KY - 1] = tienMoiKy;
+  rowData[COL_TG.NGAY_BAT_DAU - 1] = ngayBatDau;
+  rowData[COL_TG.NGAY_KET_THUC - 1] = ngayKetThuc;
+  rowData[COL_TG.DA_TRA_SO_KY - 1] = isCTTC ? soKy : 0;
+  rowData[COL_TG.DA_TRA_SO_TIEN - 1] = isCTTC ? tongTien : traTruocNum;
+  rowData[COL_TG.LOAI_TRA_GOP - 1] = loaiTraGop;
+  rowData[COL_TG.CONG_TY_TC - 1] = data.congTyTC || "";
+  rowData[COL_TG.TRANG_THAI - 1] = isCTTC ? "Hoàn tất" : "Đang trả";
+  rowData[COL_TG.CHI_NHANH - 1] = data.chiNhanh || "";
+  rowData[COL_TG.TIEN_MAT - 1] = tienMat;
+  rowData[COL_TG.CHUYEN_KHOAN - 1] = chuyenKhoan;
 
   appendRow(SHEET_NAMES.TRA_GOP, rowData);
 
@@ -92,73 +113,94 @@ function taoHopDongTraGop(data) {
  * @return {boolean}
  */
 function ghiNhanThanhToan(data) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  return runWithLock(function() {
+    initializeColumnEnums();
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  // Tìm dòng lịch sử trả góp
-  var lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
-  if (!lstgSheet) {
-    showAlert("❌ Lỗi", "Không tìm thấy bảng Lịch sử trả góp!");
-    return false;
-  }
-
-  var lastRow = lstgSheet.getLastRow();
-  if (lastRow <= 1) {
-    showAlert("❌ Lỗi", "Không có dữ liệu lịch sử trả góp!");
-    return false;
-  }
-
-  var allData = lstgSheet.getRange(2, 1, lastRow - 1, 10).getValues();
-  var targetRow = -1;
-
-  for (var i = 0; i < allData.length; i++) {
-    if (
-      String(allData[i][1]) === data.maTG &&
-      Number(allData[i][2]) === Number(data.kySo)
-    ) {
-      targetRow = i + 2;
-      break;
+    // Validation thanh toán hỗn hợp ở Backend
+    if (data.hinhThucThanhToan === "Hỗn hợp") {
+      var tongThanhToan = (Number(data.splitChuyenKhoan) || 0) + (Number(data.splitTienMat) || 0);
+      var soTienYeuCau = Number(data.soTien) || 0;
+      if (Math.abs(tongThanhToan - soTienYeuCau) > 1) {
+        throw new Error("Lỗi dữ liệu: Tổng tiền mặt (" + data.splitTienMat + ") và chuyển khoản (" + data.splitChuyenKhoan + ") không khớp với số tiền cần thanh toán (" + soTienYeuCau + ")!");
+      }
     }
-  }
 
-  if (targetRow === -1) {
-    showAlert(
-      "❌ Lỗi",
-      "Không tìm thấy kỳ " + data.kySo + " của HĐ " + data.maTG,
+    // Tìm dòng lịch sử trả góp
+    var lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
+    if (!lstgSheet) {
+      showAlert("❌ Lỗi", "Không tìm thấy bảng Lịch sử trả góp!");
+      return false;
+    }
+
+    var lastRow = lstgSheet.getLastRow();
+    if (lastRow <= 1) {
+      showAlert("❌ Lỗi", "Không có dữ liệu lịch sử trả góp!");
+      return false;
+    }
+
+    var allData = lstgSheet.getRange(2, 1, lastRow - 1, 10).getValues();
+    var targetRow = -1;
+
+    for (var i = 0; i < allData.length; i++) {
+      if (
+        String(allData[i][1]) === data.maTG &&
+        Number(allData[i][2]) === Number(data.kySo)
+      ) {
+        targetRow = i + 2;
+        break;
+      }
+    }
+
+    if (targetRow === -1) {
+      showAlert(
+        "❌ Lỗi",
+        "Không tìm thấy kỳ " + data.kySo + " của HĐ " + data.maTG,
+      );
+      return false;
+    }
+
+    var soTien = Number(data.soTien) || 0;
+
+    var tienMat = 0;
+    var chuyenKhoan = 0;
+    if (data.hinhThucThanhToan === "Hỗn hợp") {
+      tienMat = Number(data.splitTienMat) || 0;
+      chuyenKhoan = Number(data.splitChuyenKhoan) || 0;
+    } else if (data.hinhThucThanhToan === "Tiền mặt") {
+      tienMat = soTien;
+    } else {
+      chuyenKhoan = soTien;
+    }
+
+    // Cập nhật lịch sử
+    lstgSheet.getRange(targetRow, COL_LSTG.SO_TIEN_DA_TRA).setValue(soTien);
+    lstgSheet.getRange(targetRow, COL_LSTG.NGAY_THUC_TRA).setValue(new Date());
+    lstgSheet.getRange(targetRow, COL_LSTG.HINH_THUC_TT).setValue(data.hinhThucThanhToan || "Tiền mặt");
+    lstgSheet.getRange(targetRow, COL_LSTG.TRANG_THAI).setValue("Đã trả");
+    if (data.ghiChu) {
+      lstgSheet.getRange(targetRow, COL_LSTG.GHI_CHU).setValue(data.ghiChu);
+    }
+    
+    lstgSheet.getRange(targetRow, COL_LSTG.TIEN_MAT).setValue(tienMat);
+    lstgSheet.getRange(targetRow, COL_LSTG.CHUYEN_KHOAN).setValue(chuyenKhoan);
+
+    clearSheetCache(SHEET_NAMES.LICH_SU_TRA_GOP);
+
+    // Cập nhật thông tin tổng trong TraGop
+    _capNhatTongTraGop(data.maTG);
+
+    showToast(
+      "✅ Đã ghi nhận thanh toán kỳ " +
+        data.kySo +
+        " - HĐ " +
+        data.maTG +
+        "\nSố tiền: " +
+        formatCurrency(soTien) +
+        "đ",
     );
-    return false;
-  }
-
-  var soTien = (data.hinhThucThanhToan === "Hỗn hợp" && data.splitChuyenKhoan !== undefined)
-    ? (data.splitChuyenKhoan + "," + data.splitTienMat)
-    : (Number(data.soTien) || 0);
-
-  var displayAmount = parseAmountVal(soTien);
-
-  // Cập nhật lịch sử
-  lstgSheet.getRange(targetRow, 5).setValue(soTien); // SoTienDaTra
-  lstgSheet.getRange(targetRow, 7).setValue(new Date()); // NgayThucTra
-  lstgSheet
-    .getRange(targetRow, 8)
-    .setValue(data.hinhThucThanhToan || "Tiền mặt");
-  lstgSheet.getRange(targetRow, 9).setValue("Đã trả");
-  if (data.ghiChu) {
-    lstgSheet.getRange(targetRow, 10).setValue(data.ghiChu);
-  }
-  clearSheetCache(SHEET_NAMES.LICH_SU_TRA_GOP);
-
-  // Cập nhật thông tin tổng trong TraGop
-  _capNhatTongTraGop(data.maTG);
-
-  showToast(
-    "✅ Đã ghi nhận thanh toán kỳ " +
-      data.kySo +
-      " - HĐ " +
-      data.maTG +
-      "\nSố tiền: " +
-      formatCurrency(displayAmount) +
-      "đ",
-  );
-  return true;
+    return true;
+  });
 }
 
 /**

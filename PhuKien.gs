@@ -13,27 +13,42 @@
  * @return {Object[]}
  */
 function getAllPhuKien(chiConHang, chiNhanh) {
+  initializeColumnEnums();
   var data = getAllData(SHEET_NAMES.PHU_KIEN);
   var result = [];
 
+  var c = {
+    maPK: COL_PK.MA_PK - 1,
+    tenSP: COL_PK.TEN_SP - 1,
+    loaiPK: COL_PK.LOAI_PK - 1,
+    thuongHieu: COL_PK.THUONG_HIEU - 1,
+    giaNhap: COL_PK.GIA_NHAP - 1,
+    giaBan: COL_PK.GIA_BAN - 1,
+    soLuongTon: COL_PK.SO_LUONG_TON - 1,
+    moTa: COL_PK.MO_TA - 1,
+    trangThai: COL_PK.TRANG_THAI - 1,
+    chiNhanh: COL_PK.CHI_NHANH - 1,
+  };
+
   data.forEach(function (row) {
+    if (row.length <= c.chiNhanh) return;
     if (chiConHang) {
-      if (String(row[8]) === "Ngừng bán" || Number(row[6]) <= 0) return;
+      if (String(row[c.trangThai]) === "Ngừng bán" || Number(row[c.soLuongTon]) <= 0) return;
     }
     if (chiNhanh) {
-      if (String(row[9] || "") !== chiNhanh) return;
+      if (String(row[c.chiNhanh] || "") !== chiNhanh) return;
     }
     result.push({
-      MaPK: String(row[0]),
-      TenSP: String(row[1]),
-      LoaiPK: String(row[2]),
-      ThuongHieu: String(row[3]),
-      GiaNhap: Number(row[4]) || 0,
-      GiaBan: Number(row[5]) || 0,
-      SoLuongTon: Number(row[6]) || 0,
-      MoTa: String(row[7]),
-      TrangThai: String(row[8]),
-      ChiNhanh: String(row[9] || ""),
+      MaPK: String(row[c.maPK]),
+      TenSP: String(row[c.tenSP]),
+      LoaiPK: String(row[c.loaiPK]),
+      ThuongHieu: String(row[c.thuongHieu]),
+      GiaNhap: Number(row[c.giaNhap]) || 0,
+      GiaBan: Number(row[c.giaBan]) || 0,
+      SoLuongTon: Number(row[c.soLuongTon]) || 0,
+      MoTa: String(row[c.moTa]),
+      TrangThai: String(row[c.trangThai]),
+      ChiNhanh: String(row[c.chiNhanh] || ""),
     });
   });
 
@@ -47,31 +62,42 @@ function getAllPhuKien(chiConHang, chiNhanh) {
  * @return {Object[]} [{value: 'PK001', text: 'PK001 - Ốp lưng iPhone 15 (Tồn: 10)'}, ...]
  */
 function getPhuKienDropdown(chiNhanh) {
+  initializeColumnEnums();
   var data = getAllData(SHEET_NAMES.PHU_KIEN);
   var result = [];
 
+  var c = {
+    maPK: COL_PK.MA_PK - 1,
+    tenSP: COL_PK.TEN_SP - 1,
+    giaBan: COL_PK.GIA_BAN - 1,
+    soLuongTon: COL_PK.SO_LUONG_TON - 1,
+    trangThai: COL_PK.TRANG_THAI - 1,
+    chiNhanh: COL_PK.CHI_NHANH - 1,
+  };
+
   data.forEach(function (row) {
+    if (row.length <= c.chiNhanh) return;
     if (
-      row[0] &&
-      String(row[0]).trim() !== "" &&
-      String(row[8]) !== "Ngừng bán" &&
-      Number(row[6]) > 0
+      row[c.maPK] &&
+      String(row[c.maPK]).trim() !== "" &&
+      String(row[c.trangThai]) !== "Ngừng bán" &&
+      Number(row[c.soLuongTon]) > 0
     ) {
-      var rowChiNhanh = String(row[9] || "");
+      var rowChiNhanh = String(row[c.chiNhanh] || "");
       if (!chiNhanh || rowChiNhanh === chiNhanh) {
         result.push({
-          value: String(row[0]),
+          value: String(row[c.maPK]),
           text:
-            row[0] +
+            row[c.maPK] +
             " - " +
-            row[1] +
+            row[c.tenSP] +
             " (Tồn: " +
-            row[6] +
+            row[c.soLuongTon] +
             " | " +
             rowChiNhanh +
             ")",
-          giaBan: Number(row[5]),
-          soLuongTon: Number(row[6]),
+          giaBan: Number(row[c.giaBan]),
+          soLuongTon: Number(row[c.soLuongTon]),
           chiNhanh: rowChiNhanh,
         });
       }
@@ -88,20 +114,20 @@ function getPhuKienDropdown(chiNhanh) {
  * @return {string} Mã PK mới
  */
 function addPhuKien(data) {
+  initializeColumnEnums();
   var maPK = generateId("PK", SHEET_NAMES.PHU_KIEN);
 
-  var rowData = [
-    maPK,
-    data.tenSP || "",
-    data.loaiPK || "Khác",
-    data.thuongHieu || "",
-    Number(data.giaNhap) || 0,
-    Number(data.giaBan) || 0,
-    Number(data.soLuongTon) || 0,
-    data.moTa || "",
-    "Đang bán",
-    data.chiNhanh || "", // 10th column
-  ];
+  var rowData = [];
+  rowData[COL_PK.MA_PK - 1] = maPK;
+  rowData[COL_PK.TEN_SP - 1] = data.tenSP || "";
+  rowData[COL_PK.LOAI_PK - 1] = data.loaiPK || "Khác";
+  rowData[COL_PK.THUONG_HIEU - 1] = data.thuongHieu || "";
+  rowData[COL_PK.GIA_NHAP - 1] = Number(data.giaNhap) || 0;
+  rowData[COL_PK.GIA_BAN - 1] = Number(data.giaBan) || 0;
+  rowData[COL_PK.SO_LUONG_TON - 1] = Number(data.soLuongTon) || 0;
+  rowData[COL_PK.MO_TA - 1] = data.moTa || "";
+  rowData[COL_PK.TRANG_THAI - 1] = "Đang bán";
+  rowData[COL_PK.CHI_NHANH - 1] = data.chiNhanh || "";
 
   appendRow(SHEET_NAMES.PHU_KIEN, rowData);
   showToast("Đã thêm phụ kiện: " + data.tenSP + " (" + maPK + ")");
@@ -116,6 +142,7 @@ function addPhuKien(data) {
  * @return {boolean}
  */
 function updatePhuKien(maPK, data) {
+  initializeColumnEnums();
   var chiNhanh = data.chiNhanh;
   if (!chiNhanh) {
     showAlert("❌ Lỗi", "Cần cung cấp chi nhánh để cập nhật phụ kiện: " + maPK);
@@ -134,22 +161,34 @@ function updatePhuKien(maPK, data) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(SHEET_NAMES.PHU_KIEN);
   invalidateDropdownCache(SHEET_NAMES.PHU_KIEN);
-  if (data.tenSP !== undefined) sheet.getRange(row, 2).setValue(data.tenSP);
-  if (data.loaiPK !== undefined) sheet.getRange(row, 3).setValue(data.loaiPK);
-  if (data.thuongHieu !== undefined)
-    sheet.getRange(row, 4).setValue(data.thuongHieu);
-  if (data.giaNhap !== undefined)
-    sheet.getRange(row, 5).setValue(Number(data.giaNhap));
-  if (data.giaBan !== undefined)
-    sheet.getRange(row, 6).setValue(Number(data.giaBan));
-  if (data.soLuongTon !== undefined)
-    sheet.getRange(row, 7).setValue(Number(data.soLuongTon));
-  if (data.moTa !== undefined) sheet.getRange(row, 8).setValue(data.moTa);
-  if (data.trangThai !== undefined)
-    sheet.getRange(row, 9).setValue(data.trangThai);
+  
+  // Đảm bảo đủ cột
+  var maxColNeeded = Math.max(
+    COL_PK.MA_PK, COL_PK.TEN_SP, COL_PK.LOAI_PK, COL_PK.THUONG_HIEU, COL_PK.GIA_NHAP,
+    COL_PK.GIA_BAN, COL_PK.SO_LUONG_TON, COL_PK.MO_TA, COL_PK.TRANG_THAI, COL_PK.CHI_NHANH
+  );
+  var maxCols = sheet.getMaxColumns();
+  if (maxCols < maxColNeeded) {
+    sheet.insertColumnsAfter(maxCols, maxColNeeded - maxCols);
+  }
+
+  if (data.tenSP !== undefined) sheet.getRange(row, COL_PK.TEN_SP).setValue(data.tenSP);
+  if (data.loaiPK !== undefined) sheet.getRange(row, COL_PK.LOAI_PK).setValue(data.loaiPK);
+  if (data.thuongHieu !== undefined) sheet.getRange(row, COL_PK.THUONG_HIEU).setValue(data.thuongHieu);
+  if (data.giaNhap !== undefined) sheet.getRange(row, COL_PK.GIA_NHAP).setValue(Number(data.giaNhap));
+  if (data.giaBan !== undefined) sheet.getRange(row, COL_PK.GIA_BAN).setValue(Number(data.giaBan));
+  if (data.soLuongTon !== undefined) sheet.getRange(row, COL_PK.SO_LUONG_TON).setValue(Number(data.soLuongTon));
+  if (data.moTa !== undefined) sheet.getRange(row, COL_PK.MO_TA).setValue(data.moTa);
+  if (data.trangThai !== undefined) sheet.getRange(row, COL_PK.TRANG_THAI).setValue(data.trangThai);
 
   showToast("Đã cập nhật PK: " + maPK + " (" + chiNhanh + ")");
   return true;
+}
+
+var _phuKienCompositeIndex = null;
+
+function clearPhuKienCompositeIndex() {
+  _phuKienCompositeIndex = null;
 }
 
 /**
@@ -160,29 +199,25 @@ function updatePhuKien(maPK, data) {
  * @return {number} Row index (1-indexed) hoặc -1
  */
 function findPhuKienRow(maPK, chiNhanh) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(SHEET_NAMES.PHU_KIEN);
-  if (!sheet) return -1;
-
-  var lastRow = sheet.getLastRow();
-  if (lastRow <= 1) return -1;
-
-  var pkData = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
-  var cnData = sheet.getRange(2, 10, lastRow - 1, 1).getValues(); // 10th column is ChiNhanh
-
-  var searchPK = String(maPK).trim().toLowerCase();
-  var searchCN = String(chiNhanh).trim().toLowerCase();
-
-  for (var i = 0; i < pkData.length; i++) {
-    var rowPK = String(pkData[i][0]).trim().toLowerCase();
-    var rowCN = String(cnData[i][0]).trim().toLowerCase();
-
-    if (rowPK === searchPK && rowCN === searchCN) {
-      return i + 2;
+  initializeColumnEnums();
+  if (!_phuKienCompositeIndex) {
+    _phuKienCompositeIndex = {};
+    var data = getAllData(SHEET_NAMES.PHU_KIEN);
+    var maPKIdx = COL_PK.MA_PK - 1;
+    var chiNhanhIdx = COL_PK.CHI_NHANH - 1;
+    
+    for (var i = 0; i < data.length; i++) {
+      var row = data[i];
+      if (row.length <= chiNhanhIdx) continue;
+      var key = String(row[maPKIdx]).trim().toLowerCase() + "_" + String(row[chiNhanhIdx] || "").trim().toLowerCase();
+      if (!(key in _phuKienCompositeIndex)) {
+        _phuKienCompositeIndex[key] = i + 2; // +2 vì bỏ qua header
+      }
     }
   }
-
-  return -1;
+  
+  var searchKey = String(maPK).trim().toLowerCase() + "_" + String(chiNhanh).trim().toLowerCase();
+  return _phuKienCompositeIndex[searchKey] || -1;
 }
 
 /**
@@ -195,6 +230,7 @@ function findPhuKienRow(maPK, chiNhanh) {
  * @return {boolean}
  */
 function updateTonKhoPhuKien(maPK, soLuong, type, chiNhanh) {
+  initializeColumnEnums();
   if (!chiNhanh) {
     throw new Error("Thiếu chi nhánh khi cập nhật tồn kho phụ kiện!");
   }
@@ -208,23 +244,23 @@ function updateTonKhoPhuKien(maPK, soLuong, type, chiNhanh) {
       // Nếu chưa có ở chi nhánh này, sao chép thông tin từ chi nhánh bất kỳ
       var details = lookupMultipleValues(
         SHEET_NAMES.PHU_KIEN,
-        1,
+        COL_PK.MA_PK,
         maPK,
-        [2, 3, 4, 5, 6, 8],
+        [COL_PK.TEN_SP, COL_PK.LOAI_PK, COL_PK.THUONG_HIEU, COL_PK.GIA_NHAP, COL_PK.GIA_BAN, COL_PK.MO_TA],
       );
       if (details) {
-        var rowData = [
-          maPK,
-          details[2] || "", // tenSP
-          details[3] || "Khác", // loaiPK
-          details[4] || "", // thuongHieu
-          Number(details[5]) || 0, // giaNhap
-          Number(details[6]) || 0, // giaBan
-          Number(soLuong), // soLuongTon
-          details[8] || "", // moTa
-          "Đang bán",
-          chiNhanh, // 10th column: ChiNhanh
-        ];
+        var rowData = [];
+        rowData[COL_PK.MA_PK - 1] = maPK;
+        rowData[COL_PK.TEN_SP - 1] = details[COL_PK.TEN_SP] || "";
+        rowData[COL_PK.LOAI_PK - 1] = details[COL_PK.LOAI_PK] || "Khác";
+        rowData[COL_PK.THUONG_HIEU - 1] = details[COL_PK.THUONG_HIEU] || "";
+        rowData[COL_PK.GIA_NHAP - 1] = Number(details[COL_PK.GIA_NHAP]) || 0;
+        rowData[COL_PK.GIA_BAN - 1] = Number(details[COL_PK.GIA_BAN]) || 0;
+        rowData[COL_PK.SO_LUONG_TON - 1] = Number(soLuong);
+        rowData[COL_PK.MO_TA - 1] = details[COL_PK.MO_TA] || "";
+        rowData[COL_PK.TRANG_THAI - 1] = "Đang bán";
+        rowData[COL_PK.CHI_NHANH - 1] = chiNhanh;
+        
         appendRow(SHEET_NAMES.PHU_KIEN, rowData);
         return true;
       } else {
@@ -243,9 +279,9 @@ function updateTonKhoPhuKien(maPK, soLuong, type, chiNhanh) {
 
   // Cập nhật dòng có sẵn
   invalidateDropdownCache(SHEET_NAMES.PHU_KIEN);
-  var currentTon = Number(sheet.getRange(row, 7).getValue()) || 0;
+  var currentTon = Number(sheet.getRange(row, COL_PK.SO_LUONG_TON).getValue()) || 0;
   if (type === "nhap") {
-    sheet.getRange(row, 7).setValue(currentTon + Number(soLuong));
+    sheet.getRange(row, COL_PK.SO_LUONG_TON).setValue(currentTon + Number(soLuong));
   } else if (type === "xuat") {
     var newTon = currentTon - Number(soLuong);
     if (newTon < 0) {
@@ -258,7 +294,7 @@ function updateTonKhoPhuKien(maPK, soLuong, type, chiNhanh) {
           soLuong,
       );
     }
-    sheet.getRange(row, 7).setValue(newTon);
+    sheet.getRange(row, COL_PK.SO_LUONG_TON).setValue(newTon);
   }
 
   return true;
@@ -270,28 +306,43 @@ function updateTonKhoPhuKien(maPK, soLuong, type, chiNhanh) {
  * @return {Object[]}
  */
 function getPhuKienSapHet() {
+  initializeColumnEnums();
   var data = getAllData(SHEET_NAMES.PHU_KIEN);
   var result = [];
 
+  var c = {
+    maPK: COL_PK.MA_PK - 1,
+    tenSP: COL_PK.TEN_SP - 1,
+    loaiPK: COL_PK.LOAI_PK - 1,
+    thuongHieu: COL_PK.THUONG_HIEU - 1,
+    giaNhap: COL_PK.GIA_NHAP - 1,
+    giaBan: COL_PK.GIA_BAN - 1,
+    soLuongTon: COL_PK.SO_LUONG_TON - 1,
+    moTa: COL_PK.MO_TA - 1,
+    trangThai: COL_PK.TRANG_THAI - 1,
+    chiNhanh: COL_PK.CHI_NHANH - 1,
+  };
+
   data.forEach(function (row) {
+    if (row.length <= c.chiNhanh) return;
     if (
-      row[0] &&
-      String(row[0]).trim() !== "" &&
-      String(row[8]) === "Đang bán" &&
-      Number(row[6]) <= 5 &&
-      Number(row[6]) > 0
+      row[c.maPK] &&
+      String(row[c.maPK]).trim() !== "" &&
+      String(row[c.trangThai]) === "Đang bán" &&
+      Number(row[c.soLuongTon]) <= 5 &&
+      Number(row[c.soLuongTon]) > 0
     ) {
       result.push({
-        MaPK: String(row[0]),
-        TenSP: String(row[1]),
-        LoaiPK: String(row[2]),
-        ThuongHieu: String(row[3]),
-        GiaNhap: Number(row[4]) || 0,
-        GiaBan: Number(row[5]) || 0,
-        SoLuongTon: Number(row[6]) || 0,
-        MoTa: String(row[7]),
-        TrangThai: String(row[8]),
-        ChiNhanh: String(row[9] || ""),
+        MaPK: String(row[c.maPK]),
+        TenSP: String(row[c.tenSP]),
+        LoaiPK: String(row[c.loaiPK]),
+        ThuongHieu: String(row[c.thuongHieu]),
+        GiaNhap: Number(row[c.giaNhap]) || 0,
+        GiaBan: Number(row[c.giaBan]) || 0,
+        SoLuongTon: Number(row[c.soLuongTon]) || 0,
+        MoTa: String(row[c.moTa]),
+        TrangThai: String(row[c.trangThai]),
+        ChiNhanh: String(row[c.chiNhanh] || ""),
       });
     }
   });
@@ -306,20 +357,32 @@ function getPhuKienSapHet() {
  * @return {Object[]}
  */
 function getPhuKienUniqueList() {
+  initializeColumnEnums();
   var data = getAllData(SHEET_NAMES.PHU_KIEN);
   var result = [];
   var seen = {};
 
+  var c = {
+    maPK: COL_PK.MA_PK - 1,
+    tenSP: COL_PK.TEN_SP - 1,
+    loaiPK: COL_PK.LOAI_PK - 1,
+    thuongHieu: COL_PK.THUONG_HIEU - 1,
+    giaBan: COL_PK.GIA_BAN - 1,
+    trangThai: COL_PK.TRANG_THAI - 1,
+    chiNhanh: COL_PK.CHI_NHANH - 1,
+  };
+
   data.forEach(function (row) {
-    var maPK = String(row[0]).trim();
-    if (maPK && maPK !== "" && String(row[8]) !== "Ngừng bán") {
+    if (row.length <= c.chiNhanh) return;
+    var maPK = String(row[c.maPK]).trim();
+    if (maPK && maPK !== "" && String(row[c.trangThai]) !== "Ngừng bán") {
       if (!seen[maPK]) {
         seen[maPK] = true;
         result.push({
           value: maPK,
-          text: maPK + " - " + row[1] + " (" + row[2] + " | " + row[3] + ")",
-          giaBan: Number(row[5]),
-          chiNhanh: String(row[9] || "")
+          text: maPK + " - " + row[c.tenSP] + " (" + row[c.loaiPK] + " | " + row[c.thuongHieu] + ")",
+          giaBan: Number(row[c.giaBan]),
+          chiNhanh: String(row[c.chiNhanh] || "")
         });
       }
     }
@@ -336,6 +399,7 @@ function getPhuKienUniqueList() {
  * @return {number} Số lượng tồn
  */
 function getPhuKienStockAtBranch(maPK, chiNhanh) {
+  initializeColumnEnums();
   if (!maPK || !chiNhanh) return 0;
   var row = findPhuKienRow(maPK, chiNhanh);
   if (row === -1) return 0;
@@ -343,7 +407,7 @@ function getPhuKienStockAtBranch(maPK, chiNhanh) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(SHEET_NAMES.PHU_KIEN);
   if (!sheet) return 0;
-  return Number(sheet.getRange(row, 7).getValue()) || 0;
+  return Number(sheet.getRange(row, COL_PK.SO_LUONG_TON).getValue()) || 0;
 }
 
 /**
@@ -351,24 +415,35 @@ function getPhuKienStockAtBranch(maPK, chiNhanh) {
  * @private
  */
 function _buildPhuKienDropdownCache() {
+  initializeColumnEnums();
   var data = getAllData(SHEET_NAMES.PHU_KIEN);
   var result = [];
 
+  var c = {
+    maPK: COL_PK.MA_PK - 1,
+    tenSP: COL_PK.TEN_SP - 1,
+    giaBan: COL_PK.GIA_BAN - 1,
+    soLuongTon: COL_PK.SO_LUONG_TON - 1,
+    trangThai: COL_PK.TRANG_THAI - 1,
+    chiNhanh: COL_PK.CHI_NHANH - 1,
+  };
+
   data.forEach(function (row) {
+    if (row.length <= c.chiNhanh) return;
     if (
-      row[0] &&
-      String(row[0]).trim() !== "" &&
-      String(row[8]) !== "Ngừng bán" &&
-      Number(row[6]) > 0
+      row[c.maPK] &&
+      String(row[c.maPK]).trim() !== "" &&
+      String(row[c.trangThai]) !== "Ngừng bán" &&
+      Number(row[c.soLuongTon]) > 0
     ) {
-      var cn = String(row[9] || "");
+      var cn = String(row[c.chiNhanh] || "");
       result.push({
-        v: String(row[0]),
-        t: row[0] + " - " + row[1] + " (Tồn: " + row[6] + " | " + cn + ")",
-        gb: Number(row[5]),
-        sl: Number(row[6]),
+        v: String(row[c.maPK]),
+        t: row[c.maPK] + " - " + row[c.tenSP] + " (Tồn: " + row[c.soLuongTon] + " | " + cn + ")",
+        gb: Number(row[c.giaBan]),
+        sl: Number(row[c.soLuongTon]),
         cn: cn,
-        _s: (String(row[0]) + " " + String(row[1])).toLowerCase(),
+        _s: (String(row[c.maPK]) + " " + String(row[c.tenSP])).toLowerCase(),
       });
     }
   });
@@ -381,21 +456,33 @@ function _buildPhuKienDropdownCache() {
  * @private
  */
 function _buildPhuKienUniqueCache() {
+  initializeColumnEnums();
   var data = getAllData(SHEET_NAMES.PHU_KIEN);
   var result = [];
   var seen = {};
 
+  var c = {
+    maPK: COL_PK.MA_PK - 1,
+    tenSP: COL_PK.TEN_SP - 1,
+    loaiPK: COL_PK.LOAI_PK - 1,
+    thuongHieu: COL_PK.THUONG_HIEU - 1,
+    giaBan: COL_PK.GIA_BAN - 1,
+    trangThai: COL_PK.TRANG_THAI - 1,
+    chiNhanh: COL_PK.CHI_NHANH - 1,
+  };
+
   data.forEach(function (row) {
-    var maPK = String(row[0]).trim();
-    if (maPK && maPK !== "" && String(row[8]) !== "Ngừng bán") {
+    if (row.length <= c.chiNhanh) return;
+    var maPK = String(row[c.maPK]).trim();
+    if (maPK && maPK !== "" && String(row[c.trangThai]) !== "Ngừng bán") {
       if (!seen[maPK]) {
         seen[maPK] = true;
         result.push({
           v: maPK,
-          t: maPK + " - " + row[1] + " (" + row[2] + " | " + row[3] + ")",
-          gb: Number(row[5]),
-          cn: String(row[9] || ""),
-          _s: (maPK + " " + String(row[1])).toLowerCase(),
+          t: maPK + " - " + row[c.tenSP] + " (" + row[c.loaiPK] + " | " + row[c.thuongHieu] + ")",
+          gb: Number(row[c.giaBan]),
+          cn: String(row[c.chiNhanh] || ""),
+          _s: (maPK + " " + String(row[c.tenSP])).toLowerCase(),
         });
       }
     }

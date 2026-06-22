@@ -109,6 +109,8 @@ SHEET_HEADERS[SHEET_NAMES.DON_HANG] = [
   "Tên quà tặng",
   "Có nhận quà",
   "Tiền giảm giá",
+  "Tiền mặt",
+  "Chuyển khoản",
 ];
 
 SHEET_HEADERS[SHEET_NAMES.DICH_VU] = [
@@ -126,6 +128,8 @@ SHEET_HEADERS[SHEET_NAMES.DICH_VU] = [
   "Trạng thái",
   "Ghi chú",
   "Chi nhánh",
+  "Tiền mặt",
+  "Chuyển khoản",
 ];
 
 SHEET_HEADERS[SHEET_NAMES.TRA_GOP] = [
@@ -146,6 +150,8 @@ SHEET_HEADERS[SHEET_NAMES.TRA_GOP] = [
   "Công ty tài chính",
   "Trạng thái",
   "Chi nhánh",
+  "Tiền mặt",
+  "Chuyển khoản",
 ];
 
 SHEET_HEADERS[SHEET_NAMES.LICH_SU_TRA_GOP] = [
@@ -159,6 +165,8 @@ SHEET_HEADERS[SHEET_NAMES.LICH_SU_TRA_GOP] = [
   "Hình thức thanh toán",
   "Trạng thái",
   "Ghi chú",
+  "Tiền mặt",
+  "Chuyển khoản",
 ];
 
 SHEET_HEADERS[SHEET_NAMES.DOANH_SO] = [
@@ -214,6 +222,8 @@ SHEET_HEADERS[SHEET_NAMES.DOI_TRA] = [
   "Người thực hiện",
   "Trạng thái",
   "Ghi chú",
+  "Tiền mặt",
+  "Chuyển khoản",
 ];
 
 SHEET_HEADERS[SHEET_NAMES.THU_MUA] = [
@@ -237,6 +247,8 @@ SHEET_HEADERS[SHEET_NAMES.THU_MUA] = [
   "Chi nhánh",
   "Người thực hiện",
   "Ghi chú",
+  "Tiền mặt",
+  "Chuyển khoản",
 ];
 
 // ======================== DEFAULT CONFIG ========================
@@ -1511,4 +1523,17 @@ function columnToLetter(column) {
     column = (column - temp - 1) / 26;
   }
   return letter;
+}
+
+/**
+ * Lấy dữ liệu tồn kho để preload xuống Client-side cache
+ *
+ * @return {Object} Chứa mảng dienThoai, phuKien và phuKienUnique
+ */
+function getPreloadData() {
+  return {
+    dienThoai: getDienThoaiDropdown(""),
+    phuKien: getPhuKienDropdown(""),
+    phuKienUnique: getPhuKienUniqueList()
+  };
 }

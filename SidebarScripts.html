@@ -47,12 +47,79 @@
   }
 
   var branchesCached = [];
+  var localCache = {
+    dienThoai: [],
+    phuKien: [],
+    phuKienUnique: []
+  };
+
+  function removeAccents(str) {
+    if (!str) return '';
+    return str.normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '')
+              .replace(/đ/g, 'd')
+              .replace(/Đ/g, 'D');
+  }
+
+  function matchSearchKeyword(text, keyword) {
+    if (!text || !keyword) return false;
+    var normText = removeAccents(text.toLowerCase());
+    var normKeyword = removeAccents(keyword.toLowerCase());
+    var words = normKeyword.split(/\s+/).filter(Boolean);
+    return words.every(function(word) {
+      return normText.indexOf(word) !== -1;
+    });
+  }
+
+  function searchDienThoaiLocal(branch, keyword) {
+    if (!branch) return [];
+    var items = localCache.dienThoai || [];
+    return items.filter(function(item) {
+      if (String(item.chiNhanh || "").toLowerCase() !== String(branch).toLowerCase()) {
+        return false;
+      }
+      if (!keyword) return true;
+      return matchSearchKeyword(item.text, keyword) || matchSearchKeyword(item.value, keyword);
+    });
+  }
+
+  function searchPhuKienLocal(branch, keyword) {
+    if (!branch) return [];
+    var items = localCache.phuKien || [];
+    return items.filter(function(item) {
+      if (String(item.chiNhanh || "").toLowerCase() !== String(branch).toLowerCase()) {
+        return false;
+      }
+      if (!keyword) return true;
+      return matchSearchKeyword(item.text, keyword) || matchSearchKeyword(item.value, keyword);
+    });
+  }
+
+  function searchPhuKienUniqueLocal(keyword) {
+    var items = localCache.phuKienUnique || [];
+    if (!keyword) return items;
+    return items.filter(function(item) {
+      return matchSearchKeyword(item.text, keyword) || matchSearchKeyword(item.value, keyword);
+    });
+  }
+
+  function preloadInventoryData(callback) {
+    google.script.run.withSuccessHandler(function(data) {
+      if (data) {
+        localCache.dienThoai = data.dienThoai || [];
+        localCache.phuKien = data.phuKien || [];
+        localCache.phuKienUnique = data.phuKienUnique || [];
+      }
+      if (callback) callback();
+    }).getPreloadData();
+  }
 
   var originalOrderPrice = 0;
   var originalOrderData = null;
 
   // ==================== INIT — LOAD DATA ====================
   function init() {
+    preloadInventoryData();
     // Set default month/year for Doanh số
     var now = new Date();
     var curMonth = now.getMonth() + 1;
@@ -117,43 +184,43 @@
     setupDatalistSearch('dh-maSP', 'dh-maSP-list', function(query, callback) {
       var branch = document.getElementById('dh-chiNhanh').value;
       var source = document.getElementById('dh-nguonSP').value;
-      if (!branch) return;
+      if (!branch) return callback([]);
       if (source === 'Điện thoại') {
-        google.script.run.withSuccessHandler(callback).getDienThoaiDropdownSearch(branch, query);
+        callback(searchDienThoaiLocal(branch, query));
       } else {
-        google.script.run.withSuccessHandler(callback).getPhuKienDropdownSearch(branch, query);
+        callback(searchPhuKienLocal(branch, query));
       }
     });
     setupDatalistSearch('ck-maSP', 'ck-maSP-list', function(query, callback) {
       var branch = document.getElementById('ck-cnNguon').value;
-      if (!branch) return;
-      google.script.run.withSuccessHandler(callback).getDienThoaiDropdownSearch(branch, query);
+      if (!branch) return callback([]);
+      callback(searchDienThoaiLocal(branch, query));
     });
     setupDatalistSearch('dt-maSP-Nhan', 'dt-maSP-Nhan-list', function(query, callback) {
       var branch = document.getElementById('dt-chiNhanh').value;
-      if (!branch) return;
+      if (!branch) return callback([]);
       var doiTuong = document.getElementById('dt-doiTuong').value;
       if (doiTuong === 'Quà tặng kèm') {
-        google.script.run.withSuccessHandler(callback).getPhuKienDropdownSearch(branch, query);
+        callback(searchPhuKienLocal(branch, query));
       } else {
         var loaiGD = document.getElementById('dt-loaiGD').value;
         if (loaiGD === 'Đổi máy') {
-          google.script.run.withSuccessHandler(callback).getDienThoaiDropdownSearch(branch, query);
+          callback(searchDienThoaiLocal(branch, query));
         } else {
-          google.script.run.withSuccessHandler(callback).getPhuKienDropdownSearch(branch, query);
+          callback(searchPhuKienLocal(branch, query));
         }
       }
     });
     setupDatalistSearch('tm-maSP-Moi', 'tm-maSP-Moi-list', function(query, callback) {
       var branch = document.getElementById('tm-chiNhanh').value;
-      if (!branch) return;
-      google.script.run.withSuccessHandler(callback).getDienThoaiDropdownSearch(branch, query);
+      if (!branch) return callback([]);
+      callback(searchDienThoaiLocal(branch, query));
     });
     setupDatalistSearch('tt-maTG', 'tt-maTG-list', function(query, callback) {
       google.script.run.withSuccessHandler(callback).getTraGopDropdownSearch(query);
     });
     setupDatalistSearch('nk-pkCu-maSP', 'nk-pkCu-maSP-list', function(query, callback) {
-      google.script.run.withSuccessHandler(callback).getPhuKienUniqueListSearch(query);
+      callback(searchPhuKienUniqueLocal(query));
     });
 
     setupMultiSelectDatalist('dh-maQuaTang', 'dh-maQuaTang-list');
@@ -162,9 +229,8 @@
   }
 
   function loadPhuKienCuDropdown() {
-    google.script.run.withSuccessHandler(function(items) {
-      populateDatalist('nk-pkCu-maSP', 'nk-pkCu-maSP-list', items);
-    }).getPhuKienUniqueList();
+    var items = localCache.phuKienUnique || [];
+    populateDatalist('nk-pkCu-maSP', 'nk-pkCu-maSP-list', items);
   }
 
   function loadTraGopDropdown() {
@@ -409,24 +475,32 @@
       var dl = document.getElementById(listId);
       if (!dl) return;
 
-      if (val.length < 4) {
+      var isLocal = (inputId === 'dh-maSP' || inputId === 'ck-maSP' || inputId === 'dt-maSP-Nhan' || inputId === 'tm-maSP-Moi' || inputId === 'nk-pkCu-maSP');
+      var minLength = isLocal ? 1 : 4;
+
+      if (val.length < minLength) {
         dl.innerHTML = '';
         return;
       }
 
       clearTimeout(debounceTimeout);
 
-      // Hiển thị trạng thái đang tìm
-      dl.innerHTML = '';
-      var loadOpt = document.createElement('option');
-      loadOpt.value = '\u23F3 \u0110ang t\u00ECm ki\u1EBFm...';
-      dl.appendChild(loadOpt);
-
-      debounceTimeout = setTimeout(function() {
+      if (isLocal) {
         searchFunc(val, function(items) {
           populateDatalist(inputId, listId, items || []);
         });
-      }, 500);
+      } else {
+        dl.innerHTML = '';
+        var loadOpt = document.createElement('option');
+        loadOpt.value = '\u23F3 \u0110ang t\u00ECm ki\u1EBFm...';
+        dl.appendChild(loadOpt);
+
+        debounceTimeout = setTimeout(function() {
+          searchFunc(val, function(items) {
+            populateDatalist(inputId, listId, items || []);
+          });
+        }, 500);
+      }
     });
   }
 
@@ -490,14 +564,12 @@
       return;
     }
 
-    spInput.placeholder = 'Nhập ít nhất 4 ký tự để tìm...';
+    spInput.placeholder = 'Gõ để tìm kiếm...';
     if (spList) spList.innerHTML = '';
 
-    quaInput.placeholder = 'Đang tải quà tặng...';
-    google.script.run.withSuccessHandler(function(items) {
-      quaInput.placeholder = 'Gõ để tìm quà tặng...';
-      populateDatalist('dh-maQuaTang', 'dh-maQuaTang-list', items);
-    }).getPhuKienDropdown(branch);
+    quaInput.placeholder = 'Gõ để tìm quà tặng...';
+    var giftItems = searchPhuKienLocal(branch, '');
+    populateDatalist('dh-maQuaTang', 'dh-maQuaTang-list', giftItems);
   }
 
   function onSanPhamChange() {
@@ -1085,14 +1157,12 @@
       return;
     }
 
-    phoneInput.placeholder = 'Nhập ít nhất 4 ký tự để tìm...';
+    phoneInput.placeholder = 'Gõ để tìm kiếm...';
     if (phoneList) phoneList.innerHTML = '';
 
-    quaInput.placeholder = 'Đang tải quà tặng...';
-    google.script.run.withSuccessHandler(function(items) {
-      quaInput.placeholder = 'Gõ để tìm quà tặng...';
-      populateDatalist('tm-maQuaTang', 'tm-maQuaTang-list', items);
-    }).getPhuKienDropdown(branch);
+    quaInput.placeholder = 'Gõ để tìm quà tặng...';
+    var giftItems = searchPhuKienLocal(branch, '');
+    populateDatalist('tm-maQuaTang', 'tm-maQuaTang-list', giftItems);
   }
 
   function onThuMuaCoNhanQuaChange() {
@@ -1305,7 +1375,7 @@
       if (data.hinhThucBan === 'Trả góp') {
         data.traGop = {
           traTruoc: (document.getElementById('dh-hinhThucTT').value === 'Hỗn hợp')
-            ? (Number(document.getElementById('dh-split-chuyenKhoan').value) + "," + Number(document.getElementById('dh-split-tienMat').value))
+            ? (Number(document.getElementById('dh-split-chuyenKhoan').value) + Number(document.getElementById('dh-split-tienMat').value))
             : (Number(document.getElementById('tg-traTruoc').value) || 0),
           soKy: Number(document.getElementById('tg-soKy').value) || 6,
           loaiTraGop: document.getElementById('tg-loai').value,
@@ -1337,7 +1407,7 @@
         setLoading('btnTaoDonHang', false);
         showAlertMsg('success', '✅ Đã tạo đơn hàng: <strong>' + maDH + '</strong>');
         resetFormDonHang();
-        onDonHangBranchOrNguonChange();
+        preloadInventoryData(onDonHangBranchOrNguonChange);
       })
       .withFailureHandler(function(err) {
         setLoading('btnTaoDonHang', false);
@@ -1470,7 +1540,7 @@
         setLoading('btnNhapKho', false);
         showAlertMsg('success', '✅ Đã nhập kho: <strong>' + maNK + '</strong>');
         resetFormNhapKho();
-        loadPhuKienCuDropdown();
+        preloadInventoryData(loadPhuKienCuDropdown);
       })
       .withFailureHandler(function(err) {
         setLoading('btnNhapKho', false);
@@ -1633,7 +1703,7 @@
         showAlertMsg('success', '✅ Đã chuyển kho thành công sản phẩm: ' + maSP);
         document.getElementById('ck-maSP').value = '';
         document.getElementById('ck-soLuong').value = 1;
-        onChuyenKhoBranchOrNguonChange();
+        preloadInventoryData(onChuyenKhoBranchOrNguonChange);
       })
       .withFailureHandler(function(err) {
         setLoading('btnChuyenKho', false);
@@ -1694,6 +1764,7 @@
         document.getElementById('dt-maSP-Nhan').value = '';
         document.getElementById('dt-nguoiThucHien').value = '';
         originalOrderData = null;
+        preloadInventoryData();
       })
       .withFailureHandler(function(err) {
         setLoading('btnDoiTra', false);
@@ -1829,6 +1900,7 @@
         if (document.getElementById('tm-maQuaTang').clearTags) {
           document.getElementById('tm-maQuaTang').clearTags();
         }
+        preloadInventoryData();
       })
       .withFailureHandler(function(err) {
         setLoading('btnThuMua', false);

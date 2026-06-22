@@ -18,71 +18,95 @@
  * @return {string} Mã dịch vụ mới
  */
 function taoDichVu(data) {
-  var maDV = generateId("DV", SHEET_NAMES.DICH_VU);
-  var chiNhanh = data.chiNhanh;
+  return runWithLock(function() {
+    initializeColumnEnums();
+    var maDV = generateId("DV", SHEET_NAMES.DICH_VU);
+    var chiNhanh = data.chiNhanh;
 
-  if (!chiNhanh) {
-    throw new Error("Vui lòng chọn chi nhánh thực hiện giao dịch!");
-  }
-
-  // Auto lookup tên NV
-  var tenNguoiThucHien = "";
-  if (data.nguoiThucHien) {
-    tenNguoiThucHien =
-      lookupValue(SHEET_NAMES.NHAN_VIEN, 1, data.nguoiThucHien, 2) || "";
-  }
-
-  // Auto lookup tên KH nếu có mã KH
-  var tenKH = data.tenKH || "";
-  if (data.maKH && !tenKH) {
-    tenKH = lookupValue(SHEET_NAMES.KHACH_HANG, 1, data.maKH, 2) || "";
-  }
-
-  // Xác định phí dịch vụ
-  var phiDichVu = Number(data.phiDichVu) || 0;
-  if (data.loaiDichVu === "Nạp thẻ điện thoại") {
-    phiDichVu = 0; // Nạp thẻ miễn phí
-  } else if (phiDichVu === 0) {
-    // Lấy phí từ cấu hình nếu chưa nhập
-    if (data.loaiDichVu === "Chuyển khoản hộ") {
-      phiDichVu = getConfigNumber("Phí CK hộ");
-    } else if (data.loaiDichVu === "Rút tiền mặt") {
-      phiDichVu = getConfigNumber("Phí Rút tiền");
+    if (!chiNhanh) {
+      throw new Error("Vui lòng chọn chi nhánh thực hiện giao dịch!");
     }
-  }
 
-  var rowData = [
-    maDV,
-    new Date(), // NgayGiaoDich
-    data.loaiDichVu || "",
-    data.maKH || "",
-    tenKH,
-    data.soDienThoaiKH || "",
-    (data.hinhThucThanhToan === "Hỗn hợp" && data.splitChuyenKhoan !== undefined)
-      ? (data.splitChuyenKhoan + "," + data.splitTienMat)
-      : (Number(data.soTienGiaoDich) || 0),
-    phiDichVu,
-    data.hinhThucThanhToan || "Tiền mặt",
-    data.nguoiThucHien || "",
-    tenNguoiThucHien,
-    "Hoàn thành",
-    data.ghiChu || "",
-    chiNhanh, // 14th column
-  ];
+    // Auto lookup tên NV
+    var tenNguoiThucHien = "";
+    if (data.nguoiThucHien) {
+      tenNguoiThucHien =
+        lookupValue(SHEET_NAMES.NHAN_VIEN, 1, data.nguoiThucHien, 2) || "";
+    }
 
-  appendRow(SHEET_NAMES.DICH_VU, rowData);
-  showToast(
-    "✅ Đã tạo dịch vụ: " +
-      data.loaiDichVu +
-      " (" +
-      maDV +
-      ")\nSố tiền: " +
-      formatCurrency(data.soTienGiaoDich) +
-      "đ | Phí: " +
-      formatCurrency(phiDichVu) +
-      "đ",
-  );
-  return maDV;
+    // Auto lookup tên KH nếu có mã KH
+    var tenKH = data.tenKH || "";
+    if (data.maKH && !tenKH) {
+      tenKH = lookupValue(SHEET_NAMES.KHACH_HANG, 1, data.maKH, 2) || "";
+    }
+
+    // Xác định phí dịch vụ
+    var phiDichVu = Number(data.phiDichVu) || 0;
+    if (data.loaiDichVu === "Nạp thẻ điện thoại") {
+      phiDichVu = 0; // Nạp thẻ miễn phí
+    } else if (phiDichVu === 0) {
+      // Lấy phí từ cấu hình nếu chưa nhập
+      if (data.loaiDichVu === "Chuyển khoản hộ") {
+        phiDichVu = getConfigNumber("Phí CK hộ");
+      } else if (data.loaiDichVu === "Rút tiền mặt") {
+        phiDichVu = getConfigNumber("Phí Rút tiền");
+      }
+    }
+
+    var soTienGiaoDich = Number(data.soTienGiaoDich) || 0;
+
+    // Backend validation for Hỗn hợp payments
+    if (data.hinhThucThanhToan === "Hỗn hợp") {
+      var tongThanhToan = (Number(data.splitChuyenKhoan) || 0) + (Number(data.splitTienMat) || 0);
+      var soTienYeuCau = soTienGiaoDich + phiDichVu;
+      if (Math.abs(tongThanhToan - soTienYeuCau) > 1) {
+        throw new Error("Lỗi dữ liệu: Tổng tiền mặt (" + data.splitTienMat + ") và chuyển khoản (" + data.splitChuyenKhoan + ") không khớp với số tiền cần thanh toán (" + soTienYeuCau + ")!");
+      }
+    }
+
+    var tienMat = 0;
+    var chuyenKhoan = 0;
+    if (data.hinhThucThanhToan === "Hỗn hợp") {
+      tienMat = Number(data.splitTienMat) || 0;
+      chuyenKhoan = Number(data.splitChuyenKhoan) || 0;
+    } else if (data.hinhThucThanhToan === "Tiền mặt") {
+      tienMat = soTienGiaoDich + phiDichVu;
+    } else {
+      chuyenKhoan = soTienGiaoDich + phiDichVu;
+    }
+
+    var rowData = [];
+    rowData[COL_DV.MA_DV - 1] = maDV;
+    rowData[COL_DV.NGAY_GD - 1] = new Date();
+    rowData[COL_DV.LOAI_DV - 1] = data.loaiDichVu || "";
+    rowData[COL_DV.MA_KH - 1] = data.maKH || "";
+    rowData[COL_DV.TEN_KH - 1] = tenKH;
+    rowData[COL_DV.SDT_KH - 1] = data.soDienThoaiKH || "";
+    rowData[COL_DV.SO_TIEN_GD - 1] = soTienGiaoDich;
+    rowData[COL_DV.PHI_DV - 1] = phiDichVu;
+    rowData[COL_DV.HINH_THUC_TT - 1] = data.hinhThucThanhToan || "Tiền mặt";
+    rowData[COL_DV.NGUOI_THUC_HIEN - 1] = data.nguoiThucHien || "";
+    rowData[COL_DV.TEN_NGUOI_THUC_HIEN - 1] = tenNguoiThucHien;
+    rowData[COL_DV.TRANG_THAI - 1] = "Hoàn thành";
+    rowData[COL_DV.GHI_CHU - 1] = data.ghiChu || "";
+    rowData[COL_DV.CHI_NHANH - 1] = chiNhanh;
+    rowData[COL_DV.TIEN_MAT - 1] = tienMat;
+    rowData[COL_DV.CHUYEN_KHOAN - 1] = chuyenKhoan;
+
+    appendRow(SHEET_NAMES.DICH_VU, rowData);
+    showToast(
+      "✅ Đã tạo dịch vụ: " +
+        data.loaiDichVu +
+        " (" +
+        maDV +
+        ")\nSố tiền: " +
+        formatCurrency(data.soTienGiaoDich) +
+        "đ | Phí: " +
+        formatCurrency(phiDichVu) +
+        "đ",
+    );
+    return maDV;
+  });
 }
 
 /**
