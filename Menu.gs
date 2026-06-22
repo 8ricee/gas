@@ -11,8 +11,8 @@
 function createCustomMenu() {
   var ui = SpreadsheetApp.getUi();
 
-  ui.createMenu("VanTran Store")
-    .addItem("Bảng điều khiển ", "showSidebar")
+  ui.createMenu("Bà xã hơm")
+    .addItem("Dịch vụ", "showSidebar")
     .addSeparator()
     .addSubMenu(
       ui
@@ -47,7 +47,7 @@ function createCustomMenu() {
 function showSidebar() {
   var html = HtmlService.createTemplateFromFile("Sidebar");
   html.mode = "donHang"; // Mặc định mở phần Đơn hàng
-  var output = html.evaluate().setTitle("VanTran Mobile — Quản lý cửa hàng");
+  var output = html.evaluate().setTitle("Bà xã hay hờn");
   SpreadsheetApp.getUi().showSidebar(output);
 }
 

@@ -320,8 +320,8 @@ function setupSheets() {
     var ui = SpreadsheetApp.getUi();
     if (ui) {
       var result = ui.alert(
-        "⚙️ Khởi tạo hệ thống",
-        "Hệ thống sẽ tạo 13 sheet mới.\n\nCác sheet đã tồn tại sẽ KHÔNG bị ghi đè.\n\nBạn có muốn tiếp tục?",
+        "Khởi tạo hệ thống",
+        "Hệ thống sẽ tạo các sheet mới.\n\nCác sheet đã tồn tại sẽ KHÔNG bị ghi đè.\n\nBạn có muốn tiếp tục?",
         ui.ButtonSet.YES_NO,
       );
       if (result === ui.Button.YES) {
