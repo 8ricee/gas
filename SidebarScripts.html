@@ -1,0 +1,2269 @@
+<script>
+  // ==================== NAV TABS ====================
+  document.querySelectorAll('.nav-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      // Update active tab
+      document.querySelectorAll('.nav-tab').forEach(function(t) { t.classList.remove('active'); });
+      this.classList.add('active');
+
+      // Show corresponding section
+      var sectionId = 'section-' + this.dataset.section;
+      document.querySelectorAll('.form-section').forEach(function(s) { s.classList.remove('active'); });
+      var activeSec = document.getElementById(sectionId);
+      if (activeSec) activeSec.classList.add('active');
+
+      hideAlert();
+    });
+  });
+
+  // ==================== ALERT ====================
+  function showAlertMsg(type, msg) {
+    var box = document.getElementById('alertBox');
+    box.className = 'alert alert-' + type + ' show';
+    box.innerHTML = msg;
+    // Auto hide after 5s for success
+    if (type === 'success') {
+      setTimeout(function() { box.classList.remove('show'); }, 5000);
+    }
+  }
+
+  // Helper to append options with Vietnamese accents for datalist and selectors
+  function hideAlert() {
+    document.getElementById('alertBox').classList.remove('show');
+  }
+
+  // ==================== LOADING ====================
+  function setLoading(btnId, loading) {
+    var btn = document.getElementById(btnId);
+    if (!btn) return;
+    if (loading) {
+      btn.disabled = true;
+      btn.dataset.originalText = btn.innerHTML;
+      btn.innerHTML = '<span class="spinner"></span> Đang xử lý...';
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = btn.dataset.originalText || btn.innerHTML;
+    }
+  }
+
+  var branchesCached = [];
+
+  var originalOrderPrice = 0;
+  var originalOrderData = null;
+
+  // ==================== INIT — LOAD DATA ====================
+  function init() {
+    // Set default month/year for Doanh số
+    var now = new Date();
+    var curMonth = now.getMonth() + 1;
+    var curYear = now.getFullYear();
+    var dsThang = document.getElementById('ds-thang');
+    if (dsThang) dsThang.value = curMonth;
+    var dsNam = document.getElementById('ds-nam');
+    if (dsNam) dsNam.value = curYear;
+
+    // Load branches
+    google.script.run.withSuccessHandler(function(items) {
+      branchesCached = items;
+      populateSelect('dh-chiNhanh', items);
+      populateSelect('nk-chiNhanh', items);
+      populateSelect('dv-chiNhanh', items);
+      populateSelect('ck-cnNguon', items);
+      populateSelect('ck-cnDich', items);
+      populateSelect('dt-chiNhanh', items);
+      populateSelect('tm-chiNhanh', items);
+    }).getBranchesDropdown();
+
+    // Load branches
+
+    // Load staff
+    google.script.run.withSuccessHandler(function(items) {
+      populateDatalist('dh-nguoiBan', 'dh-nguoiBan-list', items);
+      populateDatalist('dh-nguoiHoTro', 'dh-nguoiHoTro-list', items, true);
+      populateDatalist('dv-nguoiThucHien', 'dv-nguoiThucHien-list', items);
+      populateDatalist('dt-nguoiThucHien', 'dt-nguoiThucHien-list', items);
+      populateDatalist('tm-nguoiThucHien', 'tm-nguoiThucHien-list', items);
+    }).getNhanVienDropdown();
+
+    // Load finance companies
+    google.script.run.withSuccessHandler(function(items) {
+      populateSelect('tg-congTyTC', items);
+      populateSelect('tm-tg-congTyTC', items);
+    }).getFinanceCompaniesDropdown();
+
+    // Load phone brands
+    google.script.run.withSuccessHandler(function(items) {
+      populateSelect('nk-thuongHieu', items);
+      populateSelect('tm-thuongHieu-Thu', items);
+    }).getBrandsDropdown();
+
+    // Removed preloads for dynamic search (Khach hang, Phu kien cu, Tra gop)
+
+    // Load initial mode tab
+    if (typeof initialMode !== 'undefined' && initialMode) {
+      var activeTab = document.querySelector('.nav-tab[data-section="' + initialMode + '"]');
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+
+    // Set up dynamic search (>= 4 characters) for large datasets
+    setupDatalistSearch('dh-maKH', 'dh-maKH-list', function(query, callback) {
+      google.script.run.withSuccessHandler(callback).getKhachHangDropdownSearch(query);
+    });
+    setupDatalistSearch('tm-maKH', 'tm-maKH-list', function(query, callback) {
+      google.script.run.withSuccessHandler(callback).getKhachHangDropdownSearch(query);
+    });
+    setupDatalistSearch('dh-maSP', 'dh-maSP-list', function(query, callback) {
+      var branch = document.getElementById('dh-chiNhanh').value;
+      var source = document.getElementById('dh-nguonSP').value;
+      if (!branch) return;
+      if (source === 'Điện thoại') {
+        google.script.run.withSuccessHandler(callback).getDienThoaiDropdownSearch(branch, query);
+      } else {
+        google.script.run.withSuccessHandler(callback).getPhuKienDropdownSearch(branch, query);
+      }
+    });
+    setupDatalistSearch('ck-maSP', 'ck-maSP-list', function(query, callback) {
+      var branch = document.getElementById('ck-cnNguon').value;
+      if (!branch) return;
+      google.script.run.withSuccessHandler(callback).getDienThoaiDropdownSearch(branch, query);
+    });
+    setupDatalistSearch('dt-maSP-Nhan', 'dt-maSP-Nhan-list', function(query, callback) {
+      var branch = document.getElementById('dt-chiNhanh').value;
+      if (!branch) return;
+      var doiTuong = document.getElementById('dt-doiTuong').value;
+      if (doiTuong === 'Quà tặng kèm') {
+        google.script.run.withSuccessHandler(callback).getPhuKienDropdownSearch(branch, query);
+      } else {
+        var loaiGD = document.getElementById('dt-loaiGD').value;
+        if (loaiGD === 'Đổi máy') {
+          google.script.run.withSuccessHandler(callback).getDienThoaiDropdownSearch(branch, query);
+        } else {
+          google.script.run.withSuccessHandler(callback).getPhuKienDropdownSearch(branch, query);
+        }
+      }
+    });
+    setupDatalistSearch('tm-maSP-Moi', 'tm-maSP-Moi-list', function(query, callback) {
+      var branch = document.getElementById('tm-chiNhanh').value;
+      if (!branch) return;
+      google.script.run.withSuccessHandler(callback).getDienThoaiDropdownSearch(branch, query);
+    });
+    setupDatalistSearch('tt-maTG', 'tt-maTG-list', function(query, callback) {
+      google.script.run.withSuccessHandler(callback).getTraGopDropdownSearch(query);
+    });
+    setupDatalistSearch('nk-pkCu-maSP', 'nk-pkCu-maSP-list', function(query, callback) {
+      google.script.run.withSuccessHandler(callback).getPhuKienUniqueListSearch(query);
+    });
+
+    setupMultiSelectDatalist('dh-maQuaTang', 'dh-maQuaTang-list');
+    setupMultiSelectDatalist('tm-maQuaTang', 'tm-maQuaTang-list');
+    setupMultiSelectDatalist('dh-nguoiHoTro', 'dh-nguoiHoTro-list');
+  }
+
+  function loadPhuKienCuDropdown() {
+    google.script.run.withSuccessHandler(function(items) {
+      populateDatalist('nk-pkCu-maSP', 'nk-pkCu-maSP-list', items);
+    }).getPhuKienUniqueList();
+  }
+
+  function loadTraGopDropdown() {
+    google.script.run.withSuccessHandler(function(items) {
+      populateDatalist('tt-maTG', 'tt-maTG-list', items);
+    }).getTraGopDropdown();
+  }
+
+  function populateSelect(selectId, items, addEmpty) {
+    var sel = document.getElementById(selectId);
+    if (!sel) return;
+    var firstOption = sel.options[0];
+    sel.innerHTML = '';
+    if (firstOption) {
+      sel.appendChild(firstOption);
+    }
+
+    if (addEmpty) {
+      var emptyOpt = document.createElement('option');
+      emptyOpt.value = '';
+      emptyOpt.textContent = '-- Không --';
+      sel.insertBefore(emptyOpt, sel.firstChild);
+    }
+
+    items.forEach(function(item) {
+      var opt = document.createElement('option');
+      opt.value = item.value;
+      opt.textContent = item.text;
+      if (item.giaBan !== undefined) opt.dataset.giaBan = item.giaBan;
+      if (item.giaTraGop !== undefined) opt.dataset.giaTraGop = item.giaTraGop;
+      if (item.soTienCanTra !== undefined) opt.dataset.soTienCanTra = item.soTienCanTra;
+      if (item.tienMoiKy !== undefined) opt.dataset.tienMoiKy = item.tienMoiKy;
+      sel.appendChild(opt);
+    });
+  }
+
+  function extractId(val, isMulti) {
+    if (!val) return '';
+    if (isMulti && val.indexOf(',') !== -1) {
+      return val.split(',').map(function(item) {
+        return extractIdSingle(item.trim());
+      }).filter(Boolean).join(', ');
+    }
+    return extractIdSingle(val);
+  }
+
+  function extractImei(val) {
+    if (!val) return '';
+    var match = val.match(/IMEI:\s*([^\s\|)]+)/i);
+    return match ? match[1].trim() : '';
+  }
+
+  function extractIdSingle(val) {
+    if (!val) return '';
+    var parts = val.split(' - ');
+    var prefix = parts[0].trim();
+    if (prefix.indexOf('Kỳ') === 0) {
+      return prefix.replace('Kỳ', '').trim();
+    }
+    return prefix;
+  }
+
+  function setupMultiSelectDatalist(inputId, listId) {
+    var originalInput = document.getElementById(inputId);
+    if (!originalInput) return;
+
+    var container = document.createElement('div');
+    container.className = 'tag-container';
+    
+    var tagInput = document.createElement('input');
+    tagInput.type = 'text';
+    tagInput.className = 'tag-input-field';
+    tagInput.placeholder = originalInput.placeholder || 'Gõ để tìm...';
+    tagInput.setAttribute('list', listId);
+
+    originalInput.parentNode.insertBefore(container, originalInput);
+    container.appendChild(tagInput);
+    originalInput.style.display = 'none';
+
+    var tags = [];
+
+    function syncValue() {
+      var joinedVal = tags.map(function(t) { return t.text; }).join(', ');
+      var descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+      descriptor.set.call(originalInput, joinedVal);
+      
+      var event = document.createEvent('HTMLEvents');
+      event.initEvent('change', true, false);
+      originalInput.dispatchEvent(event);
+    }
+
+    function addTag(text) {
+      text = text.trim();
+      if (!text) return;
+      
+      if (text.indexOf(',') !== -1) {
+        var parts = text.split(',');
+        parts.forEach(function(p) {
+          addTag(p);
+        });
+        tagInput.value = '';
+        return;
+      }
+
+      var exists = tags.some(function(t) { return t.text === text; });
+      if (exists) {
+        tagInput.value = '';
+        return;
+      }
+      
+      var tagEl = document.createElement('span');
+      tagEl.className = 'tag';
+      tagEl.textContent = text;
+      
+      var closeBtn = document.createElement('span');
+      closeBtn.className = 'tag-close';
+      closeBtn.innerHTML = '&times;';
+      closeBtn.onclick = function(e) {
+        e.stopPropagation();
+        if (tagEl.parentNode) {
+          container.removeChild(tagEl);
+        }
+        tags = tags.filter(function(t) { return t.element !== tagEl; });
+        syncValue();
+      };
+      
+      tagEl.appendChild(closeBtn);
+      container.insertBefore(tagEl, tagInput);
+      
+      tags.push({ text: text, element: tagEl });
+      tagInput.value = '';
+      syncValue();
+    }
+
+    originalInput.clearTags = function() {
+      tags.forEach(function(t) {
+        if (t.element.parentNode) {
+          container.removeChild(t.element);
+        }
+      });
+      tags = [];
+      tagInput.value = '';
+      var descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+      descriptor.set.call(originalInput, '');
+    };
+
+    originalInput.setTagsFromValue = function(val) {
+      tags.forEach(function(t) {
+        if (t.element.parentNode) {
+          container.removeChild(t.element);
+        }
+      });
+      tags = [];
+      
+      if (val) {
+        var parts = val.split(',');
+        parts.forEach(function(p) {
+          addTag(p.trim());
+        });
+      }
+    };
+
+    var nativeValueDesc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+    Object.defineProperty(originalInput, 'value', {
+      get: function() {
+        return nativeValueDesc.get.call(originalInput);
+      },
+      set: function(val) {
+        nativeValueDesc.set.call(originalInput, val);
+        originalInput.setTagsFromValue(val);
+      },
+      configurable: true
+    });
+
+    tagInput.addEventListener('input', function() {
+      var val = tagInput.value;
+      var dl = document.getElementById(listId);
+      if (!dl) return;
+      var opts = dl.querySelectorAll('option');
+      for (var i = 0; i < opts.length; i++) {
+        if (opts[i].value === val) {
+          addTag(val);
+          break;
+        }
+      }
+    });
+
+    tagInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addTag(tagInput.value);
+      } else if (e.key === ',') {
+        e.preventDefault();
+        addTag(tagInput.value);
+      } else if (e.key === 'Backspace' && tagInput.value === '') {
+        if (tags.length > 0) {
+          var lastTag = tags.pop();
+          if (lastTag.element.parentNode) {
+            container.removeChild(lastTag.element);
+          }
+          syncValue();
+        }
+      }
+    });
+
+    container.addEventListener('click', function() {
+      tagInput.focus();
+    });
+  }
+
+  function populateDatalist(inputId, listId, items, addEmpty) {
+    var dl = document.getElementById(listId);
+    if (!dl) return;
+    dl.innerHTML = '';
+
+    if (addEmpty) {
+      var emptyOpt = document.createElement('option');
+      emptyOpt.value = '';
+      dl.appendChild(emptyOpt);
+    }
+
+    items.forEach(function(item) {
+      var opt = document.createElement('option');
+      opt.value = item.text || item.value;
+      opt.dataset.id = item.value;
+      if (item.giaBan !== undefined) opt.dataset.giaBan = item.giaBan;
+      if (item.giaTraGop !== undefined) opt.dataset.giaTraGop = item.giaTraGop;
+      if (item.soTienCanTra !== undefined) opt.dataset.soTienCanTra = item.soTienCanTra;
+      if (item.tienMoiKy !== undefined) opt.dataset.tienMoiKy = item.tienMoiKy;
+      dl.appendChild(opt);
+    });
+  }
+
+  function setupDatalistSearch(inputId, listId, searchFunc) {
+    var input = document.getElementById(inputId);
+    if (!input) return;
+
+    var debounceTimeout = null;
+
+    input.addEventListener('input', function() {
+      var val = input.value.trim();
+      var dl = document.getElementById(listId);
+      if (!dl) return;
+
+      if (val.length < 4) {
+        dl.innerHTML = '';
+        return;
+      }
+
+      clearTimeout(debounceTimeout);
+
+      // Hiển thị trạng thái đang tìm
+      dl.innerHTML = '';
+      var loadOpt = document.createElement('option');
+      loadOpt.value = '\u23F3 \u0110ang t\u00ECm ki\u1EBFm...';
+      dl.appendChild(loadOpt);
+
+      debounceTimeout = setTimeout(function() {
+        searchFunc(val, function(items) {
+          populateDatalist(inputId, listId, items || []);
+        });
+      }, 500);
+    });
+  }
+
+  // ==================== EVENT HANDLERS ====================
+
+  function onDonHangBranchOrNguonChange() {
+    var branch = document.getElementById('dh-chiNhanh').value;
+    var source = document.getElementById('dh-nguonSP').value;
+    var spInput = document.getElementById('dh-maSP');
+    var quaInput = document.getElementById('dh-maQuaTang');
+    var spList = document.getElementById('dh-maSP-list');
+    var quaList = document.getElementById('dh-maQuaTang-list');
+
+    var htbSelect = document.getElementById('dh-hinhThucBan');
+    var accContainer = document.getElementById('dh-accessories-container');
+    var stdQtyPriceRow = document.getElementById('dh-standard-qty-price-row');
+    var giftRow = document.getElementById('dh-coNhanQua') ? document.getElementById('dh-coNhanQua').parentNode.parentNode : null;
+
+    if (source === 'Điện thoại') {
+      if (accContainer) accContainer.style.display = 'none';
+      if (stdQtyPriceRow) stdQtyPriceRow.style.display = 'flex';
+      if (giftRow) giftRow.style.display = 'flex';
+      var accList = document.getElementById('dh-accessories-list');
+      if (accList) accList.innerHTML = '';
+
+      document.getElementById('dh-soLuong').value = 1;
+      document.getElementById('dh-soLuong').disabled = true;
+      if (htbSelect.options.length < 2) {
+        var opt = document.createElement('option');
+        opt.value = 'Trả góp';
+        opt.textContent = 'Trả góp';
+        htbSelect.appendChild(opt);
+      }
+    } else {
+      if (accContainer) accContainer.style.display = 'block';
+      if (stdQtyPriceRow) stdQtyPriceRow.style.display = 'none';
+      if (giftRow) giftRow.style.display = 'none';
+      
+      var coNhan = document.getElementById('dh-coNhanQua');
+      if (coNhan) {
+        coNhan.value = '✗';
+        onCoNhanQuaChange();
+      }
+
+      document.getElementById('dh-soLuong').disabled = false;
+      htbSelect.value = 'Bán thẳng';
+      if (htbSelect.options.length >= 2) {
+        htbSelect.remove(1);
+      }
+      onHinhThucBanChange();
+    }
+
+    spInput.value = '';
+    quaInput.value = '';
+
+    if (!branch) {
+      spInput.placeholder = 'Chọn chi nhánh trước';
+      quaInput.placeholder = 'Chọn chi nhánh trước';
+      if (spList) spList.innerHTML = '';
+      if (quaList) quaList.innerHTML = '';
+      return;
+    }
+
+    spInput.placeholder = 'Nhập ít nhất 4 ký tự để tìm...';
+    if (spList) spList.innerHTML = '';
+
+    quaInput.placeholder = 'Đang tải quà tặng...';
+    google.script.run.withSuccessHandler(function(items) {
+      quaInput.placeholder = 'Gõ để tìm quà tặng...';
+      populateDatalist('dh-maQuaTang', 'dh-maQuaTang-list', items);
+    }).getPhuKienDropdown(branch);
+  }
+
+  function onSanPhamChange() {
+    var val = document.getElementById('dh-maSP').value;
+    var dl = document.getElementById('dh-maSP-list');
+    if (!dl) return;
+    var opts = dl.querySelectorAll('option');
+    var selectedOpt = null;
+    for (var i = 0; i < opts.length; i++) {
+      if (opts[i].value === val) {
+        selectedOpt = opts[i];
+        break;
+      }
+    }
+    if (selectedOpt) {
+      var source = document.getElementById('dh-nguonSP').value;
+      if (source === 'Phụ kiện') {
+        var id = selectedOpt.dataset.id || extractId(val);
+        var price = Number(selectedOpt.dataset.giaBan) || 0;
+        addAccessoryRow(id, val, price);
+        document.getElementById('dh-maSP').value = ''; // Xoá ô nhập liệu để tìm phụ kiện tiếp theo
+      } else {
+        if (selectedOpt.dataset.giaBan) {
+          var hinhThuc = document.getElementById('dh-hinhThucBan').value;
+          if (hinhThuc === 'Trả góp' && selectedOpt.dataset.giaTraGop) {
+            document.getElementById('dh-donGia').value = selectedOpt.dataset.giaTraGop;
+          } else {
+            document.getElementById('dh-donGia').value = selectedOpt.dataset.giaBan;
+          }
+          tinhThanhTien();
+        }
+      }
+    }
+  }
+
+  function addAccessoryRow(id, name, price) {
+    var existingRow = document.querySelector('#dh-accessories-list tr[data-id="' + id + '"]');
+    if (existingRow) {
+      var qtyInput = existingRow.querySelector('.acc-qty');
+      qtyInput.value = parseInt(qtyInput.value) + 1;
+      tinhThanhTienAccRow(existingRow);
+      return;
+    }
+
+    var tbody = document.getElementById('dh-accessories-list');
+    var tr = document.createElement('tr');
+    tr.setAttribute('data-id', id);
+    tr.style.borderBottom = '1px solid #dadce0';
+
+    tr.innerHTML = 
+      '<td style="padding: 6px 8px; text-align: left; vertical-align: middle;">' + name + '</td>' +
+      '<td style="padding: 6px 8px; text-align: center; vertical-align: middle;"><input type="number" value="1" min="1" class="acc-qty" style="width: 50px; text-align: center; padding: 4px;" onchange="tinhThanhTienAccRow(this.parentNode.parentNode)"></td>' +
+      '<td style="padding: 6px 8px; text-align: right; vertical-align: middle;"><input type="number" value="' + price + '" class="acc-price" style="width: 80px; text-align: right; padding: 4px;" onchange="tinhThanhTienAccRow(this.parentNode.parentNode)"></td>' +
+      '<td style="padding: 6px 8px; text-align: right; vertical-align: middle;" class="acc-total">' + formatNumber(price) + ' đ</td>' +
+      '<td style="padding: 6px 8px; text-align: center; vertical-align: middle;"><button type="button" class="btn btn-danger" style="padding: 2px 6px; border: none; border-radius: 4px; cursor: pointer; width: auto; margin: 0; font-size: 11px;" onclick="removeAccessoryRow(this)">X</button></td>';
+
+    tbody.appendChild(tr);
+    tinhTongTienAcc();
+  }
+
+  function tinhThanhTienAccRow(row) {
+    var qty = parseInt(row.querySelector('.acc-qty').value) || 0;
+    var price = parseFloat(row.querySelector('.acc-price').value) || 0;
+    var total = qty * price;
+    row.querySelector('.acc-total').textContent = formatNumber(total) + ' đ';
+    tinhTongTienAcc();
+  }
+
+  function removeAccessoryRow(btn) {
+    var row = btn.parentNode.parentNode;
+    row.parentNode.removeChild(row);
+    tinhTongTienAcc();
+  }
+
+  function tinhTongTienAcc() {
+    var rows = document.querySelectorAll('#dh-accessories-list tr');
+    var grandTotal = 0;
+    rows.forEach(function(row) {
+      var qty = parseInt(row.querySelector('.acc-qty').value) || 0;
+      var price = parseFloat(row.querySelector('.acc-price').value) || 0;
+      grandTotal += (qty * price);
+    });
+
+    var summary = document.getElementById('dh-summary');
+    var giamGia = Number(document.getElementById('dh-tienGiamGia').value) || 0;
+    var thanhTien = grandTotal - giamGia;
+
+    summary.style.display = 'block';
+    summary.innerHTML = '<div class="summary-row summary-total"><span>Thành tiền:</span><span>' +
+      formatNumber(thanhTien) + ' đ</span></div>';
+    updateSplitPaymentAmounts('dh');
+  }
+
+  // Update accents and dynamic behaviors for condition choices
+  function onCoNhanQuaChange() {
+    var coNhan = document.getElementById('dh-coNhanQua').value;
+    var group = document.getElementById('dh-maQuaTangGroup');
+    if (coNhan === '✓') {
+      group.style.display = 'block';
+      document.getElementById('dh-tienGiamGia').value = 0;
+    } else {
+      group.style.display = 'none';
+      document.getElementById('dh-maQuaTang').value = '';
+    }
+    tinhThanhTien();
+  }
+
+  function onHinhThucBanChange() {
+    var hinhThuc = document.getElementById('dh-hinhThucBan').value;
+    var section = document.getElementById('traGopSection');
+    var httt = document.getElementById('dh-hinhThucTT') ? document.getElementById('dh-hinhThucTT').value : '';
+    var traTruocGroup = document.getElementById('tg-traTruoc') ? document.getElementById('tg-traTruoc').closest('.form-group') : null;
+    
+    if (hinhThuc === 'Trả góp') {
+      section.classList.add('show');
+      if (traTruocGroup) {
+        if (httt === 'Hỗn hợp') {
+          traTruocGroup.style.display = 'none';
+        } else {
+          traTruocGroup.style.display = '';
+        }
+      }
+      onSanPhamChange();
+    } else {
+      section.classList.remove('show');
+      if (traTruocGroup) {
+        traTruocGroup.style.display = '';
+      }
+      onSanPhamChange();
+    }
+  }
+
+  function onNguonNhapChange() {
+    var val = document.getElementById('nk-nguonNhap').value;
+    document.getElementById('nk-dtFields').style.display = val === 'Điện thoại' ? 'block' : 'none';
+    document.getElementById('nk-pkMoiFields').style.display = val === 'Phụ kiện - Mới' ? 'block' : 'none';
+    document.getElementById('nk-pkCuFields').style.display = val === 'Phụ kiện - Cũ' ? 'block' : 'none';
+  }
+
+  function onLoaiDVChange() {
+    var loai = document.getElementById('dv-loaiDV').value;
+    var freeNote = document.getElementById('dv-freeNote');
+    if (loai === 'Nạp thẻ điện thoại') {
+      freeNote.style.display = 'block';
+      document.getElementById('dv-phi').value = 0;
+      document.getElementById('dv-phi').disabled = true;
+    } else {
+      freeNote.style.display = 'none';
+      document.getElementById('dv-phi').disabled = false;
+    }
+  }
+
+  function onHopDongChange() {
+    var maTG = extractId(document.getElementById('tt-maTG').value);
+    if (!maTG) return;
+
+    var kyInput = document.getElementById('tt-kySo');
+    var kyList = document.getElementById('tt-kySo-list');
+    kyInput.value = '';
+    kyInput.placeholder = 'Đang tải các kỳ...';
+
+    google.script.run.withSuccessHandler(function(items) {
+      kyInput.placeholder = 'Chọn hoặc nhập kỳ...';
+      populateDatalist('tt-kySo', 'tt-kySo-list', items);
+
+      kyInput.oninput = function() {
+        var val = this.value;
+        if (kyList) {
+          var opts = kyList.querySelectorAll('option');
+          for (var i = 0; i < opts.length; i++) {
+            if (opts[i].value === val) {
+              if (opts[i].dataset.soTienCanTra) {
+                document.getElementById('tt-soTien').value = opts[i].dataset.soTienCanTra;
+              }
+              break;
+            }
+          }
+        }
+      };
+    }).getKyChuaTra(maTG);
+  }
+
+  // ==================== CHUYEN KHO ====================
+  function onChuyenKhoBranchOrNguonChange() {
+    var branch = document.getElementById('ck-cnNguon').value;
+    var source = document.getElementById('ck-nguonSP').value;
+    var spInput = document.getElementById('ck-maSP');
+    var spList = document.getElementById('ck-maSP-list');
+
+    if (source === 'Điện thoại') {
+      document.getElementById('ck-soLuong').value = 1;
+      document.getElementById('ck-soLuong').disabled = true;
+    } else {
+      document.getElementById('ck-soLuong').disabled = false;
+    }
+
+    spInput.value = '';
+
+    if (!branch) {
+      spInput.placeholder = 'Chọn chi nhánh nguồn trước';
+      if (spList) spList.innerHTML = '';
+      return;
+    }
+
+    spInput.placeholder = 'Nhập ít nhất 4 ký tự để tìm...';
+    if (spList) spList.innerHTML = '';
+  }
+
+  function onChuyenKhoProductChange() {
+    // Optional helper
+  }
+
+  // ==================== DOI TRA ====================
+  function checkDonHangDoiTra() {
+    var maDH = document.getElementById('dt-maDH').value.trim();
+    if (!maDH) {
+      showAlertMsg('error', 'Vui lòng nhập Mã đơn hàng!');
+      return;
+    }
+
+    setLoading('btnCheckDoiTra', true);
+    google.script.run
+      .withSuccessHandler(function(dh) {
+        setLoading('btnCheckDoiTra', false);
+        if (!dh) {
+          document.getElementById('dt-infoBox').style.display = 'none';
+          document.getElementById('dt-doiTuongGroup').style.display = 'none';
+          showAlertMsg('error', 'Không tìm thấy đơn hàng: ' + maDH);
+          return;
+        }
+
+        if (dh.trangThai === 'Huỷ' || dh.trangThai === 'Đổi trả') {
+          document.getElementById('dt-infoBox').style.display = 'none';
+          document.getElementById('dt-doiTuongGroup').style.display = 'none';
+          showAlertMsg('error', 'Đơn hàng này đã ở trạng thái: ' + dh.trangThai);
+          return;
+        }
+
+        originalOrderPrice = dh.thanhTien;
+        originalOrderData = dh;
+
+        var html = '<strong>Khách hàng:</strong> ' + dh.tenKH + '<br>' +
+                   '<strong>Sản phẩm đã mua:</strong> ' + dh.tenSP + ' (Giá: ' + formatNumber(dh.thanhTien) + ' đ)<br>' +
+                   '<strong>Chi nhánh mua:</strong> ' + dh.chiNhanh;
+        
+        if (dh.coNhanQua === '✓') {
+          html += '<br><strong>Quà tặng kèm:</strong> ' + (dh.tenQuaTang || 'Chưa rõ') + ' (Mã: ' + (dh.maQuaTang || '') + ')';
+          document.getElementById('dt-doiTuongGroup').style.display = 'block';
+          document.getElementById('dt-doiTuong').value = 'Sản phẩm chính';
+        } else {
+          document.getElementById('dt-doiTuongGroup').style.display = 'none';
+          document.getElementById('dt-doiTuong').value = 'Sản phẩm chính';
+        }
+
+        var infoBox = document.getElementById('dt-infoBox');
+        infoBox.innerHTML = html;
+        infoBox.style.display = 'block';
+
+        document.getElementById('dt-chiNhanh').value = dh.chiNhanh;
+        
+        onDoiTraDoiTuongChange();
+        hideAlert();
+      })
+      .withFailureHandler(function(err) {
+        setLoading('btnCheckDoiTra', false);
+        showAlertMsg('error', 'Lỗi kiểm tra đơn hàng: ' + err.message);
+      })
+      .getDonHangDetails(maDH);
+  }
+
+  function onDoiTraDoiTuongChange() {
+    if (!originalOrderData) return;
+    var doiTuong = document.getElementById('dt-doiTuong').value;
+    var loaiGDSelect = document.getElementById('dt-loaiGD');
+    loaiGDSelect.innerHTML = '';
+
+    if (doiTuong === 'Quà tặng kèm') {
+      var opt = document.createElement('option');
+      opt.value = 'Đổi quà';
+      opt.textContent = 'Đổi quà (Đổi sang quà tặng mới)';
+      loaiGDSelect.appendChild(opt);
+    } else {
+      if (originalOrderData.nguonSP === 'Điện thoại') {
+        var opt1 = document.createElement('option');
+        opt1.value = 'Trả máy';
+        opt1.textContent = 'Trả máy (Hoàn tiền)';
+        var opt2 = document.createElement('option');
+        opt2.value = 'Đổi máy';
+        opt2.textContent = 'Đổi máy (Đổi sang máy mới)';
+        loaiGDSelect.appendChild(opt1);
+        loaiGDSelect.appendChild(opt2);
+      } else {
+        var opt1 = document.createElement('option');
+        opt1.value = 'Trả hàng';
+        opt1.textContent = 'Trả hàng (Hoàn tiền)';
+        var opt2 = document.createElement('option');
+        opt2.value = 'Đổi hàng';
+        opt2.textContent = 'Đổi hàng (Đổi sang phụ kiện mới)';
+        loaiGDSelect.appendChild(opt1);
+        loaiGDSelect.appendChild(opt2);
+      }
+    }
+
+    onDoiTraLoaiGDChange();
+  }
+
+  function onDoiTraLoaiGDChange() {
+    var loai = document.getElementById('dt-loaiGD').value;
+    var group = document.getElementById('dt-newProductGroup');
+    var label = document.getElementById('dt-newProductLabel');
+    var input = document.getElementById('dt-maSP-Nhan');
+
+    if (loai === 'Đổi máy' || loai === 'Đổi hàng' || loai === 'Đổi quà') {
+      group.style.display = 'block';
+      if (loai === 'Đổi máy') {
+        label.textContent = 'Điện thoại mới để đổi *';
+        input.placeholder = 'Tìm điện thoại còn hàng...';
+      } else if (loai === 'Đổi hàng') {
+        label.textContent = 'Phụ kiện mới để đổi *';
+        input.placeholder = 'Tìm phụ kiện còn hàng...';
+      } else {
+        label.textContent = 'Quà tặng mới để đổi *';
+        input.placeholder = 'Tìm quà tặng (phụ kiện) còn hàng...';
+      }
+      onDoiTraBranchChange();
+    } else {
+      group.style.display = 'none';
+      input.value = '';
+    }
+    tinhDoiTraChenhLech();
+  }
+
+  function onDoiTraBranchChange() {
+    var branch = document.getElementById('dt-chiNhanh').value;
+    var loai = document.getElementById('dt-loaiGD').value;
+    var input = document.getElementById('dt-maSP-Nhan');
+    var list = document.getElementById('dt-maSP-Nhan-list');
+
+    if (loai !== 'Đổi máy' && loai !== 'Đổi hàng' && loai !== 'Đổi quà') return;
+    input.value = '';
+
+    if (!branch) {
+      input.placeholder = 'Chọn chi nhánh trước';
+      if (list) list.innerHTML = '';
+      return;
+    }
+
+    input.placeholder = 'Nhập ít nhất 4 ký tự để tìm...';
+    if (list) list.innerHTML = '';
+  }
+
+  function tinhDoiTraChenhLech() {
+    var loai = document.getElementById('dt-loaiGD').value;
+    var phi = Number(document.getElementById('dt-phiDoiTra').value) || 0;
+    var label = document.getElementById('dt-tienLabel');
+    var valInput = document.getElementById('dt-tienHoanTra');
+
+    if (!originalOrderData) {
+      valInput.value = 0;
+      return;
+    }
+
+    if (loai === 'Trả máy' || loai === 'Trả hàng') {
+      var hoanTien = originalOrderPrice - phi;
+      label.textContent = 'Tiền hoàn trả cho khách (VND)';
+      valInput.value = hoanTien;
+    } else if (loai === 'Đổi quà') {
+      label.textContent = 'Tiền thanh toán (Phí)';
+      valInput.value = phi;
+    } else {
+      var val = document.getElementById('dt-maSP-Nhan').value;
+      var dl = document.getElementById('dt-maSP-Nhan-list');
+      var giaMoi = 0;
+      if (dl) {
+        var opts = dl.querySelectorAll('option');
+        for (var i = 0; i < opts.length; i++) {
+          if (opts[i].value === val) {
+            if (opts[i].dataset.giaBan) {
+              giaMoi = Number(opts[i].dataset.giaBan);
+            } else {
+              giaMoi = Number(opts[i].getAttribute('data-gia-ban') || opts[i].dataset.giaBan || 0);
+            }
+            break;
+          }
+        }
+      }
+
+      var diff = originalOrderPrice - giaMoi - phi;
+      if (diff >= 0) {
+        label.textContent = 'Tiền cửa hàng trả lại khách (VND)';
+        valInput.value = diff;
+      } else {
+        label.textContent = 'Tiền khách cần đóng thêm (VND)';
+        valInput.value = Math.abs(diff);
+      }
+    }
+    updateSplitPaymentAmounts('dt');
+  }
+
+  // ==================== THU MUA ====================
+  function onThuMuaLoaiGDChange() {
+    var loai = document.getElementById('tm-loaiGD').value;
+    var fields = document.getElementById('tm-tradeInFields');
+    var htbGroup = document.getElementById('tm-hinhThucBanGroup');
+    var htttSelect = document.getElementById('tm-hinhThucTT');
+
+    if (loai === 'Thu cũ đổi mới') {
+      fields.style.display = 'block';
+      htbGroup.style.display = 'block';
+      onThuMuaBranchChange();
+      var hasPOS = false;
+      for (var i = 0; i < htttSelect.options.length; i++) {
+        if (htttSelect.options[i].value === 'Quẹt thẻ (POS)') {
+          hasPOS = true;
+          break;
+        }
+      }
+      if (!hasPOS) {
+        var opt = document.createElement('option');
+        opt.value = 'Quẹt thẻ (POS)';
+        opt.textContent = 'Quẹt thẻ (POS)';
+        htttSelect.appendChild(opt);
+      }
+    } else {
+      fields.style.display = 'none';
+      htbGroup.style.display = 'none';
+      document.getElementById('tm-hinhThucBan').value = 'Bán thẳng';
+      document.getElementById('tm-maSP-Moi').value = '';
+      document.getElementById('tm-tienHoTro').value = 0;
+      document.getElementById('tm-coNhanQua').value = '✗';
+      document.getElementById('tm-maQuaTang').value = '';
+      document.getElementById('tm-tienGiamGia').value = 0;
+      document.getElementById('tm-maQuaTangGroup').style.display = 'none';
+      
+      if (htttSelect.value === 'Quẹt thẻ (POS)') {
+        htttSelect.value = 'Tiền mặt';
+      }
+      for (var i = 0; i < htttSelect.options.length; i++) {
+        if (htttSelect.options[i].value === 'Quẹt thẻ (POS)') {
+          htttSelect.remove(i);
+          break;
+        }
+      }
+      onThuMuaHinhThucBanChange();
+    }
+    tinhThuMuaChenhLech();
+  }
+
+  function onThuMuaHinhThucBanChange() {
+    var hinhThuc = document.getElementById('tm-hinhThucBan').value;
+    var section = document.getElementById('tm-traGopSection');
+    var httt = document.getElementById('tm-hinhThucTT') ? document.getElementById('tm-hinhThucTT').value : '';
+    var traTruocGroup = document.getElementById('tm-tg-traTruoc') ? document.getElementById('tm-tg-traTruoc').closest('.form-group') : null;
+    
+    if (hinhThuc === 'Trả góp') {
+      section.classList.add('show');
+      if (traTruocGroup) {
+        if (httt === 'Hỗn hợp') {
+          traTruocGroup.style.display = 'none';
+        } else {
+          traTruocGroup.style.display = '';
+        }
+      }
+      tinhThuMuaTraGop();
+    } else {
+      section.classList.remove('show');
+      if (traTruocGroup) {
+        traTruocGroup.style.display = '';
+      }
+    }
+  }
+
+  function onThuMuaHinhThucTTChange() {
+    var hinhThuc = document.getElementById('tm-hinhThucBan').value;
+    if (hinhThuc === 'Trả góp') {
+      tinhThuMuaTraGop();
+    }
+  }
+
+  function getThuMuaGiaMayMoi() {
+    var phoneInput = document.getElementById('tm-maSP-Moi');
+    if (phoneInput && phoneInput.dataset.selectedGiaBan) {
+      var g = Number(phoneInput.dataset.selectedGiaBan);
+      if (g > 0) return g;
+    }
+    
+    var val = document.getElementById('tm-maSP-Moi').value;
+    var dl = document.getElementById('tm-maSP-Moi-list');
+    var giaMoi = 0;
+    if (dl) {
+      var opts = dl.querySelectorAll('option');
+      for (var i = 0; i < opts.length; i++) {
+        var optVal = opts[i].value;
+        var cleanOptVal = optVal.split('(')[0].trim();
+        var cleanVal = val.split('(')[0].trim();
+        if (optVal === val || cleanOptVal === cleanVal) {
+          if (opts[i].dataset.giaBan) {
+            giaMoi = Number(opts[i].dataset.giaBan);
+          }
+          break;
+        }
+      }
+    }
+    if (phoneInput && giaMoi > 0) {
+      phoneInput.dataset.selectedGiaBan = giaMoi;
+    }
+    return giaMoi;
+  }
+
+  function tinhThuMuaTraGop(customChenhLech) {
+    var giaThu = Number(document.getElementById('tm-giaThuMua').value) || 0;
+    var giaMoi = getThuMuaGiaMayMoi();
+    var hoTro = Number(document.getElementById('tm-tienHoTro').value) || 0;
+    var giamGia = Number(document.getElementById('tm-tienGiamGia').value) || 0;
+    var giaMayMoi = giaMoi - giamGia - hoTro;
+
+    var loai = document.getElementById('tm-tg-loai').value;
+    var isCTTC = (loai === 'Công ty tài chính');
+
+    document.getElementById('tm-tg-congTyTCGroup').style.display = isCTTC ? 'block' : 'none';
+    document.getElementById('tm-tg-tienMoiKyGroup').style.display = isCTTC ? 'block' : 'none';
+
+    var httt = document.getElementById('tm-hinhThucTT') ? document.getElementById('tm-hinhThucTT').value : '';
+    var traTruoc = 0;
+    if (httt === 'Hỗn hợp') {
+      var tm = Number(document.getElementById('tm-split-tienMat').value) || 0;
+      var ck = Number(document.getElementById('tm-split-chuyenKhoan').value) || 0;
+      traTruoc = giaThu - (tm + ck);
+    } else {
+      traTruoc = Number(document.getElementById('tm-tg-traTruoc').value) || 0;
+    }
+
+    var soKy = Number(document.getElementById('tm-tg-soKy').value) || 1;
+    var conLai = giaMayMoi - traTruoc;
+
+    if (conLai <= 0) {
+      document.getElementById('tm-tg-summary').style.display = 'none';
+      showAlertMsg('error', '⚠️ Số tiền trả trước (giá thu cũ trừ tiền trả khách) phải nhỏ hơn giá máy mới để mua trả góp!');
+      return;
+    }
+
+    var tienMoiKy = 0;
+    if (isCTTC) {
+      tienMoiKy = Number(document.getElementById('tm-tg-tienMoiKyInput').value) || 0;
+    } else {
+      tienMoiKy = Math.ceil(conLai / soKy);
+      document.getElementById('tm-tg-tienMoiKyInput').value = tienMoiKy;
+    }
+
+    var summary = document.getElementById('tm-tg-summary');
+    summary.style.display = 'block';
+
+    var html =
+      '<div class="summary-row"><span>Giá máy mới:</span><span>' + formatNumber(giaMayMoi) + ' đ</span></div>' +
+      '<div class="summary-row"><span>Trả trước:</span><span>' + formatNumber(traTruoc) + ' đ</span></div>' +
+      '<div class="summary-row"><span>Còn lại cần góp:</span><span>' + formatNumber(conLai) + ' đ</span></div>' +
+      '<div class="summary-row"><span>Số kỳ:</span><span>' + soKy + ' kỳ</span></div>';
+
+    if (isCTTC) {
+      html += '<div class="summary-row summary-total"><span>Mỗi kỳ (thực đóng):</span><span>' + formatNumber(tienMoiKy) + ' đ</span></div>';
+    } else {
+      html += '<div class="summary-row summary-total"><span>Mỗi kỳ:</span><span>' + formatNumber(tienMoiKy) + ' đ</span></div>';
+    }
+    summary.innerHTML = html;
+    updateSplitPaymentAmounts('tm');
+  }
+
+  function onThuMuaBranchChange() {
+    var branch = document.getElementById('tm-chiNhanh').value;
+    var loai = document.getElementById('tm-loaiGD').value;
+    var phoneInput = document.getElementById('tm-maSP-Moi');
+    var phoneList = document.getElementById('tm-maSP-Moi-list');
+    var quaInput = document.getElementById('tm-maQuaTang');
+    var quaList = document.getElementById('tm-maQuaTang-list');
+
+    if (loai !== 'Thu cũ đổi mới') return;
+    phoneInput.value = '';
+    quaInput.value = '';
+
+    if (!branch) {
+      phoneInput.placeholder = 'Chọn chi nhánh trước';
+      quaInput.placeholder = 'Chọn chi nhánh trước';
+      if (phoneList) phoneList.innerHTML = '';
+      if (quaList) quaList.innerHTML = '';
+      return;
+    }
+
+    phoneInput.placeholder = 'Nhập ít nhất 4 ký tự để tìm...';
+    if (phoneList) phoneList.innerHTML = '';
+
+    quaInput.placeholder = 'Đang tải quà tặng...';
+    google.script.run.withSuccessHandler(function(items) {
+      quaInput.placeholder = 'Gõ để tìm quà tặng...';
+      populateDatalist('tm-maQuaTang', 'tm-maQuaTang-list', items);
+    }).getPhuKienDropdown(branch);
+  }
+
+  function onThuMuaCoNhanQuaChange() {
+    var coNhan = document.getElementById('tm-coNhanQua').value;
+    var group = document.getElementById('tm-maQuaTangGroup');
+    if (coNhan === '✓') {
+      group.style.display = 'block';
+      document.getElementById('tm-tienGiamGia').value = 0;
+    } else {
+      group.style.display = 'none';
+      document.getElementById('tm-maQuaTang').value = '';
+    }
+    tinhThuMuaChenhLech();
+  }
+
+  function tinhThuMuaChenhLech() {
+    var loai = document.getElementById('tm-loaiGD').value;
+    var giaThu = Number(document.getElementById('tm-giaThuMua').value) || 0;
+    var summary = document.getElementById('tm-summary');
+
+    if (loai === 'Bán thẳng') {
+      summary.innerHTML = '';
+      return;
+    }
+
+    var giaMoi = getThuMuaGiaMayMoi();
+
+    var hoTro = Number(document.getElementById('tm-tienHoTro').value) || 0;
+    var giamGia = Number(document.getElementById('tm-tienGiamGia').value) || 0;
+    var valueMoiSauGiam = giaMoi - giamGia;
+    var chenhLech = (valueMoiSauGiam - hoTro) - giaThu;
+
+    var html = '<strong>Giá bán máy mới:</strong> ' + formatNumber(giaMoi) + ' đ<br>';
+    if (giamGia > 0) {
+      html += '<strong>Giảm giá máy mới:</strong> -' + formatNumber(giamGia) + ' đ<br>';
+      html += '<strong>Giá sau giảm:</strong> ' + formatNumber(valueMoiSauGiam) + ' đ<br>';
+    }
+    html += '<strong>Tiền hỗ trợ:</strong> -' + formatNumber(hoTro) + ' đ<br>' +
+               '<strong>Giá thu mua máy cũ:</strong> -' + formatNumber(giaThu) + ' đ<br>';
+
+    if (chenhLech >= 0) {
+      html += '<strong style="color: #1a73e8;">Khách cần trả thêm: ' + formatNumber(chenhLech) + ' đ</strong>';
+    } else {
+      html += '<strong style="color: #137333;">Cửa hàng trả lại khách: ' + formatNumber(Math.abs(chenhLech)) + ' đ</strong>';
+    }
+
+    summary.innerHTML = html;
+
+    // Cập nhật tính toán trả góp nếu hình thức bán là Trả góp
+    var htb = document.getElementById('tm-hinhThucBan').value;
+    if (htb === 'Trả góp') {
+      tinhThuMuaTraGop();
+    }
+    updateSplitPaymentAmounts('tm');
+  }
+
+  // ==================== CALCULATIONS ====================
+
+  function tinhThanhTien() {
+    var source = document.getElementById('dh-nguonSP').value;
+    if (source === 'Phụ kiện') {
+      tinhTongTienAcc();
+      return;
+    }
+
+    var soLuong = Number(document.getElementById('dh-soLuong').value) || 0;
+    var donGia = Number(document.getElementById('dh-donGia').value) || 0;
+    var giamGia = Number(document.getElementById('dh-tienGiamGia').value) || 0;
+    var thanhTien = (soLuong * donGia) - giamGia;
+
+    var summary = document.getElementById('dh-summary');
+    summary.style.display = 'block';
+    summary.innerHTML = '<div class="summary-row summary-total"><span>Thành tiền:</span><span>' +
+      formatNumber(thanhTien) + ' đ</span></div>';
+
+    if (document.getElementById('dh-hinhThucBan').value === 'Trả góp') {
+      tinhTraGop();
+    }
+    updateSplitPaymentAmounts('dh');
+  }
+
+  function tinhTraGop() {
+    var thanhTien = getDonHangThanhTien();
+    
+    var traTruoc = 0;
+    var httt = document.getElementById('dh-hinhThucTT') ? document.getElementById('dh-hinhThucTT').value : '';
+    if (httt === 'Hỗn hợp') {
+      var tm = Number(document.getElementById('dh-split-tienMat').value) || 0;
+      var ck = Number(document.getElementById('dh-split-chuyenKhoan').value) || 0;
+      traTruoc = tm + ck;
+    } else {
+      traTruoc = Number(document.getElementById('tg-traTruoc').value) || 0;
+    }
+
+    var soKy = Number(document.getElementById('tg-soKy').value) || 1;
+    var conLai = thanhTien - traTruoc;
+
+    if (conLai <= 0) {
+      document.getElementById('tg-summary').style.display = 'none';
+      showAlertMsg('error', '⚠️ Số tiền trả trước phải nhỏ hơn tổng tiền đơn hàng để mua trả góp!');
+      return;
+    }
+
+    var loai = document.getElementById('tg-loai').value;
+    var isCTTC = (loai === 'Công ty tài chính');
+
+    document.getElementById('tg-congTyTCGroup').style.display = isCTTC ? 'block' : 'none';
+    document.getElementById('tg-tienMoiKyGroup').style.display = isCTTC ? 'block' : 'none';
+
+    var tienMoiKy = 0;
+    if (isCTTC) {
+      tienMoiKy = Number(document.getElementById('tg-tienMoiKyInput').value) || 0;
+    } else {
+      tienMoiKy = Math.ceil(conLai / soKy);
+      document.getElementById('tg-tienMoiKyInput').value = tienMoiKy;
+    }
+
+    var summary = document.getElementById('tg-summary');
+    summary.style.display = 'block';
+
+    var html =
+      '<div class="summary-row"><span>Tổng tiền:</span><span>' + formatNumber(thanhTien) + ' đ</span></div>' +
+      '<div class="summary-row"><span>Trả trước:</span><span>' + formatNumber(traTruoc) + ' đ</span></div>' +
+      '<div class="summary-row"><span>Còn lại:</span><span>' + formatNumber(conLai) + ' đ</span></div>' +
+      '<div class="summary-row"><span>Số kỳ:</span><span>' + soKy + ' kỳ</span></div>';
+
+    if (isCTTC) {
+      html += '<div class="summary-row summary-total"><span>Mỗi kỳ (thực đóng):</span><span>' + formatNumber(tienMoiKy) + ' đ</span></div>';
+    } else {
+      html += '<div class="summary-row summary-total"><span>Mỗi kỳ:</span><span>' + formatNumber(tienMoiKy) + ' đ</span></div>';
+    }
+    summary.innerHTML = html;
+    updateSplitPaymentAmounts('dh');
+  }
+
+  // Lắng nghe thay đổi loại trả góp
+  document.getElementById('tg-loai').addEventListener('change', tinhTraGop);
+  document.getElementById('tm-tg-loai').addEventListener('change', function() {
+    tinhThuMuaTraGop();
+  });
+
+  function formatNumber(n) {
+    return Number(n).toLocaleString('vi-VN');
+  }
+
+  // ==================== FORM SUBMISSIONS ====================
+
+  function submitDonHang() {
+    var chiNhanh = document.getElementById('dh-chiNhanh').value;
+    var maKH = extractId(document.getElementById('dh-maKH').value);
+    var nguonSP = document.getElementById('dh-nguonSP').value;
+    var nguoiBan = extractId(document.getElementById('dh-nguoiBan').value);
+
+    if (!chiNhanh || !maKH || !nguoiBan) {
+      showAlertMsg('error', '⚠️ Vui lòng chọn Chi nhánh, Khách hàng và Người bán!');
+      return;
+    }
+
+    var data = {
+      chiNhanh: chiNhanh,
+      maKH: maKH,
+      nguonSP: nguonSP,
+      tienGiamGia: Number(document.getElementById('dh-tienGiamGia').value) || 0,
+      hinhThucBan: document.getElementById('dh-hinhThucBan').value,
+      hinhThucThanhToan: getPaymentMethodString('dh'),
+      nguoiBan: nguoiBan,
+      nguoiHoTro: extractId(document.getElementById('dh-nguoiHoTro').value),
+      ghiChu: document.getElementById('dh-ghiChu').value
+    };
+
+    if (document.getElementById('dh-hinhThucTT').value === 'Hỗn hợp') {
+      data.splitTienMat = Number(document.getElementById('dh-split-tienMat').value) || 0;
+      data.splitChuyenKhoan = Number(document.getElementById('dh-split-chuyenKhoan').value) || 0;
+    }
+
+    if (nguonSP === 'Phụ kiện') {
+      var rows = document.querySelectorAll('#dh-accessories-list tr');
+      if (rows.length === 0) {
+        showAlertMsg('error', '⚠️ Vui lòng chọn ít nhất một phụ kiện để tạo đơn!');
+        return;
+      }
+      data.items = [];
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var id = row.getAttribute('data-id');
+        var qty = parseInt(row.querySelector('.acc-qty').value) || 1;
+        var price = parseFloat(row.querySelector('.acc-price').value) || 0;
+        data.items.push({
+          maSP: id,
+          soLuong: qty,
+          donGia: price
+        });
+      }
+    } else {
+      var maSP = extractId(document.getElementById('dh-maSP').value);
+      var imei = extractImei(document.getElementById('dh-maSP').value);
+
+      if (!maSP) {
+        showAlertMsg('error', '⚠️ Vui lòng chọn Sản phẩm cần bán!');
+        return;
+      }
+
+      data.maSP = maSP;
+      data.imei = imei;
+      data.soLuong = Number(document.getElementById('dh-soLuong').value) || 1;
+      data.donGia = Number(document.getElementById('dh-donGia').value) || 0;
+      data.coNhanQua = document.getElementById('dh-coNhanQua').value;
+      data.maQuaTang = extractId(document.getElementById('dh-maQuaTang').value, true);
+
+      if (data.hinhThucBan === 'Trả góp') {
+        data.traGop = {
+          traTruoc: (document.getElementById('dh-hinhThucTT').value === 'Hỗn hợp')
+            ? (Number(document.getElementById('dh-split-chuyenKhoan').value) + "," + Number(document.getElementById('dh-split-tienMat').value))
+            : (Number(document.getElementById('tg-traTruoc').value) || 0),
+          soKy: Number(document.getElementById('tg-soKy').value) || 6,
+          loaiTraGop: document.getElementById('tg-loai').value,
+          congTyTC: document.getElementById('tg-congTyTC').value,
+          tienMoiKy: Number(document.getElementById('tg-tienMoiKyInput').value) || 0
+        };
+      }
+    }
+
+    if (data.hinhThucBan === 'Trả góp' && data.traGop) {
+      var traTruocVal = 0;
+      if (document.getElementById('dh-hinhThucTT').value === 'Hỗn hợp') {
+        var tm = Number(document.getElementById('dh-split-tienMat').value) || 0;
+        var ck = Number(document.getElementById('dh-split-chuyenKhoan').value) || 0;
+        traTruocVal = tm + ck;
+      } else {
+        traTruocVal = Number(document.getElementById('tg-traTruoc').value) || 0;
+      }
+      var totalVal = getDonHangThanhTien();
+      if (traTruocVal >= totalVal) {
+        showAlertMsg('error', '⚠️ Số tiền trả trước phải nhỏ hơn tổng tiền đơn hàng để mua trả góp!');
+        return;
+      }
+    }
+
+    setLoading('btnTaoDonHang', true);
+    google.script.run
+      .withSuccessHandler(function(maDH) {
+        setLoading('btnTaoDonHang', false);
+        showAlertMsg('success', '✅ Đã tạo đơn hàng: <strong>' + maDH + '</strong>');
+        resetFormDonHang();
+        onDonHangBranchOrNguonChange();
+      })
+      .withFailureHandler(function(err) {
+        setLoading('btnTaoDonHang', false);
+        showAlertMsg('error', '❌ Lỗi: ' + err.message);
+      })
+      .taoDonHang(data);
+  }
+
+  function submitKhachHang() {
+    var hoTen = document.getElementById('kh-hoTen').value.trim();
+    var sdt = document.getElementById('kh-soDienThoai').value.trim();
+
+    if (!hoTen || !sdt) {
+      showAlertMsg('error', '⚠️ Vui lòng nhập Họ tên và SĐT!');
+      return;
+    }
+
+    var data = {
+      hoTen: hoTen,
+      soDienThoai: sdt,
+      cccd: document.getElementById('kh-cccd').value.trim(),
+      diaChi: document.getElementById('kh-diaChi').value.trim(),
+      ghiChu: document.getElementById('kh-ghiChu').value.trim()
+    };
+
+    setLoading('btnThemKH', true);
+    google.script.run
+      .withSuccessHandler(function(maKH) {
+        setLoading('btnThemKH', false);
+        showAlertMsg('success', '✅ Đã thêm KH: <strong>' + maKH + '</strong> - ' + hoTen);
+        document.getElementById('kh-hoTen').value = '';
+        document.getElementById('kh-soDienThoai').value = '';
+        document.getElementById('kh-cccd').value = '';
+        document.getElementById('kh-diaChi').value = '';
+        document.getElementById('kh-ghiChu').value = '';
+        google.script.run.withSuccessHandler(function(items) {
+          populateDatalist('dh-maKH', 'dh-maKH-list', items);
+          populateDatalist('tm-maKH', 'tm-maKH-list', items);
+        }).getKhachHangDropdown();
+      })
+      .withFailureHandler(function(err) {
+        setLoading('btnThemKH', false);
+        showAlertMsg('error', '❌ Lỗi: ' + err.message);
+      })
+      .addKhachHang(data);
+  }
+
+  function onNhapKhoBranchOrNguonChange() {
+    updateNhapKhoPhuKienInfo();
+  }
+
+  function updateNhapKhoPhuKienInfo() {
+    var branch = document.getElementById('nk-chiNhanh').value;
+    var maPK = extractId(document.getElementById('nk-pkCu-maSP').value);
+    var infoBox = document.getElementById('nk-pkCu-info');
+
+    if (!maPK || !branch) {
+      infoBox.style.display = 'none';
+      return;
+    }
+
+    infoBox.style.display = 'block';
+    infoBox.innerHTML = 'Đang kiểm tra tồn kho...';
+
+    google.script.run.withSuccessHandler(function(stock) {
+      infoBox.innerHTML = 'Tồn kho hiện tại của mã này tại <strong>' + branch + '</strong> là: <strong>' + stock + '</strong> sản phẩm.';
+    }).getPhuKienStockAtBranch(maPK, branch);
+  }
+
+  function submitNhapKho() {
+    var chiNhanh = document.getElementById('nk-chiNhanh').value;
+    var nguonNhap = document.getElementById('nk-nguonNhap').value;
+
+    if (!chiNhanh) {
+      showAlertMsg('error', '⚠️ Vui lòng chọn Chi nhánh nhập kho!');
+      return;
+    }
+
+    var data = {
+      chiNhanh: chiNhanh,
+      nhaCungCap: document.getElementById('nk-nhaCungCap').value.trim(),
+      ghiChu: document.getElementById('nk-ghiChu').value.trim()
+    };
+
+    if (nguonNhap === 'Điện thoại') {
+      data.nguonNhap = 'Điện thoại';
+      data.tenSP = document.getElementById('nk-tenSP').value.trim();
+      data.thuongHieu = document.getElementById('nk-thuongHieu').value;
+      data.imei = document.getElementById('nk-imei').value.trim();
+      data.mauSac = document.getElementById('nk-mauSac').value.trim();
+      data.dungLuong = document.getElementById('nk-dungLuong').value.trim();
+      data.tinhTrang = document.getElementById('nk-tinhTrang').value;
+      data.giaNhap = Number(document.getElementById('nk-giaNhap').value) || 0;
+      data.giaBan = Number(document.getElementById('nk-giaBan').value) || 0;
+      data.giaTraGop = Number(document.getElementById('nk-giaTraGop').value) || 0;
+
+      if (!data.tenSP || !data.imei) {
+        showAlertMsg('error', '⚠️ Vui lòng nhập Tên SP và IMEI!');
+        return;
+      }
+    } else if (nguonNhap === 'Phụ kiện - Mới') {
+      data.nguonNhap = 'Phụ kiện';
+      data.tenSP = document.getElementById('nk-pk-tenSP').value.trim();
+      data.loaiPK = document.getElementById('nk-pk-loaiPK').value;
+      data.thuongHieu = document.getElementById('nk-pk-thuongHieu').value.trim();
+      data.giaNhap = Number(document.getElementById('nk-pk-giaNhap').value) || 0;
+      data.giaBan = Number(document.getElementById('nk-pk-giaBan').value) || 0;
+      data.soLuong = Number(document.getElementById('nk-pk-soLuong').value) || 1;
+      data.moTa = document.getElementById('nk-pk-moTa').value.trim();
+
+      if (!data.tenSP) {
+        showAlertMsg('error', '⚠️ Vui lòng nhập Tên phụ kiện!');
+        return;
+      }
+    } else {
+      data.nguonNhap = 'Phụ kiện';
+      data.maSP = extractId(document.getElementById('nk-pkCu-maSP').value);
+      data.soLuong = Number(document.getElementById('nk-pkCu-soLuong').value) || 1;
+      data.giaNhap = Number(document.getElementById('nk-pkCu-giaNhap').value) || 0;
+
+      if (!data.maSP) {
+        showAlertMsg('error', '⚠️ Vui lòng chọn phụ kiện!');
+        return;
+      }
+    }
+
+    setLoading('btnNhapKho', true);
+    google.script.run
+      .withSuccessHandler(function(maNK) {
+        setLoading('btnNhapKho', false);
+        showAlertMsg('success', '✅ Đã nhập kho: <strong>' + maNK + '</strong>');
+        resetFormNhapKho();
+        loadPhuKienCuDropdown();
+      })
+      .withFailureHandler(function(err) {
+        setLoading('btnNhapKho', false);
+        showAlertMsg('error', '❌ Lỗi: ' + err.message);
+      })
+      .nhapKho(data);
+  }
+
+  function resetFormNhapKho() {
+    // Điện thoại
+    var tenSP = document.getElementById('nk-tenSP'); if (tenSP) tenSP.value = '';
+    var imei = document.getElementById('nk-imei'); if (imei) imei.value = '';
+    var mauSac = document.getElementById('nk-mauSac'); if (mauSac) mauSac.value = '';
+    var dungLuong = document.getElementById('nk-dungLuong'); if (dungLuong) dungLuong.value = '';
+    var tinhTrang = document.getElementById('nk-tinhTrang'); if (tinhTrang) tinhTrang.value = '';
+    var giaNhap = document.getElementById('nk-giaNhap'); if (giaNhap) giaNhap.value = 0;
+    var giaBan = document.getElementById('nk-giaBan'); if (giaBan) giaBan.value = 0;
+    var giaTraGop = document.getElementById('nk-giaTraGop'); if (giaTraGop) giaTraGop.value = 0;
+
+    // Phụ kiện mới
+    var pkTen = document.getElementById('nk-pk-tenSP'); if (pkTen) pkTen.value = '';
+    var pkThuongHieu = document.getElementById('nk-pk-thuongHieu'); if (pkThuongHieu) pkThuongHieu.value = '';
+    var pkGiaNhap = document.getElementById('nk-pk-giaNhap'); if (pkGiaNhap) pkGiaNhap.value = 0;
+    var pkGiaBan = document.getElementById('nk-pk-giaBan'); if (pkGiaBan) pkGiaBan.value = 0;
+    var pkSoLuong = document.getElementById('nk-pk-soLuong'); if (pkSoLuong) pkSoLuong.value = 1;
+    var pkMoTa = document.getElementById('nk-pk-moTa'); if (pkMoTa) pkMoTa.value = '';
+
+    // Phụ kiện cũ
+    var pkCuMa = document.getElementById('nk-pkCu-maSP'); if (pkCuMa) pkCuMa.value = '';
+    var pkCuSoLuong = document.getElementById('nk-pkCu-soLuong'); if (pkCuSoLuong) pkCuSoLuong.value = 1;
+    var pkCuGiaNhap = document.getElementById('nk-pkCu-giaNhap'); if (pkCuGiaNhap) pkCuGiaNhap.value = 0;
+
+    var infoBox = document.getElementById('nk-pkCu-info');
+    if (infoBox) {
+      infoBox.style.display = 'none';
+      infoBox.innerHTML = '';
+    }
+  }
+
+  function submitDichVu() {
+    var chiNhanh = document.getElementById('dv-chiNhanh').value;
+    var nguoiTH = extractId(document.getElementById('dv-nguoiThucHien').value);
+    var soTien = Number(document.getElementById('dv-soTien').value);
+
+    if (!chiNhanh || !nguoiTH || !soTien) {
+      showAlertMsg('error', '⚠️ Vui lòng chọn Chi nhánh, NV và nhập số tiền!');
+      return;
+    }
+
+    var data = {
+      chiNhanh: chiNhanh,
+      loaiDichVu: document.getElementById('dv-loaiDV').value,
+      tenKH: document.getElementById('dv-tenKH').value.trim(),
+      soDienThoaiKH: document.getElementById('dv-sdtKH').value.trim(),
+      soTienGiaoDich: soTien,
+      phiDichVu: Number(document.getElementById('dv-phi').value) || 0,
+      hinhThucThanhToan: getPaymentMethodString('dv'),
+      nguoiThucHien: nguoiTH,
+      ghiChu: document.getElementById('dv-ghiChu').value.trim()
+    };
+
+    if (document.getElementById('dv-hinhThucTT').value === 'Hỗn hợp') {
+      data.splitTienMat = Number(document.getElementById('dv-split-tienMat').value) || 0;
+      data.splitChuyenKhoan = Number(document.getElementById('dv-split-chuyenKhoan').value) || 0;
+    }
+
+    setLoading('btnTaoDV', true);
+    google.script.run
+      .withSuccessHandler(function(maDV) {
+        setLoading('btnTaoDV', false);
+        showAlertMsg('success', '✅ Đã tạo dịch vụ: <strong>' + maDV + '</strong>');
+        document.getElementById('dv-tenKH').value = '';
+        document.getElementById('dv-sdtKH').value = '';
+        document.getElementById('dv-soTien').value = 0;
+        document.getElementById('dv-phi').value = 0;
+        document.getElementById('dv-ghiChu').value = '';
+        document.getElementById('dv-nguoiThucHien').value = '';
+      })
+      .withFailureHandler(function(err) {
+        setLoading('btnTaoDV', false);
+        showAlertMsg('error', '❌ Lỗi: ' + err.message);
+      })
+      .taoDichVu(data);
+  }
+
+  function submitThanhToan() {
+    var maTG = extractId(document.getElementById('tt-maTG').value);
+    var kySo = extractId(document.getElementById('tt-kySo').value);
+    var soTien = Number(document.getElementById('tt-soTien').value);
+
+    if (!maTG || !kySo || !soTien) {
+      showAlertMsg('error', '⚠️ Vui lòng chọn HĐ, kỳ và nhập số tiền!');
+      return;
+    }
+
+    var data = {
+      maTG: maTG,
+      kySo: Number(kySo),
+      soTien: soTien,
+      hinhThucThanhToan: getPaymentMethodString('tt'),
+      ghiChu: document.getElementById('tt-ghiChu').value.trim()
+    };
+
+    if (document.getElementById('tt-hinhThucTT').value === 'Hỗn hợp') {
+      data.splitTienMat = Number(document.getElementById('tt-split-tienMat').value) || 0;
+      data.splitChuyenKhoan = Number(document.getElementById('tt-split-chuyenKhoan').value) || 0;
+    }
+
+    setLoading('btnThanhToan', true);
+    google.script.run
+      .withSuccessHandler(function(result) {
+        setLoading('btnThanhToan', false);
+        showAlertMsg('success', '✅ Đã ghi nhận thanh toán kỳ ' + kySo);
+        loadTraGopDropdown();
+        document.getElementById('tt-maTG').value = '';
+        document.getElementById('tt-kySo').value = '';
+        var kyList = document.getElementById('tt-kySo-list');
+        if (kyList) kyList.innerHTML = '';
+        document.getElementById('tt-soTien').value = 0;
+        document.getElementById('tt-ghiChu').value = '';
+      })
+      .withFailureHandler(function(err) {
+        setLoading('btnThanhToan', false);
+        showAlertMsg('error', '❌ Lỗi: ' + err.message);
+      })
+      .ghiNhanThanhToan(data);
+  }
+
+  function submitChuyenKho() {
+    var nguonSP = document.getElementById('ck-nguonSP').value;
+    var cnNguon = document.getElementById('ck-cnNguon').value;
+    var cnDich = document.getElementById('ck-cnDich').value;
+    var maSP = extractId(document.getElementById('ck-maSP').value);
+    var imei = extractImei(document.getElementById('ck-maSP').value);
+    var soLuong = Number(document.getElementById('ck-soLuong').value) || 1;
+
+    if (!cnNguon || !cnDich || !maSP) {
+      showAlertMsg('error', '⚠️ Vui lòng chọn đầy đủ Chi nhánh nguồn, Chi nhánh đích và Sản phẩm!');
+      return;
+    }
+
+    if (cnNguon === cnDich) {
+      showAlertMsg('error', '⚠️ Chi nhánh nguồn và Chi nhánh đích phải khác nhau!');
+      return;
+    }
+
+    var data = {
+      nguonSP: nguonSP,
+      chiNhanhNguon: cnNguon,
+      chiNhanhDich: cnDich,
+      maSP: maSP,
+      imei: imei,
+      soLuong: soLuong
+    };
+
+    setLoading('btnChuyenKho', true);
+    google.script.run
+      .withSuccessHandler(function() {
+        setLoading('btnChuyenKho', false);
+        showAlertMsg('success', '✅ Đã chuyển kho thành công sản phẩm: ' + maSP);
+        document.getElementById('ck-maSP').value = '';
+        document.getElementById('ck-soLuong').value = 1;
+        onChuyenKhoBranchOrNguonChange();
+      })
+      .withFailureHandler(function(err) {
+        setLoading('btnChuyenKho', false);
+        showAlertMsg('error', '❌ Lỗi: ' + err.message);
+      })
+      .chuyenKho(data);
+  }
+
+  function submitDoiTra() {
+    var maDH = document.getElementById('dt-maDH').value.trim();
+    var doiTuong = document.getElementById('dt-doiTuong').value;
+    var loaiGD = document.getElementById('dt-loaiGD').value;
+    var chiNhanh = document.getElementById('dt-chiNhanh').value;
+    var maSP_Nhan = extractId(document.getElementById('dt-maSP-Nhan').value);
+    var phiDoiTra = Number(document.getElementById('dt-phiDoiTra').value) || 0;
+    var tienHoanTra = Number(document.getElementById('dt-tienHoanTra').value) || 0;
+    var hinhThucTT = getPaymentMethodString('dt');
+    var nguoiTH = extractId(document.getElementById('dt-nguoiThucHien').value);
+    var ghiChu = document.getElementById('dt-ghiChu').value.trim();
+
+    if (!maDH || !loaiGD || !chiNhanh || !nguoiTH) {
+      showAlertMsg('error', '⚠️ Vui lòng nhập Mã đơn hàng, Loại giao dịch, Chi nhánh và Người thực hiện!');
+      return;
+    }
+
+    if ((loaiGD === 'Đổi máy' || loaiGD === 'Đổi hàng' || loaiGD === 'Đổi quà') && !maSP_Nhan) {
+      showAlertMsg('error', '⚠️ Vui lòng chọn sản phẩm mới để đổi!');
+      return;
+    }
+
+    var imei_Nhan = extractImei(document.getElementById('dt-maSP-Nhan').value);
+
+    setLoading('btnDoiTra', true);
+    var data = {
+      maDH: maDH,
+      doiTuong: doiTuong,
+      loaiGiaoDich: loaiGD,
+      chiNhanh: chiNhanh,
+      maSP_Nhan: maSP_Nhan,
+      imei_Nhan: imei_Nhan,
+      phiDoiTra: phiDoiTra,
+      tienHoanTra: tienHoanTra,
+      hinhThucThanhToan: hinhThucTT,
+      nguoiThucHien: nguoiTH,
+      ghiChu: ghiChu
+    };
+
+    google.script.run
+      .withSuccessHandler(function(maDT) {
+        setLoading('btnDoiTra', false);
+        showAlertMsg('success', '✅ Ghi nhận thành công! Mã giao dịch: <strong>' + maDT + '</strong>');
+        document.getElementById('dt-maDH').value = '';
+        document.getElementById('dt-infoBox').style.display = 'none';
+        document.getElementById('dt-doiTuongGroup').style.display = 'none';
+        document.getElementById('dt-phiDoiTra').value = 0;
+        document.getElementById('dt-tienHoanTra').value = 0;
+        document.getElementById('dt-ghiChu').value = '';
+        document.getElementById('dt-maSP-Nhan').value = '';
+        document.getElementById('dt-nguoiThucHien').value = '';
+        originalOrderData = null;
+      })
+      .withFailureHandler(function(err) {
+        setLoading('btnDoiTra', false);
+        showAlertMsg('error', '❌ Lỗi: ' + err.message);
+      })
+      .thucHienDoiTra(data);
+  }
+
+  function submitThuMua() {
+    var maKH = extractId(document.getElementById('tm-maKH').value);
+    var loaiGD = document.getElementById('tm-loaiGD').value;
+    var tenSP = document.getElementById('tm-tenSP-Thu').value.trim();
+    var imei = document.getElementById('tm-imei-Thu').value.trim();
+    var chiNhanh = document.getElementById('tm-chiNhanh').value;
+    var nguoiTH = extractId(document.getElementById('tm-nguoiThucHien').value);
+
+    if (!maKH || !tenSP || !imei || !chiNhanh || !nguoiTH) {
+      showAlertMsg('error', '⚠️ Vui lòng chọn Khách hàng, nhập Tên SP, IMEI, Chi nhánh và Người thực hiện!');
+      return;
+    }
+
+    var htb = (loaiGD === 'Thu cũ đổi mới') ? document.getElementById('tm-hinhThucBan').value : 'Bán thẳng';
+    var httt = getPaymentMethodString('tm');
+
+    var data = {
+      maKH: maKH,
+      loaiGiaoDich: loaiGD,
+      tenSP_Thu: tenSP,
+      thuongHieu_Thu: document.getElementById('tm-thuongHieu-Thu').value,
+      imei_Thu: imei,
+      mauSac_Thu: document.getElementById('tm-mauSac-Thu').value.trim(),
+      dungLuong_Thu: document.getElementById('tm-dungLuong-Thu').value.trim(),
+      tinhTrang_Thu: document.getElementById('tm-tinhTrang-Thu').value,
+      giaThuMua: Number(document.getElementById('tm-giaThuMua').value) || 0,
+      chiNhanh: chiNhanh,
+      nguoiThucHien: nguoiTH,
+      hinhThucThanhToan: (htb === 'Trả góp') ? 'Trả góp' : httt,
+      ghiChu: document.getElementById('tm-ghiChu').value.trim()
+    };
+
+    if (document.getElementById('tm-hinhThucTT').value === 'Hỗn hợp') {
+      data.splitTienMat = Number(document.getElementById('tm-split-tienMat').value) || 0;
+      data.splitChuyenKhoan = Number(document.getElementById('tm-split-chuyenKhoan').value) || 0;
+    }
+
+    if (loaiGD === 'Thu cũ đổi mới') {
+      data.maSP_Moi = extractId(document.getElementById('tm-maSP-Moi').value);
+      data.imei_Moi = extractImei(document.getElementById('tm-maSP-Moi').value);
+      data.tienHoTro = Number(document.getElementById('tm-tienHoTro').value) || 0;
+      data.coNhanQua = document.getElementById('tm-coNhanQua').value;
+      data.maQuaTang = extractId(document.getElementById('tm-maQuaTang').value, true);
+      data.tienGiamGia = Number(document.getElementById('tm-tienGiamGia').value) || 0;
+      data.hinhThucBan = htb;
+      data.hinhThucThanhToanPhu = httt;
+
+      if (!data.maSP_Moi) {
+        showAlertMsg('error', '⚠️ Vui lòng chọn điện thoại mới để đổi lên đời!');
+        return;
+      }
+
+      if (htb === 'Trả góp') {
+        var tmHttt = document.getElementById('tm-hinhThucTT').value;
+        var derivedTraTruoc = 0;
+        if (tmHttt === 'Hỗn hợp') {
+          var tm = Number(document.getElementById('tm-split-tienMat').value) || 0;
+          var ck = Number(document.getElementById('tm-split-chuyenKhoan').value) || 0;
+          derivedTraTruoc = Number(document.getElementById('tm-giaThuMua').value || 0) - (tm + ck);
+        } else {
+          derivedTraTruoc = Number(document.getElementById('tm-tg-traTruoc').value) || 0;
+        }
+
+        data.traGop = {
+          traTruoc: derivedTraTruoc,
+          soKy: Number(document.getElementById('tm-tg-soKy').value) || 6,
+          loaiTraGop: document.getElementById('tm-tg-loai').value,
+          congTyTC: document.getElementById('tm-tg-congTyTC').value,
+          tienMoiKy: Number(document.getElementById('tm-tg-tienMoiKyInput').value) || 0
+        };
+        if (data.traGop.loaiTraGop === 'Công ty tài chính' && !data.traGop.congTyTC) {
+          showAlertMsg('error', '⚠️ Vui lòng chọn Công ty tài chính cho hợp đồng trả góp!');
+          return;
+        }
+
+        var giaMoi = getThuMuaGiaMayMoi();
+        var giaMayMoi = giaMoi - data.tienGiamGia - data.tienHoTro;
+
+        if (derivedTraTruoc >= giaMayMoi) {
+          showAlertMsg('error', '⚠️ Số tiền trả trước (giá thu cũ trừ tiền trả khách) phải nhỏ hơn giá máy mới để mua trả góp!');
+          return;
+        }
+      }
+    }
+
+    setLoading('btnThuMua', true);
+    google.script.run
+      .withSuccessHandler(function(maTM) {
+        setLoading('btnThuMua', false);
+        showAlertMsg('success', '✅ Ghi nhận thu mua thành công! Ma: <strong>' + maTM + '</strong>');
+        document.getElementById('tm-tenSP-Thu').value = '';
+        document.getElementById('tm-imei-Thu').value = '';
+        document.getElementById('tm-mauSac-Thu').value = '';
+        document.getElementById('tm-dungLuong-Thu').value = '';
+        document.getElementById('tm-giaThuMua').value = 0;
+        document.getElementById('tm-maSP-Moi').value = '';
+        document.getElementById('tm-tienHoTro').value = 0;
+        document.getElementById('tm-coNhanQua').value = '✗';
+        document.getElementById('tm-maQuaTang').value = '';
+        document.getElementById('tm-tienGiamGia').value = 0;
+        document.getElementById('tm-maQuaTangGroup').style.display = 'none';
+        document.getElementById('tm-ghiChu').value = '';
+        document.getElementById('tm-tradeInFields').style.display = 'none';
+        document.getElementById('tm-hinhThucBanGroup').style.display = 'none';
+        document.getElementById('tm-hinhThucBan').value = 'Bán thẳng';
+
+        // reset installment inputs
+        document.getElementById('tm-tg-traTruoc').value = 0;
+        document.getElementById('tm-tg-soKy').value = 6;
+        document.getElementById('tm-tg-loai').value = 'Cửa hàng';
+        document.getElementById('tm-tg-congTyTC').value = '';
+        document.getElementById('tm-tg-tienMoiKyInput').value = 0;
+        document.getElementById('tm-tg-summary').style.display = 'none';
+        document.getElementById('tm-traGopSection').classList.remove('show');
+
+        var htttSelect = document.getElementById('tm-hinhThucTT');
+        htttSelect.value = 'Tiền mặt';
+        for (var i = 0; i < htttSelect.options.length; i++) {
+          if (htttSelect.options[i].value === 'Quẹt thẻ (POS)') {
+            htttSelect.remove(i);
+            break;
+          }
+        }
+
+        if (document.getElementById('tm-maQuaTang').clearTags) {
+          document.getElementById('tm-maQuaTang').clearTags();
+        }
+      })
+      .withFailureHandler(function(err) {
+        setLoading('btnThuMua', false);
+        showAlertMsg('error', '❌ Lỗi: ' + err.message);
+      })
+      .thucHienThuMua(data);
+  }
+
+  // ==================== HELPERS ====================
+
+  function resetFormDonHang() {
+    document.getElementById('dh-chiNhanh').value = '';
+    document.getElementById('dh-maKH').value = '';
+    document.getElementById('dh-maSP').value = '';
+    document.getElementById('dh-soLuong').value = 1;
+    document.getElementById('dh-donGia').value = 0;
+    
+    var accList = document.getElementById('dh-accessories-list');
+    if (accList) accList.innerHTML = '';
+    
+    document.getElementById('dh-coNhanQua').value = '✗';
+    document.getElementById('dh-maQuaTang').value = '';
+    document.getElementById('dh-maQuaTangGroup').style.display = 'none';
+    document.getElementById('dh-tienGiamGia').value = 0;
+    document.getElementById('dh-hinhThucBan').value = 'Bán thẳng';
+    document.getElementById('dh-hinhThucTT').value = 'Tiền mặt';
+    document.getElementById('dh-nguoiBan').value = '';
+    document.getElementById('dh-nguoiHoTro').value = '';
+    document.getElementById('dh-ghiChu').value = '';
+    document.getElementById('traGopSection').classList.remove('show');
+    document.getElementById('tg-tienMoiKyInput').value = 0;
+    document.getElementById('dh-summary').style.display = 'none';
+    document.getElementById('tg-summary').style.display = 'none';
+  }
+
+  // ==================== DOANH SO & BAO CAO ====================
+  function xemBaoCaoDoanhSo() {
+    var thang = parseInt(document.getElementById('ds-thang').value);
+    var nam = parseInt(document.getElementById('ds-nam').value);
+
+    if (isNaN(thang) || isNaN(nam)) {
+      showAlertMsg('error', '⚠️ Vui lòng chọn Tháng và Năm hợp lệ!');
+      return;
+    }
+
+    setLoading('btnXemDS', true);
+    document.getElementById('ds-summaryArea').style.display = 'none';
+    document.getElementById('ds-reportArea').style.display = 'none';
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        setLoading('btnXemDS', false);
+        renderBaoCaoDoanhSo(result);
+      })
+      .withFailureHandler(function(err) {
+        setLoading('btnXemDS', false);
+        showAlertMsg('error', '❌ Lỗi tải báo cáo: ' + err.message);
+      })
+      .getBaoCaoDoanhSo(thang, nam);
+  }
+
+  function renderBaoCaoDoanhSo(result) {
+    if (!result || !result.nhanVien || result.nhanVien.length === 0) {
+      showAlertMsg('error', '⚠️ Không có dữ liệu doanh số cho tháng này. Vui lòng bấm "Chốt doanh số" trước!');
+      return;
+    }
+
+    // Render summary cards
+    document.getElementById('ds-tongMay').innerText = result.tongSoMayBan;
+    document.getElementById('ds-tongHH').innerText = formatNumber(result.tongHoaHong) + 'đ';
+    document.getElementById('ds-tongDV').innerText = formatNumber(result.tongDoanhThuDV) + 'đ';
+    document.getElementById('ds-tongThuNhap').innerText = formatNumber(result.tongThuNhap) + 'đ';
+    document.getElementById('ds-summaryArea').style.display = 'block';
+
+    // Render table
+    var tbody = document.getElementById('ds-tableBody');
+    tbody.innerHTML = '';
+
+    result.nhanVien.forEach(function(nv) {
+      var tr = document.createElement('tr');
+      
+      // Role badge class
+      var roleClass = '';
+      if (nv.vaiTro === 'Bán hàng') roleClass = 'role-banhang';
+      else if (nv.vaiTro === 'Kế toán') roleClass = 'role-ketoan';
+      else if (nv.vaiTro === 'Kỹ thuật') roleClass = 'role-kythuat';
+
+      var html = '';
+      html += '<td><strong>' + nv.tenNV + '</strong><br><span style="color:#5f6368;font-size:9px;">' + nv.maNV + '</span></td>';
+      html += '<td><span class="role-badge ' + roleClass + '">' + nv.vaiTro + '</span></td>';
+      html += '<td class="text-center">' + nv.soMayBan_Apple + '</td>';
+      html += '<td class="text-center">' + nv.soMayBan_Khac + '</td>';
+      html += '<td class="text-center">' + nv.soMayHoTro_Apple + '</td>';
+      html += '<td class="text-center">' + nv.soMayHoTro_Khac + '</td>';
+      html += '<td class="text-right">' + formatNumber(nv.hhBan) + 'đ</td>';
+      html += '<td class="text-right">' + formatNumber(nv.hhHoTro) + 'đ</td>';
+      html += '<td class="text-right">' + formatNumber(nv.doanhThuDV) + 'đ</td>';
+      html += '<td class="text-right">' + formatNumber(nv.thuong) + 'đ</td>';
+      html += '<td class="text-right" style="font-weight:bold;color:#137333;">' + formatNumber(nv.tongThuNhap) + 'đ</td>';
+
+      tr.innerHTML = html;
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById('ds-lblThangNam').innerText = result.thangNam;
+    document.getElementById('ds-reportArea').style.display = 'block';
+  }
+
+  function yeuCauChotDoanhSo() {
+    var thang = parseInt(document.getElementById('ds-thang').value);
+    var nam = parseInt(document.getElementById('ds-nam').value);
+
+    if (isNaN(thang) || isNaN(nam)) {
+      showAlertMsg('error', '⚠️ Vui lòng chọn Tháng và Năm hợp lệ!');
+      return;
+    }
+
+    var confirmMsg = 'Bạn có chắc chắn muốn chốt doanh số tháng ' + thang + '/' + nam + '?';
+    confirmMsg += '\nHành động này có thể ghi đè dữ liệu cũ trên sheet Doanh số nếu tháng này đã được chốt trước đó.';
+    
+    if (!confirm(confirmMsg)) {
+      return;
+    }
+
+    setLoading('btnChotDS', true);
+
+    google.script.run
+      .withSuccessHandler(function(success) {
+        setLoading('btnChotDS', false);
+        if (success) {
+          showAlertMsg('success', '✅ Đã chốt doanh số tháng ' + thang + '/' + nam + ' thành công!');
+          xemBaoCaoDoanhSo();
+        } else {
+          showAlertMsg('error', '❌ Chốt doanh số không thành công.');
+        }
+      })
+      .withFailureHandler(function(err) {
+        setLoading('btnChotDS', false);
+        showAlertMsg('error', '❌ Lỗi chốt doanh số: ' + err.message);
+      })
+      .chotDoanhSoThang(thang, nam);
+  }
+
+  // ==================== HYBRID PAYMENT FUNCTIONS ====================
+
+  function getDonHangThanhTien() {
+    var giamGia = Number(document.getElementById('dh-tienGiamGia').value) || 0;
+    var sourceSelect = document.getElementById('dh-nguonSP');
+    var source = sourceSelect ? sourceSelect.value : '';
+    if (source === 'Phụ kiện') {
+      var rows = document.querySelectorAll('#dh-accessories-list tr');
+      var grandTotal = 0;
+      rows.forEach(function(row) {
+        var qty = parseInt(row.querySelector('.acc-qty').value) || 0;
+        var price = parseFloat(row.querySelector('.acc-price').value) || 0;
+        grandTotal += (qty * price);
+      });
+      return Math.max(0, grandTotal - giamGia);
+    } else {
+      var soLuong = Number(document.getElementById('dh-soLuong').value) || 0;
+      var donGia = Number(document.getElementById('dh-donGia').value) || 0;
+      return Math.max(0, (soLuong * donGia) - giamGia);
+    }
+  }
+
+  function onPaymentMethodChange(prefix) {
+    var selectEl = document.getElementById(prefix + '-hinhThucTT');
+    var httt = selectEl.value;
+    var splitRow = document.getElementById(prefix + '-split-payment-row');
+    if (!splitRow) return;
+
+    if (httt === 'Hỗn hợp') {
+      splitRow.style.display = 'flex';
+      
+      var htb = '';
+      if (prefix === 'dh') {
+        htb = document.getElementById('dh-hinhThucBan') ? document.getElementById('dh-hinhThucBan').value : '';
+      } else if (prefix === 'tm') {
+        htb = document.getElementById('tm-hinhThucBan') ? document.getElementById('tm-hinhThucBan').value : '';
+      }
+
+      var total = 0;
+      if (htb === 'Trả góp' && prefix === 'dh') {
+        total = getDonHangThanhTien();
+      } else if (htb === 'Trả góp' && prefix === 'tm') {
+        total = Number(document.getElementById('tm-giaThuMua').value) || 0;
+      } else {
+        total = getAmountToPay(prefix);
+      }
+
+      document.getElementById(prefix + '-split-tienMat').value = total;
+      document.getElementById(prefix + '-split-chuyenKhoan').value = 0;
+
+      // Màu sắc theo tông màu của từng phân hệ
+      if (prefix === 'dh' || prefix === 'tt' || prefix === 'dv') {
+        selectEl.style.background = '#e8f0fe';
+        selectEl.style.borderColor = '#a8c7fa';
+      } else if (prefix === 'tm') {
+        selectEl.style.background = '#f1f3f4';
+        selectEl.style.borderColor = '#dadce0';
+      } else if (prefix === 'dt') {
+        selectEl.style.background = '#fdf3f3';
+        selectEl.style.borderColor = '#f5c6cb';
+      }
+    } else {
+      splitRow.style.display = 'none';
+      document.getElementById(prefix + '-split-tienMat').value = 0;
+      document.getElementById(prefix + '-split-chuyenKhoan').value = 0;
+
+      // Khôi phục mặc định
+      selectEl.style.background = '#fff';
+      selectEl.style.borderColor = '#dadce0';
+    }
+
+    // Xử lý ẩn/hiện ô Trả trước khi chọn Hỗn hợp + Trả góp
+    if (prefix === 'dh') {
+      var htb = document.getElementById('dh-hinhThucBan') ? document.getElementById('dh-hinhThucBan').value : '';
+      var traTruocGroup = document.getElementById('tg-traTruoc') ? document.getElementById('tg-traTruoc').closest('.form-group') : null;
+      if (traTruocGroup) {
+        if (htb === 'Trả góp' && httt === 'Hỗn hợp') {
+          traTruocGroup.style.display = 'none';
+        } else {
+          traTruocGroup.style.display = '';
+        }
+      }
+      if (htb === 'Trả góp') {
+        tinhTraGop();
+      }
+    } else if (prefix === 'tm') {
+      var htb = document.getElementById('tm-hinhThucBan') ? document.getElementById('tm-hinhThucBan').value : '';
+      var traTruocGroup = document.getElementById('tm-tg-traTruoc') ? document.getElementById('tm-tg-traTruoc').closest('.form-group') : null;
+      if (traTruocGroup) {
+        if (htb === 'Trả góp' && httt === 'Hỗn hợp') {
+          traTruocGroup.style.display = 'none';
+        } else {
+          traTruocGroup.style.display = '';
+        }
+      }
+      if (htb === 'Trả góp') {
+        tinhThuMuaTraGop();
+      }
+    }
+  }
+
+  function getAmountToPay(prefix) {
+    if (prefix === 'dh') {
+      var htb = document.getElementById('dh-hinhThucBan').value;
+      if (htb === 'Trả góp') {
+        var httt = document.getElementById('dh-hinhThucTT') ? document.getElementById('dh-hinhThucTT').value : '';
+        if (httt === 'Hỗn hợp') {
+          var tm = Number(document.getElementById('dh-split-tienMat').value) || 0;
+          var ck = Number(document.getElementById('dh-split-chuyenKhoan').value) || 0;
+          return tm + ck;
+        }
+        return Number(document.getElementById('tg-traTruoc').value) || 0;
+      }
+      return getDonHangThanhTien();
+    } else if (prefix === 'tm') {
+      var loai = document.getElementById('tm-loaiGD').value;
+      var giaThu = Number(document.getElementById('tm-giaThuMua').value) || 0;
+      if (loai === 'Thu mua máy') {
+        return giaThu;
+      } else {
+        var htb = document.getElementById('tm-hinhThucBan').value;
+        if (htb === 'Trả góp') {
+          var httt = document.getElementById('tm-hinhThucTT') ? document.getElementById('tm-hinhThucTT').value : '';
+          var traTruoc = 0;
+          if (httt === 'Hỗn hợp') {
+            var tm = Number(document.getElementById('tm-split-tienMat').value) || 0;
+            var ck = Number(document.getElementById('tm-split-chuyenKhoan').value) || 0;
+            traTruoc = giaThu - (tm + ck);
+          } else {
+            traTruoc = Number(document.getElementById('tm-tg-traTruoc').value) || 0;
+          }
+          return Math.abs(giaThu - traTruoc);
+        }
+        var giaMoi = getThuMuaGiaMayMoi();
+        var hoTro = Number(document.getElementById('tm-tienHoTro').value) || 0;
+        var giamGia = Number(document.getElementById('tm-tienGiamGia').value) || 0;
+        var chenhLech = (giaMoi - giamGia) - hoTro - giaThu;
+        return Math.abs(chenhLech);
+      }
+    } else if (prefix === 'dt') {
+      return Math.abs(Number(document.getElementById('dt-tienHoanTra').value) || 0);
+    } else if (prefix === 'tt') {
+      return Number(document.getElementById('tt-soTien').value) || 0;
+    } else if (prefix === 'dv') {
+      var soTien = Number(document.getElementById('dv-soTien').value) || 0;
+      var phi = Number(document.getElementById('dv-phi').value) || 0;
+      return soTien + phi;
+    }
+    return 0;
+  }
+
+  function validateSplitPayment(prefix, inputName) {
+    var activeId = document.activeElement ? document.activeElement.id : '';
+    var edited = inputName;
+    if (!edited) {
+      if (activeId === prefix + '-split-chuyenKhoan') {
+        edited = 'chuyenKhoan';
+      } else {
+        edited = 'tienMat';
+      }
+    }
+
+    var tmInput = document.getElementById(prefix + '-split-tienMat');
+    var ckInput = document.getElementById(prefix + '-split-chuyenKhoan');
+    if (!tmInput || !ckInput) return;
+
+    var tm = Number(tmInput.value) || 0;
+    var ck = Number(ckInput.value) || 0;
+
+    var htb = '';
+    if (prefix === 'dh') {
+      htb = document.getElementById('dh-hinhThucBan') ? document.getElementById('dh-hinhThucBan').value : '';
+    } else if (prefix === 'tm') {
+      htb = document.getElementById('tm-hinhThucBan') ? document.getElementById('tm-hinhThucBan').value : '';
+    }
+    
+    var httt = document.getElementById(prefix + '-hinhThucTT') ? document.getElementById(prefix + '-hinhThucTT').value : '';
+
+    if (htb === 'Trả góp' && httt === 'Hỗn hợp') {
+      if (prefix === 'dh') {
+        var thanhTien = getDonHangThanhTien();
+        var maxAllowed = Math.max(0, thanhTien - 1000);
+        if (edited === 'tienMat') {
+          if (tm < 0) tm = 0;
+          if (tm > maxAllowed) tm = maxAllowed;
+          if (tm + ck > maxAllowed) {
+            ck = maxAllowed - tm;
+          }
+        } else {
+          if (ck < 0) ck = 0;
+          if (ck > maxAllowed) ck = maxAllowed;
+          if (tm + ck > maxAllowed) {
+            tm = maxAllowed - ck;
+          }
+        }
+        tmInput.value = tm;
+        ckInput.value = ck;
+        tinhTraGop();
+      } else if (prefix === 'tm') {
+        var giaThu = Number(document.getElementById('tm-giaThuMua').value) || 0;
+        var giaMoi = getThuMuaGiaMayMoi();
+        var hoTro = Number(document.getElementById('tm-tienHoTro').value) || 0;
+        var giamGia = Number(document.getElementById('tm-tienGiamGia').value) || 0;
+        var giaMayMoi = giaMoi - giamGia - hoTro;
+        
+        var minPayback = Math.max(0, giaThu - giaMayMoi + 1000);
+        var maxPayback = giaThu;
+
+        if (edited === 'tienMat') {
+          if (tm < 0) tm = 0;
+          if (tm > maxPayback) tm = maxPayback;
+          if (tm + ck > maxPayback) {
+            ck = maxPayback - tm;
+          } else if (tm + ck < minPayback) {
+            ck = minPayback - tm;
+          }
+        } else {
+          if (ck < 0) ck = 0;
+          if (ck > maxPayback) ck = maxPayback;
+          if (tm + ck > maxPayback) {
+            tm = maxPayback - ck;
+          } else if (tm + ck < minPayback) {
+            tm = minPayback - ck;
+          }
+        }
+        tmInput.value = tm;
+        ckInput.value = ck;
+        tinhThuMuaTraGop();
+      }
+    } else {
+      var total = getAmountToPay(prefix);
+      if (edited === 'tienMat') {
+        if (tm > total) {
+          tm = total;
+        } else if (tm < 0) {
+          tm = 0;
+        }
+        tmInput.value = tm;
+        ckInput.value = total - tm;
+      } else {
+        if (ck > total) {
+          ck = total;
+        } else if (ck < 0) {
+          ck = 0;
+        }
+        ckInput.value = ck;
+        tmInput.value = total - ck;
+      }
+    }
+  }
+
+  function updateSplitPaymentAmounts(prefix) {
+    var htttSelect = document.getElementById(prefix + '-hinhThucTT');
+    if (!htttSelect) return;
+    var httt = htttSelect.value;
+    if (httt !== 'Hỗn hợp') return;
+
+    var htb = '';
+    if (prefix === 'dh') {
+      htb = document.getElementById('dh-hinhThucBan') ? document.getElementById('dh-hinhThucBan').value : '';
+    } else if (prefix === 'tm') {
+      htb = document.getElementById('tm-hinhThucBan') ? document.getElementById('tm-hinhThucBan').value : '';
+    }
+
+    var tmInput = document.getElementById(prefix + '-split-tienMat');
+    var ckInput = document.getElementById(prefix + '-split-chuyenKhoan');
+    if (!tmInput || !ckInput) return;
+
+    if (htb === 'Trả góp' && httt === 'Hỗn hợp') {
+      validateSplitPayment(prefix, 'tienMat');
+      return;
+    }
+
+    var total = getAmountToPay(prefix);
+    var tm = Number(tmInput.value) || 0;
+    var ck = total - tm;
+    if (ck < 0) {
+      ck = 0;
+      tm = total;
+    }
+    tmInput.value = tm;
+    ckInput.value = ck;
+  }
+
+  function formatPaymentAmount(n) {
+    return Math.round(Number(n) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  }
+
+  function getPaymentMethodString(prefix) {
+    return document.getElementById(prefix + '-hinhThucTT').value;
+  }
+
+  // ==================== INIT ====================
+  init();
+</script>

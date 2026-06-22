@@ -1,0 +1,90 @@
+<div id="section-doanhSo" class="form-section">
+  <h2>Doanh số & Báo cáo tháng</h2>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label>Tháng</label>
+      <select id="ds-thang">
+        <option value="1">Tháng 1</option>
+        <option value="2">Tháng 2</option>
+        <option value="3">Tháng 3</option>
+        <option value="4">Tháng 4</option>
+        <option value="5">Tháng 5</option>
+        <option value="6">Tháng 6</option>
+        <option value="7">Tháng 7</option>
+        <option value="8">Tháng 8</option>
+        <option value="9">Tháng 9</option>
+        <option value="10">Tháng 10</option>
+        <option value="11">Tháng 11</option>
+        <option value="12">Tháng 12</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Năm</label>
+      <input type="number" id="ds-nam" value="2026" min="2000" max="2100">
+    </div>
+  </div>
+
+  <div class="form-row" style="margin-top: 8px;">
+    <div style="flex: 1.5;">
+      <button class="btn btn-primary" id="btnXemDS" onclick="xemBaoCaoDoanhSo()" style="margin-top:0;">
+        Xem báo cáo
+      </button>
+    </div>
+    <div style="flex: 1;">
+      <button class="btn btn-secondary" id="btnChotDS" onclick="yeuCauChotDoanhSo()" style="margin-top:0;">
+        Chốt
+      </button>
+    </div>
+  </div>
+
+  <!-- Summary Area -->
+  <div id="ds-summaryArea" style="display:none; margin-top: 16px;">
+    <div class="report-summary-cards">
+      <div class="report-card">
+        <div class="report-card-lbl">Tổng máy bán</div>
+        <div id="ds-tongMay" class="report-card-val">0</div>
+      </div>
+      <div class="report-card">
+        <div class="report-card-lbl">Tổng hoa hồng</div>
+        <div id="ds-tongHH" class="report-card-val">0đ</div>
+      </div>
+      <div class="report-card">
+        <div class="report-card-lbl">Tổng doanh thu DV</div>
+        <div id="ds-tongDV" class="report-card-val">0đ</div>
+      </div>
+      <div class="report-card">
+        <div class="report-card-lbl">Tổng thu nhập</div>
+        <div id="ds-tongThuNhap" class="report-card-val">0đ</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detailed Report Table -->
+  <div id="ds-reportArea" style="display:none;" class="report-container">
+    <div class="report-title">CHI TIẾT DOANH SỐ THÁNG <span id="ds-lblThangNam"></span></div>
+    
+    <div class="report-table-wrapper">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Nhân viên</th>
+            <th>Vai trò</th>
+            <th class="text-center">Bán AP</th>
+            <th class="text-center">Bán Khác</th>
+            <th class="text-center">HT AP</th>
+            <th class="text-center">HT Khác</th>
+            <th class="text-right">HH Bán</th>
+            <th class="text-right">HH HT</th>
+            <th class="text-right">Doanh thu DV</th>
+            <th class="text-right">Thưởng</th>
+            <th class="text-right">Tổng TN</th>
+          </tr>
+        </thead>
+        <tbody id="ds-tableBody">
+          <!-- Rows will be rendered dynamically -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

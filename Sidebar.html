@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <?!= HtmlService.createHtmlOutputFromFile('SidebarStyles').getContent(); ?>
+</head>
+<body>
+
+  <!-- Alert message -->
+  <div id="alertBox" class="alert"></div>
+
+  <!-- Navigation Tabs -->
+  <div class="nav-tabs" id="navTabs">
+    <span class="nav-tab active" data-section="donHang">Đơn hàng</span>
+    <span class="nav-tab" data-section="khachHang">Khách hàng</span>
+    <span class="nav-tab" data-section="nhapKho">Nhập kho</span>
+    <span class="nav-tab" data-section="dichVu">Dịch vụ</span>
+    <span class="nav-tab" data-section="thanhToan">Trả góp</span>
+    <span class="nav-tab" data-section="chuyenKho">Chuyển kho</span>
+    <span class="nav-tab" data-section="doiTra">Đổi trả</span>
+    <span class="nav-tab" data-section="thuMua">Thu mua</span>
+    <span class="nav-tab" data-section="doanhSo">Doanh số</span>
+  </div>
+
+  <!-- ==================== FORM: DON HANG ==================== -->
+  <?!= HtmlService.createHtmlOutputFromFile('FormDonHang').getContent(); ?>
+
+  <!-- ==================== FORM: KHACH HANG ==================== -->
+  <?!= HtmlService.createHtmlOutputFromFile('FormKhachHang').getContent(); ?>
+
+  <!-- ==================== FORM: NHAP KHO ==================== -->
+  <?!= HtmlService.createHtmlOutputFromFile('FormNhapKho').getContent(); ?>
+
+  <!-- ==================== FORM: DICH VU ==================== -->
+  <?!= HtmlService.createHtmlOutputFromFile('FormDichVu').getContent(); ?>
+
+  <!-- ==================== FORM: THANH TOAN TRẢ GOP ==================== -->
+  <?!= HtmlService.createHtmlOutputFromFile('FormThanhToan').getContent(); ?>
+
+  <!-- ==================== FORM: CHUYEN KHO ==================== -->
+  <?!= HtmlService.createHtmlOutputFromFile('FormChuyenKho').getContent(); ?>
+
+  <!-- ==================== FORM: DOI TRA ==================== -->
+  <?!= HtmlService.createHtmlOutputFromFile('FormDoiTra').getContent(); ?>
+
+  <!-- ==================== FORM: THU MUA ==================== -->
+  <?!= HtmlService.createHtmlOutputFromFile('FormThuMua').getContent(); ?>
+
+  <!-- ==================== FORM: DOANH SO ==================== -->
+  <?!= HtmlService.createHtmlOutputFromFile('FormDoanhSo').getContent(); ?>
+
+  <!-- Datalist suggestions for product conditions -->
+  <datalist id="tinhTrangList">
+    <option value="Mới 100%">
+    <option value="Like New">
+    <option value="Đã qua sử dụng">
+    <option value="99%">
+    <option value="98%">
+    <option value="95%">
+    <option value="90%">
+  </datalist>
+
+  <!-- ==================== JAVASCRIPT ==================== -->
+  <script>
+    // Set initial mode from template evaluation
+    var initialMode = '<?!= (typeof mode !== "undefined" ? mode : "donHang") ?>';
+  </script>
+  <?!= HtmlService.createHtmlOutputFromFile('SidebarScripts').getContent(); ?>
+
+</body>
+</html>

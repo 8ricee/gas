@@ -1,0 +1,168 @@
+<div id="section-donHang" class="form-section active">
+  <h2>Tạo đơn hàng</h2>
+
+  <div class="form-group">
+    <label>Chi nhánh <span class="required">*</span></label>
+    <select id="dh-chiNhanh" onchange="onDonHangBranchOrNguonChange()">
+      <option value="">-- Chọn chi nhánh --</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Khách hàng <span class="required">*</span></label>
+    <input type="text" id="dh-maKH" list="dh-maKH-list" placeholder="Khách hàng...">
+    <datalist id="dh-maKH-list"></datalist>
+  </div>
+
+  <div class="form-group">
+    <label>Nguồn sản phẩm <span class="required">*</span></label>
+    <select id="dh-nguonSP" onchange="onDonHangBranchOrNguonChange()">
+      <option value="Điện thoại">Điện thoại</option>
+      <option value="Phụ kiện">Phụ kiện</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Sản phẩm <span class="required">*</span></label>
+    <input type="text" id="dh-maSP" list="dh-maSP-list" oninput="onSanPhamChange()" placeholder="Sản phẩm...">
+    <datalist id="dh-maSP-list"></datalist>
+  </div>
+
+  <div id="dh-standard-qty-price-row" class="form-row">
+    <div class="form-group">
+      <label>Số lượng</label>
+      <input type="number" id="dh-soLuong" value="1" min="1" onchange="tinhThanhTien()">
+    </div>
+    <div class="form-group">
+      <label>Đơn giá</label>
+      <input type="number" id="dh-donGia" value="0" onchange="tinhThanhTien()">
+    </div>
+  </div>
+
+  <div id="dh-accessories-container" style="display:none; margin-top: 12px; margin-bottom: 12px;">
+    <label style="font-weight: bold; margin-bottom: 6px; display: block; color: #1a73e8;">Danh sách phụ kiện chọn mua</label>
+    <div style="overflow-x: auto; border: 1px solid #dadce0; border-radius: 4px; background: #fff; margin-bottom: 12px;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+        <thead>
+          <tr style="background-color: #f1f3f4; border-bottom: 1px solid #dadce0; color: #5f6368; font-weight: 600;">
+            <th style="padding: 6px 8px; text-align: left;">Sản phẩm</th>
+            <th style="padding: 6px 8px; text-align: center; width: 70px;">SL</th>
+            <th style="padding: 6px 8px; text-align: right; width: 95px;">Đơn giá</th>
+            <th style="padding: 6px 8px; text-align: right; width: 95px;">Thành tiền</th>
+            <th style="padding: 6px 8px; text-align: center; width: 40px;">Xoá</th>
+          </tr>
+        </thead>
+        <tbody id="dh-accessories-list">
+          <!-- Rows will be added dynamically -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Promo Gift section -->
+  <div class="form-row">
+    <div class="form-group">
+      <label>Nhận quà tặng kèm?</label>
+      <select id="dh-coNhanQua" onchange="onCoNhanQuaChange()">
+        <option value="✗">Không</option>
+        <option value="✓">Có</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Tiền giảm giá </label>
+      <input type="number" id="dh-tienGiamGia" value="0" onchange="tinhThanhTien()">
+    </div>
+  </div>
+
+  <div class="form-group" id="dh-maQuaTangGroup" style="display:none;">
+    <label>Quà tặng kèm</label>
+    <input type="text" id="dh-maQuaTang" list="dh-maQuaTang-list" placeholder="Quà tặng">
+    <datalist id="dh-maQuaTang-list"></datalist>
+  </div>
+
+  <div class="form-group">
+    <label>Hình thức bán</label>
+    <select id="dh-hinhThucBan" onchange="onHinhThucBanChange()">
+      <option value="Bán thẳng">Bán thẳng</option>
+      <option value="Trả góp">Trả góp</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Hình thức thanh toán</label>
+    <select id="dh-hinhThucTT" onchange="onPaymentMethodChange('dh')">
+      <option value="Tiền mặt">Tiền mặt</option>
+      <option value="Chuyển khoản">Chuyển khoản</option>
+      <option value="Quẹt thẻ (POS)">Quẹt thẻ (POS)</option>
+      <option value="Hỗn hợp">Hỗn hợp (Tiền mặt + Chuyển khoản)</option>
+    </select>
+  </div>
+
+  <div id="dh-split-payment-row" class="form-row" style="display:none; background: #e8f0fe; padding: 8px; border-radius: 4px; margin-bottom: 12px; border: 1px solid #a8c7fa;">
+    <div class="form-group" style="margin-bottom: 0;">
+      <label style="color: #1a73e8; font-weight: bold;">Số tiền mặt</label>
+      <input type="number" id="dh-split-tienMat" value="0" oninput="validateSplitPayment('dh')">
+    </div>
+    <div class="form-group" style="margin-bottom: 0;">
+      <label style="color: #1a73e8; font-weight: bold;">Số tiền chuyển khoản</label>
+      <input type="number" id="dh-split-chuyenKhoan" value="0" oninput="validateSplitPayment('dh')">
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label>Người bán <span class="required">*</span></label>
+      <input type="text" id="dh-nguoiBan" list="dh-nguoiBan-list" placeholder="Người bán...">
+      <datalist id="dh-nguoiBan-list"></datalist>
+    </div>
+    <div class="form-group">
+      <label>Người hỗ trợ</label>
+      <input type="text" id="dh-nguoiHoTro" list="dh-nguoiHoTro-list" placeholder="Hỗ trợ ...">
+      <datalist id="dh-nguoiHoTro-list"></datalist>
+    </div>
+  </div>
+
+  <!-- Trả góp section -->
+  <div id="traGopSection" class="tra-gop-section">
+    <h3>Thông tin trả góp</h3>
+    <div class="form-group">
+      <label>Loại trả góp</label>
+      <select id="tg-loai">
+        <option value="Cửa hàng">Cửa hàng tự trả góp</option>
+        <option value="Công ty tài chính">Công ty tài chính</option>
+      </select>
+    </div>
+    <div class="form-group" id="tg-congTyTCGroup" style="display:none;">
+      <label>Công ty tài chính <span class="required">*</span></label>
+      <select id="tg-congTyTC">
+        <option value="">-- Chọn công ty tài chính --</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Trả trước (VND)</label>
+        <input type="number" id="tg-traTruoc" value="0" onchange="tinhTraGop()">
+      </div>
+      <div class="form-group">
+        <label>Số kỳ</label>
+        <input type="number" id="tg-soKy" value="6" min="1" max="36" onchange="tinhTraGop()">
+      </div>
+    </div>
+    <div class="form-group" id="tg-tienMoiKyGroup" style="display:none;">
+      <label>Tiền đóng mỗi kỳ (CTTC)</label>
+      <input type="number" id="tg-tienMoiKyInput" value="0" onchange="tinhTraGop()">
+    </div>
+    <div id="tg-summary" class="summary-box" style="display:none;"></div>
+  </div>
+
+  <div class="form-group">
+    <label>Ghi chú</label>
+    <textarea id="dh-ghiChu" placeholder="Ghi chú thêm..."></textarea>
+  </div>
+
+  <div id="dh-summary" class="summary-box" style="display:none;"></div>
+
+  <button class="btn btn-primary" id="btnTaoDonHang" onclick="submitDonHang()">
+    Tạo đơn hàng
+  </button>
+</div>

@@ -1,0 +1,80 @@
+<div id="section-dichVu" class="form-section">
+  <h2>Dịch vụ</h2>
+
+  <div class="form-group">
+    <label>Chi nhánh giao dịch <span class="required">*</span></label>
+    <select id="dv-chiNhanh">
+      <option value="">-- Chọn chi nhánh --</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Loại dịch vụ <span class="required">*</span></label>
+    <select id="dv-loaiDV" onchange="onLoaiDVChange()">
+      <option value="Chuyển khoản hộ">Chuyển khoản hộ</option>
+      <option value="Rút tiền mặt">Rút tiền mặt</option>
+      <option value="Nạp thẻ điện thoại">Nạp thẻ điện thoại</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Tên khách / SDT</label>
+    <input type="text" id="dv-tenKH" placeholder="Tên người giao dịch">
+  </div>
+
+  <div class="form-group">
+    <label>SDT khách</label>
+    <input type="text" id="dv-sdtKH" placeholder="SĐT liên hệ">
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label>Số tiền giao dịch <span class="required">*</span></label>
+      <input type="number" id="dv-soTien" value="0" oninput="updateSplitPaymentAmounts('dv')">
+    </div>
+    <div class="form-group">
+      <label>Phí dịch vụ</label>
+      <input type="number" id="dv-phi" value="0" oninput="updateSplitPaymentAmounts('dv')">
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>Hình thức thanh toán</label>
+    <select id="dv-hinhThucTT" onchange="onPaymentMethodChange('dv')">
+      <option value="Tiền mặt">Tiền mặt</option>
+      <option value="Chuyển khoản">Chuyển khoản</option>
+      <option value="Quẹt thẻ (POS)">Quẹt thẻ (POS)</option>
+      <option value="Hỗn hợp">Hỗn hợp (Tiền mặt + Chuyển khoản)</option>
+    </select>
+  </div>
+
+  <div id="dv-split-payment-row" class="form-row" style="display:none; background: #e8f0fe; padding: 8px; border-radius: 4px; margin-bottom: 12px; border: 1px solid #a8c7fa;">
+    <div class="form-group" style="margin-bottom: 0;">
+      <label style="color: #1a73e8; font-weight: bold;">Số tiền mặt</label>
+      <input type="number" id="dv-split-tienMat" value="0" oninput="validateSplitPayment('dv')">
+    </div>
+    <div class="form-group" style="margin-bottom: 0;">
+      <label style="color: #1a73e8; font-weight: bold;">Số tiền chuyển khoản</label>
+      <input type="number" id="dv-split-chuyenKhoan" value="0" oninput="validateSplitPayment('dv')">
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>Người thực hiện <span class="required">*</span></label>
+    <input type="text" id="dv-nguoiThucHien" list="dv-nguoiThucHien-list" placeholder="Người thực hiện">
+    <datalist id="dv-nguoiThucHien-list"></datalist>
+  </div>
+
+  <div class="form-group">
+    <label>Ghi chú</label>
+    <textarea id="dv-ghiChu" placeholder="Số tài khoản nhận, mạng nạp thẻ..."></textarea>
+  </div>
+
+  <div id="dv-freeNote" class="alert alert-info show" style="display:none;">
+    Nạp thẻ điện thoại: MIỄN PHÍ
+  </div>
+
+  <button class="btn btn-primary" id="btnTaoDV" onclick="submitDichVu()">
+    Tạo giao dịch
+  </button>
+</div>

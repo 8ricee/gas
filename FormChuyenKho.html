@@ -1,0 +1,41 @@
+<div id="section-chuyenKho" class="form-section">
+  <h2>Chuyển kho sản phẩm</h2>
+
+  <div class="form-group">
+    <label>Loại sản phẩm <span class="required">*</span></label>
+    <select id="ck-nguonSP" onchange="onChuyenKhoBranchOrNguonChange()">
+      <option value="Điện thoại">Điện thoại</option>
+      <option value="Phụ kiện">Phụ kiện</option>
+    </select>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label>Chi nhánh nguồn <span class="required">*</span></label>
+      <select id="ck-cnNguon" onchange="onChuyenKhoBranchOrNguonChange()">
+        <option value="">-- Chọn --</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Chi nhánh đích <span class="required">*</span></label>
+      <select id="ck-cnDich">
+        <option value="">-- Chọn --</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>Sản phẩm <span class="required">*</span></label>
+    <input type="text" id="ck-maSP" list="ck-maSP-list" oninput="onChuyenKhoProductChange()" placeholder="Sản phẩm">
+    <datalist id="ck-maSP-list"></datalist>
+  </div>
+
+  <div class="form-group">
+    <label>Số lượng chuyển</label>
+    <input type="number" id="ck-soLuong" value="1" min="1">
+  </div>
+
+  <button class="btn btn-primary" id="btnChuyenKho" onclick="submitChuyenKho()">
+    Xác nhận chuyển kho
+  </button>
+</div>

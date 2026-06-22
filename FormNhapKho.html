@@ -1,0 +1,150 @@
+<div id="section-nhapKho" class="form-section">
+  <h2>Nhập kho</h2>
+
+  <div class="form-group">
+    <label>Chi nhánh nhập <span class="required">*</span></label>
+    <select id="nk-chiNhanh" onchange="onNhapKhoBranchOrNguonChange()">
+      <option value="">-- Chọn chi nhánh --</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Loại nhập <span class="required">*</span></label>
+    <select id="nk-nguonNhap" onchange="onNguonNhapChange()">
+      <option value="Điện thoại">Điện thoại (mới)</option>
+      <option value="Phụ kiện - Mới">Phụ kiện (sản phẩm mới)</option>
+      <option value="Phụ kiện - Cũ">Phụ kiện (đã có, cộng tồn)</option>
+    </select>
+  </div>
+
+  <!-- Điện thoại fields -->
+  <div id="nk-dtFields">
+    <div class="form-group">
+      <label>Tên sản phẩm <span class="required">*</span></label>
+      <input type="text" id="nk-tenSP" placeholder="VD: iPhone 15 Pro Max 256GB">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Thương hiệu <span class="required">*</span></label>
+        <select id="nk-thuongHieu">
+          <option value="Apple">Apple</option>
+          <option value="Samsung">Samsung</option>
+          <option value="Xiaomi">Xiaomi</option>
+          <option value="OPPO">OPPO</option>
+          <option value="Vivo">Vivo</option>
+          <option value="Realme">Realme</option>
+          <option value="Khác">Khác</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>IMEI <span class="required">*</span></label>
+        <input type="text" id="nk-imei" placeholder="Số IMEI">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Màu sắc</label>
+        <input type="text" id="nk-mauSac" placeholder="Đen, Trắng, ...">
+      </div>
+      <div class="form-group">
+        <label>Dung lượng</label>
+        <input type="text" id="nk-dungLuong" placeholder="128GB, 256GB, ...">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Tình trạng</label>
+      <input type="text" id="nk-tinhTrang" list="tinhTrangList" placeholder="VD: Mới 100%, Like New, 99%, 95%">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Giá nhập <span class="required">*</span></label>
+        <input type="number" id="nk-giaNhap" value="0">
+      </div>
+      <div class="form-group">
+        <label>Giá bán</label>
+        <input type="number" id="nk-giaBan" value="0">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Giá trả góp</label>
+      <input type="number" id="nk-giaTraGop" value="0">
+    </div>
+  </div>
+
+  <!-- Phụ kiện mới fields -->
+  <div id="nk-pkMoiFields" style="display:none;">
+    <div class="form-group">
+      <label>Tên phụ kiện <span class="required">*</span></label>
+      <input type="text" id="nk-pk-tenSP" placeholder="VD: Op lung iPhone 15">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Loại phụ kiện</label>
+        <select id="nk-pk-loaiPK">
+          <option value="Sạc">Sạc</option>
+          <option value="Ốp lưng">Ốp lưng</option>
+          <option value="Tai nghe">Tai nghe</option>
+          <option value="Cường lực">Cường lực</option>
+          <option value="Cáp">Cáp</option>
+          <option value="Khác">Khác</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Thương hiệu</label>
+        <input type="text" id="nk-pk-thuongHieu" placeholder="Thương hiệu">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Giá nhập <span class="required">*</span></label>
+        <input type="number" id="nk-pk-giaNhap" value="0">
+      </div>
+      <div class="form-group">
+        <label>Giá bán</label>
+        <input type="number" id="nk-pk-giaBan" value="0">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Số lượng <span class="required">*</span></label>
+      <input type="number" id="nk-pk-soLuong" value="1" min="1">
+    </div>
+    <div class="form-group">
+      <label>Mô tả</label>
+      <textarea id="nk-pk-moTa" placeholder="Mô tả sản phẩm..."></textarea>
+    </div>
+  </div>
+
+  <!-- Phụ kiện cũ fields -->
+  <div id="nk-pkCuFields" style="display:none;">
+    <div class="form-group">
+      <label>Chọn phụ kiện <span class="required">*</span></label>
+      <input type="text" id="nk-pkCu-maSP" list="nk-pkCu-maSP-list" oninput="updateNhapKhoPhuKienInfo()" placeholder="Phụ kiện">
+      <datalist id="nk-pkCu-maSP-list"></datalist>
+      <div id="nk-pkCu-info" style="font-size: 11px; color: #1a73e8; margin-top: 4px; display: none;"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Số lượng <span class="required">*</span></label>
+        <input type="number" id="nk-pkCu-soLuong" value="1" min="1">
+      </div>
+      <div class="form-group">
+        <label>Giá nhập mới</label>
+        <input type="number" id="nk-pkCu-giaNhap" value="0" placeholder="0 = giữ nguyên">
+      </div>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>Nhà cung cấp</label>
+    <input type="text" id="nk-nhaCungCap" placeholder="Tên nhà cung cấp">
+  </div>
+
+  <div class="form-group">
+    <label>Ghi chú</label>
+    <textarea id="nk-ghiChu" placeholder="Ghi chú..."></textarea>
+  </div>
+
+  <button class="btn btn-primary" id="btnNhapKho" onclick="submitNhapKho()">
+    Nhập kho
+  </button>
+</div>

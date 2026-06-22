@@ -1,0 +1,184 @@
+<div id="section-thuMua" class="form-section">
+  <h2>Thu mua & Thu cũ đổi mới</h2>
+
+  <div class="form-group">
+    <label>Khách hàng <span class="required">*</span></label>
+    <input type="text" id="tm-maKH" list="tm-maKH-list" placeholder="Khách hàng">
+    <datalist id="tm-maKH-list"></datalist>
+  </div>
+
+  <div class="form-group">
+    <label>Loại giao dịch <span class="required">*</span></label>
+    <select id="tm-loaiGD" onchange="onThuMuaLoaiGDChange()">
+      <option value="Bán thẳng">Bán thẳng</option>
+      <option value="Thu cũ đổi mới">Thu cũ đổi mới</option>
+    </select>
+  </div>
+
+  <h3>Thông tin máy thu mua</h3>
+  <div class="form-group">
+    <label>Tên sản phẩm <span class="required">*</span></label>
+    <input type="text" id="tm-tenSP-Thu" placeholder="VD: iPhone 13 Pro 128GB">
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label>Thương hiệu <span class="required">*</span></label>
+      <select id="tm-thuongHieu-Thu">
+        <option value="Apple">Apple</option>
+        <option value="Samsung">Samsung</option>
+        <option value="Xiaomi">Xiaomi</option>
+        <option value="OPPO">OPPO</option>
+        <option value="Vivo">Vivo</option>
+        <option value="Realme">Realme</option>
+        <option value="Khác">Khác</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>IMEI thu mua <span class="required">*</span></label>
+      <input type="text" id="tm-imei-Thu" placeholder="Số IMEI của máy">
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label>Màu sắc</label>
+      <input type="text" id="tm-mauSac-Thu" placeholder="VD: Xanh lam">
+    </div>
+    <div class="form-group">
+      <label>Dung lượng</label>
+      <input type="text" id="tm-dungLuong-Thu" placeholder="VD: 128GB">
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label>Tình trạng</label>
+      <input type="text" id="tm-tinhTrang-Thu" list="tinhTrangList" placeholder="VD: Mới 100%, Like New, 99%, 95%" value="Đã qua sử dụng">
+    </div>
+    <div class="form-group">
+      <label>Giá thu mua (VND) <span class="required">*</span></label>
+      <input type="number" id="tm-giaThuMua" value="0" onchange="tinhThuMuaChenhLech()">
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>Chi nhánh thu mua <span class="required">*</span></label>
+    <select id="tm-chiNhanh" onchange="onThuMuaBranchChange()">
+      <option value="">-- Chọn chi nhánh --</option>
+    </select>
+  </div>
+
+  <!-- Trade-in fields -->
+  <div id="tm-tradeInFields" style="display:none; background: #e8f0fe; border: 1px solid #a8c7fa; border-radius: 4px; padding: 12px; margin-top: 12px;">
+    <h3>Thông tin máy đổi mới mua</h3>
+    <div class="form-group">
+      <label>Điện thoại mới để mua <span class="required">*</span></label>
+      <input type="text" id="tm-maSP-Moi" list="tm-maSP-Moi-list" oninput="tinhThuMuaChenhLech()" placeholder="Sản phẩm">
+      <datalist id="tm-maSP-Moi-list"></datalist>
+    </div>
+    <div class="form-group">
+      <label>Tiền cửa hàng hỗ trợ (nếu có)</label>
+      <input type="number" id="tm-tienHoTro" value="0" onchange="tinhThuMuaChenhLech()" placeholder="Hỗ trợ chênh lệch lên/hạ đời">
+    </div>
+    
+    <!-- Quà tặng kèm cho thu cũ đổi mới -->
+    <div class="form-row">
+      <div class="form-group">
+        <label>Nhận quà tặng kèm?</label>
+        <select id="tm-coNhanQua" onchange="onThuMuaCoNhanQuaChange()">
+          <option value="✗">Không</option>
+          <option value="✓">Có</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Tiền giảm giá</label>
+        <input type="number" id="tm-tienGiamGia" value="0" onchange="tinhThuMuaChenhLech()">
+      </div>
+    </div>
+    <div class="form-group" id="tm-maQuaTangGroup" style="display:none;">
+      <label>Quà tặng kèm</label>
+      <input type="text" id="tm-maQuaTang" list="tm-maQuaTang-list" placeholder="Quà tặng">
+      <datalist id="tm-maQuaTang-list"></datalist>
+    </div>
+
+    <div id="tm-summary" style="font-size:12px; line-height: 1.6; margin-top: 8px; border-top: 1px solid #a8c7fa; padding-top: 8px;"></div>
+  </div>
+
+  <div class="form-group" id="tm-hinhThucBanGroup" style="display:none; margin-top:12px;">
+    <label>Hình thức bán</label>
+    <select id="tm-hinhThucBan" onchange="onThuMuaHinhThucBanChange()">
+      <option value="Bán thẳng">Bán thẳng</option>
+      <option value="Trả góp">Trả góp</option>
+    </select>
+  </div>
+
+  <div class="form-group" style="margin-top:12px;">
+    <label>Hình thức thanh toán</label>
+    <select id="tm-hinhThucTT" onchange="onPaymentMethodChange('tm'); onThuMuaHinhThucTTChange()">
+      <option value="Tiền mặt">Tiền mặt</option>
+      <option value="Chuyển khoản">Chuyển khoản</option>
+      <option value="Quẹt thẻ (POS)">Quẹt thẻ (POS)</option>
+      <option value="Hỗn hợp">Hỗn hợp (Tiền mặt + Chuyển khoản)</option>
+    </select>
+  </div>
+
+  <div id="tm-split-payment-row" class="form-row" style="display:none; background: #f1f3f4; padding: 8px; border-radius: 4px; margin-bottom: 12px; border: 1px solid #dadce0;">
+    <div class="form-group" style="margin-bottom: 0;">
+      <label style="color: #202124; font-weight: bold;">Số tiền mặt</label>
+      <input type="number" id="tm-split-tienMat" value="0" oninput="validateSplitPayment('tm')">
+    </div>
+    <div class="form-group" style="margin-bottom: 0;">
+      <label style="color: #202124; font-weight: bold;">Số tiền chuyển khoản</label>
+      <input type="number" id="tm-split-chuyenKhoan" value="0" oninput="validateSplitPayment('tm')">
+    </div>
+  </div>
+
+  <!-- Trả góp section cho Thu cũ đổi mới -->
+  <div id="tm-traGopSection" class="tra-gop-section">
+    <h3>Thông tin trả góp</h3>
+    <div class="form-group">
+      <label>Loại trả góp</label>
+      <select id="tm-tg-loai">
+        <option value="Cửa hàng">Cửa hàng tự trả góp</option>
+        <option value="Công ty tài chính">Công ty tài chính</option>
+      </select>
+    </div>
+    <div class="form-group" id="tm-tg-congTyTCGroup" style="display:none;">
+      <label>Công ty tài chính <span class="required">*</span></label>
+      <select id="tm-tg-congTyTC">
+        <option value="">-- Chọn công ty tài chính --</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Trả trước (VND)</label>
+        <input type="number" id="tm-tg-traTruoc" value="0" onchange="tinhThuMuaTraGop()">
+      </div>
+      <div class="form-group">
+        <label>Số kỳ</label>
+        <input type="number" id="tm-tg-soKy" value="6" min="1" max="36" onchange="tinhThuMuaTraGop()">
+      </div>
+    </div>
+    <div class="form-group" id="tm-tg-tienMoiKyGroup" style="display:none;">
+      <label>Tiền đóng mỗi kỳ (CTTC)</label>
+      <input type="number" id="tm-tg-tienMoiKyInput" value="0" onchange="tinhThuMuaTraGop()">
+    </div>
+    <div id="tm-tg-summary" class="summary-box" style="display:none;"></div>
+  </div>
+
+  <div class="form-group">
+    <label>Người thực hiện <span class="required">*</span></label>
+    <input type="text" id="tm-nguoiThucHien" list="tm-nguoiThucHien-list" placeholder="Người thực hiện">
+    <datalist id="tm-nguoiThucHien-list"></datalist>
+  </div>
+
+  <div class="form-group">
+    <label>Ghi chú</label>
+    <textarea id="tm-ghiChu" placeholder="Ghi chú thêm..."></textarea>
+  </div>
+
+  <button class="btn btn-primary" id="btnThuMua" onclick="submitThuMua()">
+    Xác nhận Thu mua
+  </button>
+</div>

@@ -1,0 +1,89 @@
+<div id="section-doiTra" class="form-section">
+  <h2>Đổi trả & Đổi quà</h2>
+
+  <div class="form-group">
+    <label>Mã đơn hàng gốc <span class="required">*</span></label>
+    <div class="form-row">
+      <input type="text" id="dt-maDH" placeholder="VD: DH001">
+      <button class="btn btn-secondary" id="btnCheckDoiTra" onclick="checkDonHangDoiTra()" style="margin-top:0; width:auto;">Kiểm tra</button>
+    </div>
+  </div>
+
+  <div id="dt-infoBox" class="info-box" style="display:none;"></div>
+
+  <!-- Đối tượng đổi trả -->
+  <div class="form-group" id="dt-doiTuongGroup" style="display:none;">
+    <label>Đối tượng đổi trả <span class="required">*</span></label>
+    <select id="dt-doiTuong" onchange="onDoiTraDoiTuongChange()">
+      <option value="Sản phẩm chính">Sản phẩm chính</option>
+      <option value="Quà tặng kèm">Quà tặng kèm</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Loại giao dịch <span class="required">*</span></label>
+    <select id="dt-loaiGD" onchange="onDoiTraLoaiGDChange()">
+      <!-- Điền động bằng JS -->
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Chi nhánh thực hiện <span class="required">*</span></label>
+    <select id="dt-chiNhanh" onchange="onDoiTraBranchChange()">
+      <option value="">-- Chọn chi nhánh --</option>
+    </select>
+  </div>
+
+  <!-- Chọn sản phẩm mới để đổi -->
+  <div class="form-group" id="dt-newProductGroup" style="display:none;">
+    <label id="dt-newProductLabel">Sản phẩm mới để đổi <span class="required">*</span></label>
+    <input type="text" id="dt-maSP-Nhan" list="dt-maSP-Nhan-list" oninput="tinhDoiTraChenhLech()" placeholder="Sản phẩm">
+    <datalist id="dt-maSP-Nhan-list"></datalist>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label>Phí đổi trả (VND)</label>
+      <input type="number" id="dt-phiDoiTra" value="0" onchange="tinhDoiTraChenhLech()">
+    </div>
+    <div class="form-group">
+      <label id="dt-tienLabel">Tiền hoàn trả</label>
+      <input type="number" id="dt-tienHoanTra" value="0" readonly>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>Hình thức thanh toán (Tiền chênh lệch / phí)</label>
+    <select id="dt-hinhThucTT" onchange="onPaymentMethodChange('dt')">
+      <option value="Tiền mặt">Tiền mặt</option>
+      <option value="Chuyển khoản">Chuyển khoản</option>
+      <option value="Hỗn hợp">Hỗn hợp (Tiền mặt + Chuyển khoản)</option>
+    </select>
+  </div>
+
+  <div id="dt-split-payment-row" class="form-row" style="display:none; background: #fdf3f3; padding: 8px; border-radius: 4px; margin-bottom: 12px; border: 1px solid #f5c6cb;">
+    <div class="form-group" style="margin-bottom: 0;">
+      <label style="color: #c5221f; font-weight: bold;">Số tiền mặt</label>
+      <input type="number" id="dt-split-tienMat" value="0" oninput="validateSplitPayment('dt')">
+    </div>
+    <div class="form-group" style="margin-bottom: 0;">
+      <label style="color: #c5221f; font-weight: bold;">Số tiền chuyển khoản</label>
+      <input type="number" id="dt-split-chuyenKhoan" value="0" oninput="validateSplitPayment('dt')">
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>Người thực hiện <span class="required">*</span></label>
+    <input type="text" id="dt-nguoiThucHien" list="dt-nguoiThucHien-list" placeholder="Người thực hiện">
+    <datalist id="dt-nguoiThucHien-list"></datalist>
+  </div>
+
+  <div class="form-group">
+    <label>Ghi chú</label>
+    <textarea id="dt-ghiChu" placeholder="Lý do đổi trả, chi tiết tình trạng..."></textarea>
+  </div>
+
+  <button class="btn btn-primary" id="btnDoiTra" onclick="submitDoiTra()">
+    Xác nhận đổi trả
+  </button>
+</div>
