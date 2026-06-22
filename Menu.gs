@@ -44,6 +44,7 @@ function createCustomMenu() {
     .addSeparator()
     // Báo cáo & Doanh số
     .addItem("Cập nhật báo cáo ngày", "updateDailyReportFromSheet")
+    .addItem("Cập nhật báo cáo doanh số", "updateSalesReportFromSheet")
     .addItem("Chốt doanh số tháng", "menuChotDoanhSo")
     .addItem("Xem báo cáo doanh số", "menuXemBaoCao")
     .addSeparator()
@@ -52,10 +53,7 @@ function createCustomMenu() {
       ui
         .createMenu("Hệ thống")
         .addItem("Khởi tạo hệ thống", "setupSheets")
-        .addItem(
-          "Đồng bộ & Chuẩn hóa toàn bộ hệ thống",
-          "menuNormalizeSystem",
-        ),
+        .addItem("Đồng bộ & Chuẩn hóa toàn bộ hệ thống", "menuNormalizeSystem"),
     )
     .addToUi();
 }
@@ -203,14 +201,14 @@ function menuPhuKienSapHet() {
 function menuFormatAllSheets() {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    
+
     // Tái xây dựng báo cáo Tồn kho và bảng màu trước
     rebuildTonKhoSheet(ss);
     applyConditionalFormatting(ss);
-    
+
     // Đồng bộ font toàn bộ
     formatAllSheets();
-    
+
     showAlert(
       "Định dạng",
       "Đã đồng bộ thành công Tồn kho chi nhánh, màu thương hiệu và Font chữ Times New Roman 12 cho toàn bộ hệ thống!",
@@ -226,26 +224,26 @@ function menuFormatAllSheets() {
 function menuNormalizeSystem() {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    
+
     // 1. Chuẩn hóa cấu trúc cột và điền Ngày nhập/xuất cho Điện thoại (chạy ẩn, không show alert riêng)
     backfillDienThoaiDates(true);
-    
+
     // 2. Tái xây dựng báo cáo Tồn kho chi nhánh
     rebuildTonKhoSheet(ss);
-    
+
     // 3. Thiết lập định dạng màu sắc có điều kiện cho các dropdown
     applyConditionalFormatting(ss);
-    
+
     // 4. Đồng bộ font chữ Times New Roman 12 cho toàn hệ thống
     formatAllSheets();
-    
+
     showAlert(
       "Hoàn tất",
       "Đã đồng bộ và chuẩn hóa toàn bộ hệ thống thành công!\n\n" +
-      "- Bổ sung và điền Ngày nhập/xuất Điện thoại cũ.\n" +
-      "- Tái dựng bảng Tồn kho chi nhánh.\n" +
-      "- Định dạng lại màu sắc dropdown.\n" +
-      "- Áp dụng Font Times New Roman 12 cho tất cả các trang tính."
+        "- Bổ sung và điền Ngày nhập/xuất Điện thoại cũ.\n" +
+        "- Tái dựng bảng Tồn kho chi nhánh.\n" +
+        "- Định dạng lại màu sắc dropdown.\n" +
+        "- Áp dụng Font Times New Roman 12 cho tất cả các trang tính.",
     );
   } catch (e) {
     showAlert("Lỗi", "Không thể chuẩn hóa hệ thống: " + e.message);

@@ -58,9 +58,23 @@ function generateDailyReport(targetDate) {
   // Khởi tạo accumulator tài chính theo từng chi nhánh
   var branchMetrics = {};
   branches.forEach(function (b) {
-    branchMetrics[b] = { doanhSo: 0, loiNhuan: 0, thuTM: 0, chiTM: 0, thuCK: 0, chiCK: 0 };
+    branchMetrics[b] = {
+      doanhSo: 0,
+      loiNhuan: 0,
+      thuTM: 0,
+      chiTM: 0,
+      thuCK: 0,
+      chiCK: 0,
+    };
   });
-  branchMetrics[fallbackBranch] = { doanhSo: 0, loiNhuan: 0, thuTM: 0, chiTM: 0, thuCK: 0, chiCK: 0 };
+  branchMetrics[fallbackBranch] = {
+    doanhSo: 0,
+    loiNhuan: 0,
+    thuTM: 0,
+    chiTM: 0,
+    thuCK: 0,
+    chiCK: 0,
+  };
 
   // 1. Thu thập giao dịch của ngày targetDate
   var transactions = [];
@@ -91,12 +105,34 @@ function generateDailyReport(targetDate) {
       // Tra cứu giá nhập sản phẩm chính
       var giaNhapSP = 0;
       if (nguonSP === "Điện thoại") {
-        giaNhapSP = Number(lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.IMEI, maSP, COL_DT.GIA_NHAP)) || 
-                    Number(lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP, COL_DT.GIA_NHAP)) || 0;
+        giaNhapSP =
+          Number(
+            lookupValue(
+              SHEET_NAMES.DIEN_THOAI,
+              COL_DT.IMEI,
+              maSP,
+              COL_DT.GIA_NHAP,
+            ),
+          ) ||
+          Number(
+            lookupValue(
+              SHEET_NAMES.DIEN_THOAI,
+              COL_DT.MA_DT,
+              maSP,
+              COL_DT.GIA_NHAP,
+            ),
+          ) ||
+          0;
       } else {
         var pkRow = findPhuKienRow(maSP, branch);
         if (pkRow !== -1) {
-          giaNhapSP = Number(ss.getSheetByName(SHEET_NAMES.PHU_KIEN).getRange(pkRow, COL_PK.GIA_NHAP).getValue()) || 0;
+          giaNhapSP =
+            Number(
+              ss
+                .getSheetByName(SHEET_NAMES.PHU_KIEN)
+                .getRange(pkRow, COL_PK.GIA_NHAP)
+                .getValue(),
+            ) || 0;
         }
       }
       var costSP = giaNhapSP * sl;
@@ -110,7 +146,13 @@ function generateDailyReport(targetDate) {
           if (!code) continue;
           var quaRow = findPhuKienRow(code, branch);
           if (quaRow !== -1) {
-            costQua += Number(ss.getSheetByName(SHEET_NAMES.PHU_KIEN).getRange(quaRow, COL_PK.GIA_NHAP).getValue()) || 0;
+            costQua +=
+              Number(
+                ss
+                  .getSheetByName(SHEET_NAMES.PHU_KIEN)
+                  .getRange(quaRow, COL_PK.GIA_NHAP)
+                  .getValue(),
+              ) || 0;
           }
         }
       }
@@ -125,8 +167,9 @@ function generateDailyReport(targetDate) {
       var cellCK = row[COL_DH.CHUYEN_KHOAN - 1];
 
       // Check if we have new columns populated with non-zero values (new flow)
-      var hasNewColumns = (cellTM !== undefined && cellTM !== "" && Number(cellTM) !== 0) || 
-                          (cellCK !== undefined && cellCK !== "" && Number(cellCK) !== 0);
+      var hasNewColumns =
+        (cellTM !== undefined && cellTM !== "" && Number(cellTM) !== 0) ||
+        (cellCK !== undefined && cellCK !== "" && Number(cellCK) !== 0);
 
       if (hasNewColumns) {
         thuTM = Number(cellTM) || 0;
@@ -134,9 +177,21 @@ function generateDailyReport(targetDate) {
 
         // Với trả góp CTTC, công ty tài chính giải ngân phần còn lại qua CK
         if (hinhThucBan === "Trả góp") {
-          var traTruocRaw = lookupValue(SHEET_NAMES.TRA_GOP, COL_TG.MA_DH, maDH, COL_TG.TRA_TRUOC);
+          var traTruocRaw = lookupValue(
+            SHEET_NAMES.TRA_GOP,
+            COL_TG.MA_DH,
+            maDH,
+            COL_TG.TRA_TRUOC,
+          );
           var traTruoc = Number(traTruocRaw) || 0;
-          var loaiTG = String(lookupValue(SHEET_NAMES.TRA_GOP, COL_TG.MA_DH, maDH, COL_TG.LOAI_TRA_GOP));
+          var loaiTG = String(
+            lookupValue(
+              SHEET_NAMES.TRA_GOP,
+              COL_TG.MA_DH,
+              maDH,
+              COL_TG.LOAI_TRA_GOP,
+            ),
+          );
           var conLai = thanhTien - traTruoc;
           if (loaiTG === "Công ty tài chính") {
             thuCK += conLai;
@@ -148,9 +203,21 @@ function generateDailyReport(targetDate) {
         var rawAmount = row[COL_DH.THANH_TIEN - 1];
 
         if (hinhThucBan === "Trả góp") {
-          var traTruocRaw = lookupValue(SHEET_NAMES.TRA_GOP, COL_TG.MA_DH, maDH, COL_TG.TRA_TRUOC);
+          var traTruocRaw = lookupValue(
+            SHEET_NAMES.TRA_GOP,
+            COL_TG.MA_DH,
+            maDH,
+            COL_TG.TRA_TRUOC,
+          );
           var traTruoc = parseAmountVal(traTruocRaw);
-          var loaiTG = String(lookupValue(SHEET_NAMES.TRA_GOP, COL_TG.MA_DH, maDH, COL_TG.LOAI_TRA_GOP));
+          var loaiTG = String(
+            lookupValue(
+              SHEET_NAMES.TRA_GOP,
+              COL_TG.MA_DH,
+              maDH,
+              COL_TG.LOAI_TRA_GOP,
+            ),
+          );
           var conLai = thanhTien - traTruoc;
 
           if (loaiTG === "Công ty tài chính") {
@@ -161,7 +228,9 @@ function generateDailyReport(targetDate) {
           rawAmount = traTruocRaw;
         }
 
-        var hybrid = parseHybridAmount(hinhThucTT === "Hỗn hợp" ? rawAmount : "");
+        var hybrid = parseHybridAmount(
+          hinhThucTT === "Hỗn hợp" ? rawAmount : "",
+        );
         if (hybrid) {
           thuTM += hybrid.tm;
           thuCK += hybrid.ck;
@@ -174,7 +243,14 @@ function generateDailyReport(targetDate) {
 
       var brKey = branch || fallbackBranch;
       if (!branchMetrics[brKey]) {
-        branchMetrics[brKey] = { doanhSo: 0, loiNhuan: 0, thuTM: 0, chiTM: 0, thuCK: 0, chiCK: 0 };
+        branchMetrics[brKey] = {
+          doanhSo: 0,
+          loiNhuan: 0,
+          thuTM: 0,
+          chiTM: 0,
+          thuCK: 0,
+          chiCK: 0,
+        };
       }
       branchMetrics[brKey].doanhSo += thanhTien;
       branchMetrics[brKey].loiNhuan += loiNhuan;
@@ -192,7 +268,8 @@ function generateDailyReport(targetDate) {
         thuCK: thuCK,
         chiCK: 0,
         loiNhuan: loiNhuan,
-        detail: tenSP + " (SL: " + sl + ", " + hinhThucBan + " - " + hinhThucTT + ")",
+        detail:
+          tenSP + " (SL: " + sl + ", " + hinhThucBan + " - " + hinhThucTT + ")",
       });
     }
   });
@@ -223,8 +300,9 @@ function generateDailyReport(targetDate) {
       var cellTM = row[COL_DV.TIEN_MAT - 1];
       var cellCK = row[COL_DV.CHUYEN_KHOAN - 1];
 
-      var hasNewColumns = (cellTM !== undefined && cellTM !== "" && Number(cellTM) !== 0) || 
-                          (cellCK !== undefined && cellCK !== "" && Number(cellCK) !== 0);
+      var hasNewColumns =
+        (cellTM !== undefined && cellTM !== "" && Number(cellTM) !== 0) ||
+        (cellCK !== undefined && cellCK !== "" && Number(cellCK) !== 0);
 
       if (hasNewColumns) {
         thuTM = Number(cellTM) || 0;
@@ -237,7 +315,9 @@ function generateDailyReport(targetDate) {
         }
       } else {
         // Fallback cho dữ liệu cũ (chưa chia cột)
-        var hybrid = parseHybridAmount(hinhThucTT === "Hỗn hợp" ? rawSoTien : "");
+        var hybrid = parseHybridAmount(
+          hinhThucTT === "Hỗn hợp" ? rawSoTien : "",
+        );
         if (loaiDV === "Chuyển khoản hộ") {
           if (hybrid) {
             thuTM = hybrid.tm;
@@ -268,7 +348,14 @@ function generateDailyReport(targetDate) {
 
       var brKey = branch || fallbackBranch;
       if (!branchMetrics[brKey]) {
-        branchMetrics[brKey] = { doanhSo: 0, loiNhuan: 0, thuTM: 0, chiTM: 0, thuCK: 0, chiCK: 0 };
+        branchMetrics[brKey] = {
+          doanhSo: 0,
+          loiNhuan: 0,
+          thuTM: 0,
+          chiTM: 0,
+          thuCK: 0,
+          chiCK: 0,
+        };
       }
       branchMetrics[brKey].loiNhuan += loiNhuan;
       branchMetrics[brKey].thuTM += thuTM;
@@ -287,7 +374,13 @@ function generateDailyReport(targetDate) {
         thuCK: thuCK,
         chiCK: chiCK,
         loiNhuan: loiNhuan,
-        detail: loaiDV + " (" + formatCurrency(soTien) + "đ, Phí: " + formatCurrency(phi) + "đ)",
+        detail:
+          loaiDV +
+          " (" +
+          formatCurrency(soTien) +
+          "đ, Phí: " +
+          formatCurrency(phi) +
+          "đ)",
       });
     }
   });
@@ -297,7 +390,11 @@ function generateDailyReport(targetDate) {
   repayments.forEach(function (row) {
     var ngayTra = row[COL_LSTG.NGAY_THUC_TRA - 1];
     var status = String(row[COL_LSTG.TRANG_THAI - 1]);
-    if (ngayTra instanceof Date && _isSameDay(ngayTra, targetDate) && status === "Đã trả") {
+    if (
+      ngayTra instanceof Date &&
+      _isSameDay(ngayTra, targetDate) &&
+      status === "Đã trả"
+    ) {
       var maLS = String(row[COL_LSTG.MA_LS - 1]);
       var maTG = String(row[COL_LSTG.MA_TG - 1]);
       var kySo = String(row[COL_LSTG.KY_SO - 1]);
@@ -305,9 +402,20 @@ function generateDailyReport(targetDate) {
       var soTienDaTra = parseAmountVal(rawSoTienDaTra);
       var hinhThucTT = String(row[COL_LSTG.HINH_THUC_TT - 1]);
 
-      var maKH = String(lookupValue(SHEET_NAMES.TRA_GOP, COL_TG.MA_TG, maTG, COL_TG.MA_KH));
-      var tenKH = String(lookupValue(SHEET_NAMES.KHACH_HANG, 1, maKH, 2)) || "Khách trả góp";
-      var branch = String(lookupValue(SHEET_NAMES.TRA_GOP, COL_TG.MA_TG, maTG, COL_TG.CHI_NHANH) || "").trim();
+      var maKH = String(
+        lookupValue(SHEET_NAMES.TRA_GOP, COL_TG.MA_TG, maTG, COL_TG.MA_KH),
+      );
+      var tenKH =
+        String(lookupValue(SHEET_NAMES.KHACH_HANG, 1, maKH, 2)) ||
+        "Khách trả góp";
+      var branch = String(
+        lookupValue(
+          SHEET_NAMES.TRA_GOP,
+          COL_TG.MA_TG,
+          maTG,
+          COL_TG.CHI_NHANH,
+        ) || "",
+      ).trim();
 
       var thuTM = 0;
       var thuCK = 0;
@@ -315,15 +423,18 @@ function generateDailyReport(targetDate) {
       var cellTM = row[COL_LSTG.TIEN_MAT - 1];
       var cellCK = row[COL_LSTG.CHUYEN_KHOAN - 1];
 
-      var hasNewColumns = (cellTM !== undefined && cellTM !== "" && Number(cellTM) !== 0) || 
-                          (cellCK !== undefined && cellCK !== "" && Number(cellCK) !== 0);
+      var hasNewColumns =
+        (cellTM !== undefined && cellTM !== "" && Number(cellTM) !== 0) ||
+        (cellCK !== undefined && cellCK !== "" && Number(cellCK) !== 0);
 
       if (hasNewColumns) {
         thuTM = Number(cellTM) || 0;
         thuCK = Number(cellCK) || 0;
       } else {
         // Fallback cho dữ liệu cũ (chưa chia cột)
-        var hybrid = parseHybridAmount(hinhThucTT === "Hỗn hợp" ? rawSoTienDaTra : "");
+        var hybrid = parseHybridAmount(
+          hinhThucTT === "Hỗn hợp" ? rawSoTienDaTra : "",
+        );
         if (hybrid) {
           thuTM = hybrid.tm;
           thuCK = hybrid.ck;
@@ -336,7 +447,14 @@ function generateDailyReport(targetDate) {
 
       var brKey = branch || fallbackBranch;
       if (!branchMetrics[brKey]) {
-        branchMetrics[brKey] = { doanhSo: 0, loiNhuan: 0, thuTM: 0, chiTM: 0, thuCK: 0, chiCK: 0 };
+        branchMetrics[brKey] = {
+          doanhSo: 0,
+          loiNhuan: 0,
+          thuTM: 0,
+          chiTM: 0,
+          thuCK: 0,
+          chiCK: 0,
+        };
       }
       branchMetrics[brKey].thuTM += thuTM;
       branchMetrics[brKey].thuCK += thuCK;
@@ -374,7 +492,14 @@ function generateDailyReport(targetDate) {
 
       var brKey = branch || fallbackBranch;
       if (!branchMetrics[brKey]) {
-        branchMetrics[brKey] = { doanhSo: 0, loiNhuan: 0, thuTM: 0, chiTM: 0, thuCK: 0, chiCK: 0 };
+        branchMetrics[brKey] = {
+          doanhSo: 0,
+          loiNhuan: 0,
+          thuTM: 0,
+          chiTM: 0,
+          thuCK: 0,
+          chiCK: 0,
+        };
       }
       branchMetrics[brKey].chiCK += chiCK;
 
@@ -426,12 +551,37 @@ function generateDailyReport(targetDate) {
         priceOriginal = parseAmountVal(originalOrder.thanhTien);
         var costSP = 0;
         if (originalOrder.nguonSP === "Điện thoại") {
-          costSP = Number(lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.IMEI, originalOrder.maSP, COL_DT.GIA_NHAP)) || 
-                   Number(lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, originalOrder.maSP, COL_DT.GIA_NHAP)) || 0;
+          costSP =
+            Number(
+              lookupValue(
+                SHEET_NAMES.DIEN_THOAI,
+                COL_DT.IMEI,
+                originalOrder.maSP,
+                COL_DT.GIA_NHAP,
+              ),
+            ) ||
+            Number(
+              lookupValue(
+                SHEET_NAMES.DIEN_THOAI,
+                COL_DT.MA_DT,
+                originalOrder.maSP,
+                COL_DT.GIA_NHAP,
+              ),
+            ) ||
+            0;
         } else {
-          var pkRow = findPhuKienRow(originalOrder.maSP, originalOrder.chiNhanh);
+          var pkRow = findPhuKienRow(
+            originalOrder.maSP,
+            originalOrder.chiNhanh,
+          );
           if (pkRow !== -1) {
-            costSP = Number(ss.getSheetByName(SHEET_NAMES.PHU_KIEN).getRange(pkRow, COL_PK.GIA_NHAP).getValue()) || 0;
+            costSP =
+              Number(
+                ss
+                  .getSheetByName(SHEET_NAMES.PHU_KIEN)
+                  .getRange(pkRow, COL_PK.GIA_NHAP)
+                  .getValue(),
+              ) || 0;
           }
         }
         costOriginal = costSP * originalOrder.soLuong;
@@ -443,7 +593,13 @@ function generateDailyReport(targetDate) {
             if (!code) continue;
             var quaRow = findPhuKienRow(code, originalOrder.chiNhanh);
             if (quaRow !== -1) {
-              costOriginal += Number(ss.getSheetByName(SHEET_NAMES.PHU_KIEN).getRange(quaRow, COL_PK.GIA_NHAP).getValue()) || 0;
+              costOriginal +=
+                Number(
+                  ss
+                    .getSheetByName(SHEET_NAMES.PHU_KIEN)
+                    .getRange(quaRow, COL_PK.GIA_NHAP)
+                    .getValue(),
+                ) || 0;
             }
           }
         }
@@ -455,8 +611,9 @@ function generateDailyReport(targetDate) {
       var cellTM = row[COL_DT_TRA.TIEN_MAT - 1];
       var cellCK = row[COL_DT_TRA.CHUYEN_KHOAN - 1];
 
-      var hasNewColumns = (cellTM !== undefined && cellTM !== "" && Number(cellTM) !== 0) || 
-                          (cellCK !== undefined && cellCK !== "" && Number(cellCK) !== 0);
+      var hasNewColumns =
+        (cellTM !== undefined && cellTM !== "" && Number(cellTM) !== 0) ||
+        (cellCK !== undefined && cellCK !== "" && Number(cellCK) !== 0);
 
       if (hasNewColumns) {
         var valTM = Number(cellTM) || 0;
@@ -471,7 +628,9 @@ function generateDailyReport(targetDate) {
         }
       } else {
         // Fallback cho dữ liệu cũ (chưa chia cột)
-        var hybrid = parseHybridAmount(hinhThucTT === "Hỗn hợp" ? rawHoanTien : "");
+        var hybrid = parseHybridAmount(
+          hinhThucTT === "Hỗn hợp" ? rawHoanTien : "",
+        );
         if (loaiGD === "Trả máy") {
           if (hybrid) {
             chiTM = hybrid.tm;
@@ -510,7 +669,14 @@ function generateDailyReport(targetDate) {
 
       var brKey = branch || fallbackBranch;
       if (!branchMetrics[brKey]) {
-        branchMetrics[brKey] = { doanhSo: 0, loiNhuan: 0, thuTM: 0, chiTM: 0, thuCK: 0, chiCK: 0 };
+        branchMetrics[brKey] = {
+          doanhSo: 0,
+          loiNhuan: 0,
+          thuTM: 0,
+          chiTM: 0,
+          thuCK: 0,
+          chiCK: 0,
+        };
       }
       branchMetrics[brKey].doanhSo += lossDoanhSo;
       branchMetrics[brKey].loiNhuan += lossLoiNhuan;
@@ -530,7 +696,14 @@ function generateDailyReport(targetDate) {
         thuCK: thuCK,
         chiCK: chiCK,
         loiNhuan: lossLoiNhuan,
-        detail: loaiGD + ": " + tenSPTra + (loaiGD === "Đổi máy" ? " ➔ " + tenSPNhan : "") + " (Phí: " + formatCurrency(phi) + "đ)",
+        detail:
+          loaiGD +
+          ": " +
+          tenSPTra +
+          (loaiGD === "Đổi máy" ? " ➔ " + tenSPNhan : "") +
+          " (Phí: " +
+          formatCurrency(phi) +
+          "đ)",
       });
     }
   });
@@ -554,15 +727,18 @@ function generateDailyReport(targetDate) {
       var cellTM = row[COL_TM.TIEN_MAT - 1];
       var cellCK = row[COL_TM.CHUYEN_KHOAN - 1];
 
-      var hasNewColumns = (cellTM !== undefined && cellTM !== "" && Number(cellTM) !== 0) || 
-                          (cellCK !== undefined && cellCK !== "" && Number(cellCK) !== 0);
+      var hasNewColumns =
+        (cellTM !== undefined && cellTM !== "" && Number(cellTM) !== 0) ||
+        (cellCK !== undefined && cellCK !== "" && Number(cellCK) !== 0);
 
       if (hasNewColumns) {
         chiTM = Number(cellTM) || 0;
         chiCK = Number(cellCK) || 0;
       } else {
         // Fallback cho dữ liệu cũ (chưa chia cột)
-        var hybrid = parseHybridAmount(hinhThucTT === "Hỗn hợp" ? rawTongTienTra : "");
+        var hybrid = parseHybridAmount(
+          hinhThucTT === "Hỗn hợp" ? rawTongTienTra : "",
+        );
         if (hybrid) {
           chiTM = hybrid.tm;
           chiCK = hybrid.ck;
@@ -575,7 +751,14 @@ function generateDailyReport(targetDate) {
 
       var brKey = branch || fallbackBranch;
       if (!branchMetrics[brKey]) {
-        branchMetrics[brKey] = { doanhSo: 0, loiNhuan: 0, thuTM: 0, chiTM: 0, thuCK: 0, chiCK: 0 };
+        branchMetrics[brKey] = {
+          doanhSo: 0,
+          loiNhuan: 0,
+          thuTM: 0,
+          chiTM: 0,
+          thuCK: 0,
+          chiCK: 0,
+        };
       }
       branchMetrics[brKey].chiTM += chiTM;
       branchMetrics[brKey].chiCK += chiCK;
@@ -591,7 +774,90 @@ function generateDailyReport(targetDate) {
         thuCK: 0,
         chiCK: chiCK,
         loiNhuan: 0,
-        detail: "Thu mua máy cũ: " + tenSPThu + " (Giá: " + formatCurrency(tongTienTra) + "đ)",
+        detail:
+          "Thu mua máy cũ: " +
+          tenSPThu +
+          " (Giá: " +
+          formatCurrency(tongTienTra) +
+          "đ)",
+      });
+    }
+  });
+
+  // --- G. BẢO HÀNH & SỬA CHỮA (BAO_HANH) ---
+  var repairs = getAllData(SHEET_NAMES.BAO_HANH);
+  repairs.forEach(function (row) {
+    var ngayNhan = row[COL_BH.NGAY_NHAN - 1];
+    if (ngayNhan instanceof Date && _isSameDay(ngayNhan, targetDate)) {
+      var status = String(row[COL_BH.TRANG_THAI - 1]);
+      if (status === "Huỷ") return;
+
+      var maBH = String(row[COL_BH.MA_BH - 1]);
+      var tenKH = String(row[COL_BH.TEN_KH - 1]);
+      var tenSP = String(row[COL_BH.TEN_SP - 1]);
+      var loaiDichVu = String(row[COL_BH.LOAI_DICH_VU - 1]);
+      var rawPhiSuaChua = row[COL_BH.PHI_SUA_CHUA - 1];
+      var phiSuaChua = parseAmountVal(rawPhiSuaChua);
+      var branch = String(row[COL_BH.CHI_NHANH - 1] || "").trim();
+
+      var thuTM = 0;
+      var chiTM = 0;
+      var thuCK = 0;
+      var chiCK = 0;
+
+      var cellTM = row[COL_BH.TIEN_MAT - 1];
+      var cellCK = row[COL_BH.CHUYEN_KHOAN - 1];
+
+      var hasNewColumns =
+        (cellTM !== undefined && cellTM !== "" && Number(cellTM) !== 0) ||
+        (cellCK !== undefined && cellCK !== "" && Number(cellCK) !== 0);
+
+      if (hasNewColumns) {
+        thuTM = Number(cellTM) || 0;
+        thuCK = Number(cellCK) || 0;
+      } else {
+        var hinhThucTT = String(row[COL_BH.HINH_THUC_TT - 1]);
+        var hybrid = parseHybridAmount(hinhThucTT === "Hỗn hợp" ? rawPhiSuaChua : "");
+        if (hybrid) {
+          thuTM = hybrid.tm;
+          thuCK = hybrid.ck;
+        } else {
+          var payment = parseMixedPayment(hinhThucTT, phiSuaChua);
+          thuTM = payment.tm;
+          thuCK = payment.ck;
+        }
+      }
+
+      var loiNhuan = phiSuaChua; 
+
+      var brKey = branch || fallbackBranch;
+      if (!branchMetrics[brKey]) {
+        branchMetrics[brKey] = {
+          doanhSo: 0,
+          loiNhuan: 0,
+          thuTM: 0,
+          chiTM: 0,
+          thuCK: 0,
+          chiCK: 0,
+        };
+      }
+      branchMetrics[brKey].thuTM += thuTM;
+      branchMetrics[brKey].thuCK += thuCK;
+      branchMetrics[brKey].loiNhuan += loiNhuan;
+      branchMetrics[brKey].doanhSo += phiSuaChua; 
+
+      transactions.push({
+        maGD: maBH,
+        time: ngayNhan,
+        loaiGD: loaiDichVu || "Sửa chữa",
+        khachHang: tenKH,
+        branch: branch,
+        thuTM: thuTM,
+        chiTM: chiTM,
+        thuCK: thuCK,
+        chiCK: chiCK,
+        loiNhuan: loiNhuan,
+        detail: (loaiDichVu || "Sửa chữa") + " máy " + tenSP + " (Phí: " + formatCurrency(phiSuaChua) + "đ)",
       });
     }
   });
@@ -606,30 +872,47 @@ function generateDailyReport(targetDate) {
   reportSheet.getRange("A1:M1000").clearFormat();
 
   // Tạo tiêu đề
-  reportSheet.getRange(1, 1)
-             .setValue("BÁO CÁO GIAO DỊCH THEO NGÀY")
-             .setFontSize(14)
-             .setFontWeight("bold");
+  reportSheet
+    .getRange(1, 1)
+    .setValue("BÁO CÁO GIAO DỊCH THEO NGÀY")
+    .setFontSize(14)
+    .setFontWeight("bold");
 
-  reportSheet.getRange(3, 1)
-             .setValue("Ngày báo cáo:")
-             .setFontWeight("bold");
+  reportSheet.getRange(3, 1).setValue("Ngày báo cáo:").setFontWeight("bold");
 
   var dateCell = reportSheet.getRange(3, 2);
-  dateCell.setValue(targetDate)
-          .setNumberFormat("dd/MM/yyyy")
-          .setBackground("#ffffff")
-          .setBorder(true, true, true, true, true, true, "#cccccc", SpreadsheetApp.BorderStyle.SOLID)
-          .setHorizontalAlignment("left");
+  dateCell
+    .setValue(targetDate)
+    .setNumberFormat("dd/MM/yyyy")
+    .setBackground("#ffffff")
+    .setBorder(
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      "#cccccc",
+      SpreadsheetApp.BorderStyle.SOLID,
+    )
+    .setHorizontalAlignment("left");
 
-  reportSheet.getRange(4, 1)
-             .setValue("Trạng thái cập nhật:")
-             .setFontWeight("bold");
+  reportSheet
+    .getRange(4, 1)
+    .setValue("Trạng thái cập nhật:")
+    .setFontWeight("bold");
 
   // Chuẩn bị danh sách các chi nhánh hiển thị ở bảng tổng hợp
   var activeBranches = branches.slice();
   var fb = branchMetrics[fallbackBranch];
-  if (fb.doanhSo !== 0 || fb.loiNhuan !== 0 || fb.thuTM !== 0 || fb.chiTM !== 0 || fb.thuCK !== 0 || fb.chiCK !== 0) {
+  if (
+    fb.doanhSo !== 0 ||
+    fb.loiNhuan !== 0 ||
+    fb.thuTM !== 0 ||
+    fb.chiTM !== 0 ||
+    fb.thuCK !== 0 ||
+    fb.chiCK !== 0
+  ) {
     activeBranches.push(fallbackBranch);
   }
   var numActiveBranches = activeBranches.length;
@@ -638,11 +921,12 @@ function generateDailyReport(targetDate) {
   // Tiêu đề bảng tổng hợp chỉ tiêu tài chính
   var summaryTitleRange = reportSheet.getRange(6, 1, 1, totalSummaryColIdx);
   summaryTitleRange.merge();
-  summaryTitleRange.setValue("TỔNG HỢP CHỈ TIÊU TÀI CHÍNH")
-                    .setBackground("#1a73e8")
-                    .setFontColor("#ffffff")
-                    .setFontWeight("bold")
-                    .setHorizontalAlignment("center");
+  summaryTitleRange
+    .setValue("TỔNG HỢP CHỈ TIÊU TÀI CHÍNH")
+    .setBackground("#1a73e8")
+    .setFontColor("#ffffff")
+    .setFontWeight("bold")
+    .setHorizontalAlignment("center");
 
   // Tiêu đề cột bảng tổng hợp
   var summaryHeaders = ["Chỉ tiêu"];
@@ -651,10 +935,11 @@ function generateDailyReport(targetDate) {
   });
   summaryHeaders.push("Tổng cộng");
   reportSheet.getRange(7, 1, 1, totalSummaryColIdx).setValues([summaryHeaders]);
-  reportSheet.getRange(7, 1, 1, totalSummaryColIdx)
-             .setFontWeight("bold")
-             .setBackground("#e8f0fe")
-             .setHorizontalAlignment("center");
+  reportSheet
+    .getRange(7, 1, 1, totalSummaryColIdx)
+    .setFontWeight("bold")
+    .setBackground("#e8f0fe")
+    .setHorizontalAlignment("center");
 
   // Ghi dữ liệu bảng tổng hợp
   var metricsList = [
@@ -664,7 +949,7 @@ function generateDailyReport(targetDate) {
     { name: "4. Tiền mặt Chi", key: "chiTM" },
     { name: "5. Chuyển khoản Thu", key: "thuCK" },
     { name: "6. Chuyển khoản Chi", key: "chiCK" },
-    { name: "7. Dòng tiền ròng trong ngày", key: "netCash" }
+    { name: "7. Dòng tiền ròng trong ngày", key: "netCash" },
   ];
 
   var summaryData = [];
@@ -674,7 +959,10 @@ function generateDailyReport(targetDate) {
     activeBranches.forEach(function (b) {
       var val = 0;
       if (m.key === "netCash") {
-        val = branchMetrics[b].thuTM + branchMetrics[b].thuCK - (branchMetrics[b].chiTM + branchMetrics[b].chiCK);
+        val =
+          branchMetrics[b].thuTM +
+          branchMetrics[b].thuCK -
+          (branchMetrics[b].chiTM + branchMetrics[b].chiCK);
       } else {
         val = branchMetrics[b][m.key];
       }
@@ -685,37 +973,56 @@ function generateDailyReport(targetDate) {
     summaryData.push(row);
   });
 
-  reportSheet.getRange(8, 1, summaryData.length, totalSummaryColIdx).setValues(summaryData);
+  reportSheet
+    .getRange(8, 1, summaryData.length, totalSummaryColIdx)
+    .setValues(summaryData);
 
   // Định dạng số và kiểu chữ bảng tổng hợp
-  reportSheet.getRange(8, 2, summaryData.length, totalSummaryColIdx - 1)
-             .setNumberFormat("#,##0");
-  reportSheet.getRange(14, 1, 1, totalSummaryColIdx)
-             .setFontColor("#1a73e8")
-             .setFontWeight("bold"); // Dòng tiền ròng nổi bật
-  reportSheet.getRange(8, totalSummaryColIdx, summaryData.length, 1)
-             .setFontWeight("bold"); // Cột tổng cộng in đậm
+  reportSheet
+    .getRange(8, 2, summaryData.length, totalSummaryColIdx - 1)
+    .setNumberFormat("#,##0");
+  reportSheet
+    .getRange(14, 1, 1, totalSummaryColIdx)
+    .setFontColor("#1a73e8")
+    .setFontWeight("bold"); // Dòng tiền ròng nổi bật
+  reportSheet
+    .getRange(8, totalSummaryColIdx, summaryData.length, 1)
+    .setFontWeight("bold"); // Cột tổng cộng in đậm
 
   // Vẽ viền cho bảng tổng hợp
-  reportSheet.getRange(6, 1, summaryData.length + 2, totalSummaryColIdx)
-             .setBorder(true, true, true, true, true, true, "#dadce0", SpreadsheetApp.BorderStyle.SOLID);
+  reportSheet
+    .getRange(6, 1, summaryData.length + 2, totalSummaryColIdx)
+    .setBorder(
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      "#dadce0",
+      SpreadsheetApp.BorderStyle.SOLID,
+    );
 
   // --- 3. GHI CÁC BẢNG LỊCH SỬ CHI TIẾT THEO CHI NHÁNH ---
   var startRow = 17;
 
   activeBranches.forEach(function (branchName) {
     var branchTxs = transactions.filter(function (tx) {
-      return (tx.branch === branchName) || (branchName === fallbackBranch && !tx.branch);
+      return (
+        tx.branch === branchName ||
+        (branchName === fallbackBranch && !tx.branch)
+      );
     });
 
     // 1. Tiêu đề bảng chi tiết chi nhánh
     var titleRange = reportSheet.getRange(startRow, 1, 1, 10);
     titleRange.merge();
-    titleRange.setValue("CHI TIẾT GIAO DỊCH - " + branchName.toUpperCase())
-              .setBackground("#1a73e8")
-              .setFontColor("#ffffff")
-              .setFontWeight("bold")
-              .setHorizontalAlignment("center");
+    titleRange
+      .setValue("CHI TIẾT GIAO DỊCH - " + branchName.toUpperCase())
+      .setBackground("#1a73e8")
+      .setFontColor("#ffffff")
+      .setFontWeight("bold")
+      .setHorizontalAlignment("center");
 
     // 2. Headers cột giao dịch (lược bỏ cột Chi nhánh)
     var detailHeaders = [
@@ -728,18 +1035,23 @@ function generateDailyReport(targetDate) {
       "Thu Chuyển khoản",
       "Chi Chuyển khoản",
       "Lợi nhuận",
-      "Chi tiết"
+      "Chi tiết",
     ];
     reportSheet.getRange(startRow + 1, 1, 1, 10).setValues([detailHeaders]);
-    reportSheet.getRange(startRow + 1, 1, 1, 10)
-               .setFontWeight("bold")
-               .setBackground("#e8f0fe")
-               .setHorizontalAlignment("center");
+    reportSheet
+      .getRange(startRow + 1, 1, 1, 10)
+      .setFontWeight("bold")
+      .setBackground("#e8f0fe")
+      .setHorizontalAlignment("center");
 
     // 3. Ghi dữ liệu giao dịch chi tiết
     if (branchTxs.length > 0) {
       var detailRows = [];
-      var sumThuTM = 0, sumChiTM = 0, sumThuCK = 0, sumChiCK = 0, sumLoiNhuan = 0;
+      var sumThuTM = 0,
+        sumChiTM = 0,
+        sumThuCK = 0,
+        sumChiCK = 0,
+        sumLoiNhuan = 0;
 
       branchTxs.forEach(function (tx) {
         detailRows.push([
@@ -752,7 +1064,7 @@ function generateDailyReport(targetDate) {
           tx.thuCK,
           tx.chiCK,
           tx.loiNhuan,
-          tx.detail
+          tx.detail,
         ]);
         sumThuTM += tx.thuTM;
         sumChiTM += tx.chiTM;
@@ -761,21 +1073,46 @@ function generateDailyReport(targetDate) {
         sumLoiNhuan += tx.loiNhuan;
       });
 
-      reportSheet.getRange(startRow + 2, 1, detailRows.length, 10).setValues(detailRows);
-      
+      reportSheet
+        .getRange(startRow + 2, 1, detailRows.length, 10)
+        .setValues(detailRows);
+
       // Format tiền tệ
-      reportSheet.getRange(startRow + 2, 5, detailRows.length, 5).setNumberFormat("#,##0");
+      reportSheet
+        .getRange(startRow + 2, 5, detailRows.length, 5)
+        .setNumberFormat("#,##0");
 
       // Dòng tổng cộng của riêng chi nhánh
       var totalRowIdx = startRow + 2 + detailRows.length;
-      reportSheet.getRange(totalRowIdx, 1).setValue("Tổng cộng chi nhánh").setFontWeight("bold");
-      reportSheet.getRange(totalRowIdx, 5, 1, 5).setValues([[sumThuTM, sumChiTM, sumThuCK, sumChiCK, sumLoiNhuan]]);
-      reportSheet.getRange(totalRowIdx, 5, 1, 5).setNumberFormat("#,##0").setFontWeight("bold");
-      reportSheet.getRange(totalRowIdx, 1, 1, 10).setBackground("#f1f3f4").setFontWeight("bold");
+      reportSheet
+        .getRange(totalRowIdx, 1)
+        .setValue("Tổng cộng chi nhánh")
+        .setFontWeight("bold");
+      reportSheet
+        .getRange(totalRowIdx, 5, 1, 5)
+        .setValues([[sumThuTM, sumChiTM, sumThuCK, sumChiCK, sumLoiNhuan]]);
+      reportSheet
+        .getRange(totalRowIdx, 5, 1, 5)
+        .setNumberFormat("#,##0")
+        .setFontWeight("bold");
+      reportSheet
+        .getRange(totalRowIdx, 1, 1, 10)
+        .setBackground("#f1f3f4")
+        .setFontWeight("bold");
 
       // Vẽ viền cho bảng (bao gồm cả dòng tổng cộng chi nhánh, tổng cộng 3 dòng tiêu đề/tổng + data)
-      reportSheet.getRange(startRow, 1, detailRows.length + 3, 10)
-                 .setBorder(true, true, true, true, true, true, "#dadce0", SpreadsheetApp.BorderStyle.SOLID);
+      reportSheet
+        .getRange(startRow, 1, detailRows.length + 3, 10)
+        .setBorder(
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          "#dadce0",
+          SpreadsheetApp.BorderStyle.SOLID,
+        );
 
       // Điểm bắt đầu bảng tiếp theo
       startRow = totalRowIdx + 3;
@@ -783,13 +1120,26 @@ function generateDailyReport(targetDate) {
       // Báo không có giao dịch
       var emptyRange = reportSheet.getRange(startRow + 2, 1, 1, 10);
       emptyRange.merge();
-      emptyRange.setValue("Không có giao dịch nào phát sinh trong ngày tại chi nhánh này.")
-                 .setFontStyle("italic")
-                 .setHorizontalAlignment("center");
+      emptyRange
+        .setValue(
+          "Không có giao dịch nào phát sinh trong ngày tại chi nhánh này.",
+        )
+        .setFontStyle("italic")
+        .setHorizontalAlignment("center");
 
       // Vẽ viền cho bảng trống
-      reportSheet.getRange(startRow, 1, 3, 10)
-                 .setBorder(true, true, true, true, true, true, "#dadce0", SpreadsheetApp.BorderStyle.SOLID);
+      reportSheet
+        .getRange(startRow, 1, 3, 10)
+        .setBorder(
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          "#dadce0",
+          SpreadsheetApp.BorderStyle.SOLID,
+        );
 
       startRow = startRow + 5;
     }
@@ -798,9 +1148,10 @@ function generateDailyReport(targetDate) {
   // Áp dụng font Times New Roman 12 cho toàn sheet
   var maxRows = reportSheet.getMaxRows();
   var maxCols = reportSheet.getMaxColumns();
-  reportSheet.getRange(1, 1, maxRows, maxCols)
-             .setFontFamily("Times New Roman")
-             .setFontSize(12);
+  reportSheet
+    .getRange(1, 1, maxRows, maxCols)
+    .setFontFamily("Times New Roman")
+    .setFontSize(12);
 
   // Auto resize các cột hiển thị
   var colsToResize = Math.max(10, totalSummaryColIdx);

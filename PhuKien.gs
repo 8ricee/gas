@@ -33,7 +33,11 @@ function getAllPhuKien(chiConHang, chiNhanh) {
   data.forEach(function (row) {
     if (row.length <= c.chiNhanh) return;
     if (chiConHang) {
-      if (String(row[c.trangThai]) === "Ngừng bán" || Number(row[c.soLuongTon]) <= 0) return;
+      if (
+        String(row[c.trangThai]) === "Ngừng bán" ||
+        Number(row[c.soLuongTon]) <= 0
+      )
+        return;
     }
     if (chiNhanh) {
       if (String(row[c.chiNhanh] || "") !== chiNhanh) return;
@@ -161,25 +165,41 @@ function updatePhuKien(maPK, data) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(SHEET_NAMES.PHU_KIEN);
   invalidateDropdownCache(SHEET_NAMES.PHU_KIEN);
-  
+
   // Đảm bảo đủ cột
   var maxColNeeded = Math.max(
-    COL_PK.MA_PK, COL_PK.TEN_SP, COL_PK.LOAI_PK, COL_PK.THUONG_HIEU, COL_PK.GIA_NHAP,
-    COL_PK.GIA_BAN, COL_PK.SO_LUONG_TON, COL_PK.MO_TA, COL_PK.TRANG_THAI, COL_PK.CHI_NHANH
+    COL_PK.MA_PK,
+    COL_PK.TEN_SP,
+    COL_PK.LOAI_PK,
+    COL_PK.THUONG_HIEU,
+    COL_PK.GIA_NHAP,
+    COL_PK.GIA_BAN,
+    COL_PK.SO_LUONG_TON,
+    COL_PK.MO_TA,
+    COL_PK.TRANG_THAI,
+    COL_PK.CHI_NHANH,
   );
   var maxCols = sheet.getMaxColumns();
   if (maxCols < maxColNeeded) {
     sheet.insertColumnsAfter(maxCols, maxColNeeded - maxCols);
   }
 
-  if (data.tenSP !== undefined) sheet.getRange(row, COL_PK.TEN_SP).setValue(data.tenSP);
-  if (data.loaiPK !== undefined) sheet.getRange(row, COL_PK.LOAI_PK).setValue(data.loaiPK);
-  if (data.thuongHieu !== undefined) sheet.getRange(row, COL_PK.THUONG_HIEU).setValue(data.thuongHieu);
-  if (data.giaNhap !== undefined) sheet.getRange(row, COL_PK.GIA_NHAP).setValue(Number(data.giaNhap));
-  if (data.giaBan !== undefined) sheet.getRange(row, COL_PK.GIA_BAN).setValue(Number(data.giaBan));
-  if (data.soLuongTon !== undefined) sheet.getRange(row, COL_PK.SO_LUONG_TON).setValue(Number(data.soLuongTon));
-  if (data.moTa !== undefined) sheet.getRange(row, COL_PK.MO_TA).setValue(data.moTa);
-  if (data.trangThai !== undefined) sheet.getRange(row, COL_PK.TRANG_THAI).setValue(data.trangThai);
+  if (data.tenSP !== undefined)
+    sheet.getRange(row, COL_PK.TEN_SP).setValue(data.tenSP);
+  if (data.loaiPK !== undefined)
+    sheet.getRange(row, COL_PK.LOAI_PK).setValue(data.loaiPK);
+  if (data.thuongHieu !== undefined)
+    sheet.getRange(row, COL_PK.THUONG_HIEU).setValue(data.thuongHieu);
+  if (data.giaNhap !== undefined)
+    sheet.getRange(row, COL_PK.GIA_NHAP).setValue(Number(data.giaNhap));
+  if (data.giaBan !== undefined)
+    sheet.getRange(row, COL_PK.GIA_BAN).setValue(Number(data.giaBan));
+  if (data.soLuongTon !== undefined)
+    sheet.getRange(row, COL_PK.SO_LUONG_TON).setValue(Number(data.soLuongTon));
+  if (data.moTa !== undefined)
+    sheet.getRange(row, COL_PK.MO_TA).setValue(data.moTa);
+  if (data.trangThai !== undefined)
+    sheet.getRange(row, COL_PK.TRANG_THAI).setValue(data.trangThai);
 
   showToast("Đã cập nhật PK: " + maPK + " (" + chiNhanh + ")");
   return true;
@@ -205,18 +225,26 @@ function findPhuKienRow(maPK, chiNhanh) {
     var data = getAllData(SHEET_NAMES.PHU_KIEN);
     var maPKIdx = COL_PK.MA_PK - 1;
     var chiNhanhIdx = COL_PK.CHI_NHANH - 1;
-    
+
     for (var i = 0; i < data.length; i++) {
       var row = data[i];
       if (row.length <= chiNhanhIdx) continue;
-      var key = String(row[maPKIdx]).trim().toLowerCase() + "_" + String(row[chiNhanhIdx] || "").trim().toLowerCase();
+      var key =
+        String(row[maPKIdx]).trim().toLowerCase() +
+        "_" +
+        String(row[chiNhanhIdx] || "")
+          .trim()
+          .toLowerCase();
       if (!(key in _phuKienCompositeIndex)) {
         _phuKienCompositeIndex[key] = i + 2; // +2 vì bỏ qua header
       }
     }
   }
-  
-  var searchKey = String(maPK).trim().toLowerCase() + "_" + String(chiNhanh).trim().toLowerCase();
+
+  var searchKey =
+    String(maPK).trim().toLowerCase() +
+    "_" +
+    String(chiNhanh).trim().toLowerCase();
   return _phuKienCompositeIndex[searchKey] || -1;
 }
 
@@ -246,7 +274,14 @@ function updateTonKhoPhuKien(maPK, soLuong, type, chiNhanh) {
         SHEET_NAMES.PHU_KIEN,
         COL_PK.MA_PK,
         maPK,
-        [COL_PK.TEN_SP, COL_PK.LOAI_PK, COL_PK.THUONG_HIEU, COL_PK.GIA_NHAP, COL_PK.GIA_BAN, COL_PK.MO_TA],
+        [
+          COL_PK.TEN_SP,
+          COL_PK.LOAI_PK,
+          COL_PK.THUONG_HIEU,
+          COL_PK.GIA_NHAP,
+          COL_PK.GIA_BAN,
+          COL_PK.MO_TA,
+        ],
       );
       if (details) {
         var rowData = [];
@@ -260,7 +295,7 @@ function updateTonKhoPhuKien(maPK, soLuong, type, chiNhanh) {
         rowData[COL_PK.MO_TA - 1] = details[COL_PK.MO_TA] || "";
         rowData[COL_PK.TRANG_THAI - 1] = "Đang bán";
         rowData[COL_PK.CHI_NHANH - 1] = chiNhanh;
-        
+
         appendRow(SHEET_NAMES.PHU_KIEN, rowData);
         return true;
       } else {
@@ -279,9 +314,12 @@ function updateTonKhoPhuKien(maPK, soLuong, type, chiNhanh) {
 
   // Cập nhật dòng có sẵn
   invalidateDropdownCache(SHEET_NAMES.PHU_KIEN);
-  var currentTon = Number(sheet.getRange(row, COL_PK.SO_LUONG_TON).getValue()) || 0;
+  var currentTon =
+    Number(sheet.getRange(row, COL_PK.SO_LUONG_TON).getValue()) || 0;
   if (type === "nhap") {
-    sheet.getRange(row, COL_PK.SO_LUONG_TON).setValue(currentTon + Number(soLuong));
+    sheet
+      .getRange(row, COL_PK.SO_LUONG_TON)
+      .setValue(currentTon + Number(soLuong));
   } else if (type === "xuat") {
     var newTon = currentTon - Number(soLuong);
     if (newTon < 0) {
@@ -380,9 +418,17 @@ function getPhuKienUniqueList() {
         seen[maPK] = true;
         result.push({
           value: maPK,
-          text: maPK + " - " + row[c.tenSP] + " (" + row[c.loaiPK] + " | " + row[c.thuongHieu] + ")",
+          text:
+            maPK +
+            " - " +
+            row[c.tenSP] +
+            " (" +
+            row[c.loaiPK] +
+            " | " +
+            row[c.thuongHieu] +
+            ")",
           giaBan: Number(row[c.giaBan]),
-          chiNhanh: String(row[c.chiNhanh] || "")
+          chiNhanh: String(row[c.chiNhanh] || ""),
         });
       }
     }
@@ -439,7 +485,15 @@ function _buildPhuKienDropdownCache() {
       var cn = String(row[c.chiNhanh] || "");
       result.push({
         v: String(row[c.maPK]),
-        t: row[c.maPK] + " - " + row[c.tenSP] + " (Tồn: " + row[c.soLuongTon] + " | " + cn + ")",
+        t:
+          row[c.maPK] +
+          " - " +
+          row[c.tenSP] +
+          " (Tồn: " +
+          row[c.soLuongTon] +
+          " | " +
+          cn +
+          ")",
         gb: Number(row[c.giaBan]),
         sl: Number(row[c.soLuongTon]),
         cn: cn,
@@ -479,7 +533,15 @@ function _buildPhuKienUniqueCache() {
         seen[maPK] = true;
         result.push({
           v: maPK,
-          t: maPK + " - " + row[c.tenSP] + " (" + row[c.loaiPK] + " | " + row[c.thuongHieu] + ")",
+          t:
+            maPK +
+            " - " +
+            row[c.tenSP] +
+            " (" +
+            row[c.loaiPK] +
+            " | " +
+            row[c.thuongHieu] +
+            ")",
           gb: Number(row[c.giaBan]),
           cn: String(row[c.chiNhanh] || ""),
           _s: (maPK + " " + String(row[c.tenSP])).toLowerCase(),
@@ -502,10 +564,10 @@ function _buildPhuKienUniqueCache() {
 function getPhuKienDropdownSearch(chiNhanh, keyword) {
   var kw = String(keyword).trim().toLowerCase();
 
-  var allItems = getChunkedCache('dd_pk');
+  var allItems = getChunkedCache("dd_pk");
   if (!allItems) {
     allItems = _buildPhuKienDropdownCache();
-    setChunkedCache('dd_pk', allItems);
+    setChunkedCache("dd_pk", allItems);
   }
 
   var result = [];
@@ -537,10 +599,10 @@ function getPhuKienDropdownSearch(chiNhanh, keyword) {
 function getPhuKienUniqueListSearch(keyword) {
   var kw = String(keyword).trim().toLowerCase();
 
-  var allItems = getChunkedCache('dd_pku');
+  var allItems = getChunkedCache("dd_pku");
   if (!allItems) {
     allItems = _buildPhuKienUniqueCache();
-    setChunkedCache('dd_pku', allItems);
+    setChunkedCache("dd_pku", allItems);
   }
 
   var result = [];
@@ -558,6 +620,3 @@ function getPhuKienUniqueListSearch(keyword) {
 
   return result;
 }
-
-
-

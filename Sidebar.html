@@ -20,6 +20,7 @@
     <span class="nav-tab" data-section="doiTra">Đổi trả</span>
     <span class="nav-tab" data-section="thuMua">Thu mua</span>
     <span class="nav-tab" data-section="doanhSo">Doanh số</span>
+    <span class="nav-tab" data-section="baoHanh">Bảo hành</span>
   </div>
 
   <!-- ==================== FORM: DON HANG ==================== -->
@@ -48,6 +49,9 @@
 
   <!-- ==================== FORM: DOANH SO ==================== -->
   <?!= HtmlService.createHtmlOutputFromFile('FormDoanhSo').getContent(); ?>
+
+  <!-- ==================== FORM: BAO HANH ==================== -->
+  <?!= HtmlService.createHtmlOutputFromFile('FormBaoHanh').getContent(); ?>
 
   <!-- Datalist suggestions for product conditions -->
   <datalist id="tinhTrangList">

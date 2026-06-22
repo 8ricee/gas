@@ -139,6 +139,7 @@
       populateSelect('ck-cnDich', items);
       populateSelect('dt-chiNhanh', items);
       populateSelect('tm-chiNhanh', items);
+      populateSelect('bh-chiNhanh', items);
     }).getBranchesDropdown();
 
     // Load branches
@@ -150,6 +151,8 @@
       populateDatalist('dv-nguoiThucHien', 'dv-nguoiThucHien-list', items);
       populateDatalist('dt-nguoiThucHien', 'dt-nguoiThucHien-list', items);
       populateDatalist('tm-nguoiThucHien', 'tm-nguoiThucHien-list', items);
+      populateDatalist('bh-nguoiTiepNhan', 'bh-nguoiTiepNhan-list', items);
+      populateDatalist('bh-nguoiSua', 'bh-nguoiSua-list', items);
     }).getNhanVienDropdown();
 
     // Load finance companies
@@ -179,6 +182,9 @@
       google.script.run.withSuccessHandler(callback).getKhachHangDropdownSearch(query);
     });
     setupDatalistSearch('tm-maKH', 'tm-maKH-list', function(query, callback) {
+      google.script.run.withSuccessHandler(callback).getKhachHangDropdownSearch(query);
+    });
+    setupDatalistSearch('bh-khachHang', 'bh-khachHang-list', function(query, callback) {
       google.script.run.withSuccessHandler(callback).getKhachHangDropdownSearch(query);
     });
     setupDatalistSearch('dh-maSP', 'dh-maSP-list', function(query, callback) {
@@ -1126,7 +1132,7 @@
 
     if (conLai <= 0) {
       document.getElementById('tm-tg-summary').style.display = 'none';
-      showAlertMsg('error', '⚠️ Số tiền trả trước phải nhỏ hơn giá máy mới để mua trả góp!');
+      showAlertMsg('error', 'Số tiền trả trước phải nhỏ hơn giá máy mới để mua trả góp!');
       return;
     }
 
@@ -1281,7 +1287,7 @@
 
     if (conLai <= 0) {
       document.getElementById('tg-summary').style.display = 'none';
-      showAlertMsg('error', '⚠️ Số tiền trả trước phải nhỏ hơn tổng tiền đơn hàng để mua trả góp!');
+      showAlertMsg('error', 'Số tiền trả trước phải nhỏ hơn tổng tiền đơn hàng để mua trả góp!');
       return;
     }
 
@@ -1336,13 +1342,14 @@
     var nguoiBan = extractId(document.getElementById('dh-nguoiBan').value);
 
     if (!chiNhanh || !maKH || !nguoiBan) {
-      showAlertMsg('error', '⚠️ Vui lòng chọn Chi nhánh, Khách hàng và Người bán!');
+      showAlertMsg('error', 'Vui lòng chọn Chi nhánh, Khách hàng và Người bán!');
       return;
     }
 
     var data = {
       chiNhanh: chiNhanh,
       maKH: maKH,
+      tenKH: extractCustomerName(document.getElementById('dh-maKH').value),
       nguonSP: nguonSP,
       tienGiamGia: Number(document.getElementById('dh-tienGiamGia').value) || 0,
       hinhThucBan: document.getElementById('dh-hinhThucBan').value,
@@ -1360,7 +1367,7 @@
     if (nguonSP === 'Phụ kiện') {
       var rows = document.querySelectorAll('#dh-accessories-list tr');
       if (rows.length === 0) {
-        showAlertMsg('error', '⚠️ Vui lòng chọn ít nhất một phụ kiện để tạo đơn!');
+        showAlertMsg('error', 'Vui lòng chọn ít nhất một phụ kiện để tạo đơn!');
         return;
       }
       data.items = [];
@@ -1380,7 +1387,7 @@
       var imei = extractImei(document.getElementById('dh-maSP').value);
 
       if (!maSP) {
-        showAlertMsg('error', '⚠️ Vui lòng chọn Sản phẩm cần bán!');
+        showAlertMsg('error', 'Vui lòng chọn Sản phẩm cần bán!');
         return;
       }
 
@@ -1415,7 +1422,7 @@
       }
       var totalVal = getDonHangThanhTien();
       if (traTruocVal >= totalVal) {
-        showAlertMsg('error', '⚠️ Số tiền trả trước phải nhỏ hơn tổng tiền đơn hàng để mua trả góp!');
+        showAlertMsg('error', 'Số tiền trả trước phải nhỏ hơn tổng tiền đơn hàng để mua trả góp!');
         return;
       }
     }
@@ -1424,13 +1431,13 @@
     google.script.run
       .withSuccessHandler(function(maDH) {
         setLoading('btnTaoDonHang', false);
-        showAlertMsg('success', '✅ Đã tạo đơn hàng: <strong>' + maDH + '</strong>');
+        showAlertMsg('success', 'Đã tạo đơn hàng: <strong>' + maDH + '</strong>');
         resetFormDonHang();
         preloadInventoryData(onDonHangBranchOrNguonChange);
       })
       .withFailureHandler(function(err) {
         setLoading('btnTaoDonHang', false);
-        showAlertMsg('error', '❌ Lỗi: ' + err.message);
+        showAlertMsg('error', 'Lỗi: ' + err.message);
       })
       .taoDonHang(data);
   }
@@ -1440,7 +1447,7 @@
     var sdt = document.getElementById('kh-soDienThoai').value.trim();
 
     if (!hoTen || !sdt) {
-      showAlertMsg('error', '⚠️ Vui lòng nhập Họ tên và SĐT!');
+      showAlertMsg('error', 'Vui lòng nhập Họ tên và SĐT!');
       return;
     }
 
@@ -1456,7 +1463,7 @@
     google.script.run
       .withSuccessHandler(function(maKH) {
         setLoading('btnThemKH', false);
-        showAlertMsg('success', '✅ Đã thêm KH: <strong>' + maKH + '</strong> - ' + hoTen);
+        showAlertMsg('success', 'Đã thêm KH: <strong>' + maKH + '</strong> - ' + hoTen);
         document.getElementById('kh-hoTen').value = '';
         document.getElementById('kh-soDienThoai').value = '';
         document.getElementById('kh-cccd').value = '';
@@ -1469,7 +1476,7 @@
       })
       .withFailureHandler(function(err) {
         setLoading('btnThemKH', false);
-        showAlertMsg('error', '❌ Lỗi: ' + err.message);
+        showAlertMsg('error', 'Lỗi: ' + err.message);
       })
       .addKhachHang(data);
   }
@@ -1501,7 +1508,7 @@
     var nguonNhap = document.getElementById('nk-nguonNhap').value;
 
     if (!chiNhanh) {
-      showAlertMsg('error', '⚠️ Vui lòng chọn Chi nhánh nhập kho!');
+      showAlertMsg('error', 'Vui lòng chọn Chi nhánh nhập kho!');
       return;
     }
 
@@ -1524,7 +1531,7 @@
       data.giaTraGop = Number(document.getElementById('nk-giaTraGop').value) || 0;
 
       if (!data.tenSP || !data.imei) {
-        showAlertMsg('error', '⚠️ Vui lòng nhập Tên SP và IMEI!');
+        showAlertMsg('error', 'Vui lòng nhập Tên SP và IMEI!');
         return;
       }
     } else if (nguonNhap === 'Phụ kiện - Mới') {
@@ -1538,7 +1545,7 @@
       data.moTa = document.getElementById('nk-pk-moTa').value.trim();
 
       if (!data.tenSP) {
-        showAlertMsg('error', '⚠️ Vui lòng nhập Tên phụ kiện!');
+        showAlertMsg('error', 'Vui lòng nhập Tên phụ kiện!');
         return;
       }
     } else {
@@ -1548,7 +1555,7 @@
       data.giaNhap = Number(document.getElementById('nk-pkCu-giaNhap').value) || 0;
 
       if (!data.maSP) {
-        showAlertMsg('error', '⚠️ Vui lòng chọn phụ kiện!');
+        showAlertMsg('error', 'Vui lòng chọn phụ kiện!');
         return;
       }
     }
@@ -1557,13 +1564,13 @@
     google.script.run
       .withSuccessHandler(function(maNK) {
         setLoading('btnNhapKho', false);
-        showAlertMsg('success', '✅ Đã nhập kho: <strong>' + maNK + '</strong>');
+        showAlertMsg('success', 'Đã nhập kho: <strong>' + maNK + '</strong>');
         resetFormNhapKho();
         preloadInventoryData(loadPhuKienCuDropdown);
       })
       .withFailureHandler(function(err) {
         setLoading('btnNhapKho', false);
-        showAlertMsg('error', '❌ Lỗi: ' + err.message);
+        showAlertMsg('error', 'Lỗi: ' + err.message);
       })
       .nhapKho(data);
   }
@@ -1605,7 +1612,7 @@
     var soTien = Number(document.getElementById('dv-soTien').value);
 
     if (!chiNhanh || !nguoiTH || !soTien) {
-      showAlertMsg('error', '⚠️ Vui lòng chọn Chi nhánh, NV và nhập số tiền!');
+      showAlertMsg('error', 'Vui lòng chọn Chi nhánh, NV và nhập số tiền!');
       return;
     }
 
@@ -1631,7 +1638,7 @@
     google.script.run
       .withSuccessHandler(function(maDV) {
         setLoading('btnTaoDV', false);
-        showAlertMsg('success', '✅ Đã tạo dịch vụ: <strong>' + maDV + '</strong>');
+        showAlertMsg('success', 'Đã tạo dịch vụ: <strong>' + maDV + '</strong>');
         document.getElementById('dv-tenKH').value = '';
         document.getElementById('dv-sdtKH').value = '';
         document.getElementById('dv-soTien').value = 0;
@@ -1643,7 +1650,7 @@
       })
       .withFailureHandler(function(err) {
         setLoading('btnTaoDV', false);
-        showAlertMsg('error', '❌ Lỗi: ' + err.message);
+        showAlertMsg('error', 'Lỗi: ' + err.message);
       })
       .taoDichVu(data);
   }
@@ -1654,7 +1661,7 @@
     var soTien = Number(document.getElementById('tt-soTien').value);
 
     if (!maTG || !kySo || !soTien) {
-      showAlertMsg('error', '⚠️ Vui lòng chọn HĐ, kỳ và nhập số tiền!');
+      showAlertMsg('error', 'Vui lòng chọn HĐ, kỳ và nhập số tiền!');
       return;
     }
 
@@ -1675,7 +1682,7 @@
     google.script.run
       .withSuccessHandler(function(result) {
         setLoading('btnThanhToan', false);
-        showAlertMsg('success', '✅ Đã ghi nhận thanh toán kỳ ' + kySo);
+        showAlertMsg('success', 'Đã ghi nhận thanh toán kỳ ' + kySo);
         loadTraGopDropdown();
         document.getElementById('tt-maTG').value = '';
         document.getElementById('tt-kySo').value = '';
@@ -1686,7 +1693,7 @@
       })
       .withFailureHandler(function(err) {
         setLoading('btnThanhToan', false);
-        showAlertMsg('error', '❌ Lỗi: ' + err.message);
+        showAlertMsg('error', 'Lỗi: ' + err.message);
       })
       .ghiNhanThanhToan(data);
   }
@@ -1700,12 +1707,12 @@
     var soLuong = Number(document.getElementById('ck-soLuong').value) || 1;
 
     if (!cnNguon || !cnDich || !maSP) {
-      showAlertMsg('error', '⚠️ Vui lòng chọn đầy đủ Chi nhánh nguồn, Chi nhánh đích và Sản phẩm!');
+      showAlertMsg('error', 'Vui lòng chọn đầy đủ Chi nhánh nguồn, Chi nhánh đích và Sản phẩm!');
       return;
     }
 
     if (cnNguon === cnDich) {
-      showAlertMsg('error', '⚠️ Chi nhánh nguồn và Chi nhánh đích phải khác nhau!');
+      showAlertMsg('error', 'Chi nhánh nguồn và Chi nhánh đích phải khác nhau!');
       return;
     }
 
@@ -1722,14 +1729,14 @@
     google.script.run
       .withSuccessHandler(function() {
         setLoading('btnChuyenKho', false);
-        showAlertMsg('success', '✅ Đã chuyển kho thành công sản phẩm: ' + maSP);
+        showAlertMsg('success', 'Đã chuyển kho thành công sản phẩm: ' + maSP);
         document.getElementById('ck-maSP').value = '';
         document.getElementById('ck-soLuong').value = 1;
         preloadInventoryData(onChuyenKhoBranchOrNguonChange);
       })
       .withFailureHandler(function(err) {
         setLoading('btnChuyenKho', false);
-        showAlertMsg('error', '❌ Lỗi: ' + err.message);
+        showAlertMsg('error', 'Lỗi: ' + err.message);
       })
       .chuyenKho(data);
   }
@@ -1747,12 +1754,12 @@
     var ghiChu = document.getElementById('dt-ghiChu').value.trim();
 
     if (!maDH || !loaiGD || !chiNhanh || !nguoiTH) {
-      showAlertMsg('error', '⚠️ Vui lòng nhập Mã đơn hàng, Loại giao dịch, Chi nhánh và Người thực hiện!');
+      showAlertMsg('error', 'Vui lòng nhập Mã đơn hàng, Loại giao dịch, Chi nhánh và Người thực hiện!');
       return;
     }
 
     if ((loaiGD === 'Đổi máy' || loaiGD === 'Đổi hàng' || loaiGD === 'Đổi quà') && !maSP_Nhan) {
-      showAlertMsg('error', '⚠️ Vui lòng chọn sản phẩm mới để đổi!');
+      showAlertMsg('error', 'Vui lòng chọn sản phẩm mới để đổi!');
       return;
     }
 
@@ -1776,7 +1783,7 @@
     google.script.run
       .withSuccessHandler(function(maDT) {
         setLoading('btnDoiTra', false);
-        showAlertMsg('success', '✅ Ghi nhận thành công! Mã giao dịch: <strong>' + maDT + '</strong>');
+        showAlertMsg('success', 'Ghi nhận thành công! Mã giao dịch: <strong>' + maDT + '</strong>');
         document.getElementById('dt-maDH').value = '';
         document.getElementById('dt-infoBox').style.display = 'none';
         document.getElementById('dt-doiTuongGroup').style.display = 'none';
@@ -1790,7 +1797,7 @@
       })
       .withFailureHandler(function(err) {
         setLoading('btnDoiTra', false);
-        showAlertMsg('error', '❌ Lỗi: ' + err.message);
+        showAlertMsg('error', 'Lỗi: ' + err.message);
       })
       .thucHienDoiTra(data);
   }
@@ -1804,7 +1811,7 @@
     var nguoiTH = extractId(document.getElementById('tm-nguoiThucHien').value);
 
     if (!maKH || !tenSP || !imei || !chiNhanh || !nguoiTH) {
-      showAlertMsg('error', '⚠️ Vui lòng chọn Khách hàng, nhập Tên SP, IMEI, Chi nhánh và Người thực hiện!');
+      showAlertMsg('error', 'Vui lòng chọn Khách hàng, nhập Tên SP, IMEI, Chi nhánh và Người thực hiện!');
       return;
     }
 
@@ -1813,6 +1820,7 @@
 
     var data = {
       maKH: maKH,
+      tenKH: extractCustomerName(document.getElementById('tm-maKH').value),
       loaiGiaoDich: loaiGD,
       tenSP_Thu: tenSP,
       thuongHieu_Thu: document.getElementById('tm-thuongHieu-Thu').value,
@@ -1844,7 +1852,7 @@
       data.hinhThucThanhToanPhu = htttMoi;
 
       if (!data.maSP_Moi) {
-        showAlertMsg('error', '⚠️ Vui lòng chọn điện thoại mới để đổi lên đời!');
+        showAlertMsg('error', 'Vui lòng chọn điện thoại mới để đổi lên đời!');
         return;
       }
 
@@ -1867,7 +1875,7 @@
           tienMoiKy: Number(document.getElementById('tm-tg-tienMoiKyInput').value) || 0
         };
         if (data.traGop.loaiTraGop === 'Công ty tài chính' && !data.traGop.congTyTC) {
-          showAlertMsg('error', '⚠️ Vui lòng chọn Công ty tài chính cho hợp đồng trả góp!');
+          showAlertMsg('error', 'Vui lòng chọn Công ty tài chính cho hợp đồng trả góp!');
           return;
         }
 
@@ -1875,7 +1883,7 @@
         var giaMayMoi = giaMoi - data.tienGiamGia - data.tienHoTro;
 
         if (derivedTraTruoc >= giaMayMoi) {
-          showAlertMsg('error', '⚠️ Số tiền trả trước (giá thu cũ trừ tiền trả khách) phải nhỏ hơn giá máy mới để mua trả góp!');
+          showAlertMsg('error', 'Số tiền trả trước (giá thu cũ trừ tiền trả khách) phải nhỏ hơn giá máy mới để mua trả góp!');
           return;
         }
       }
@@ -1885,7 +1893,7 @@
     google.script.run
       .withSuccessHandler(function(maTM) {
         setLoading('btnThuMua', false);
-        showAlertMsg('success', '✅ Ghi nhận thu mua thành công! Ma: <strong>' + maTM + '</strong>');
+        showAlertMsg('success', 'Ghi nhận thu mua thành công! Ma: <strong>' + maTM + '</strong>');
         document.getElementById('tm-tenSP-Thu').value = '';
         document.getElementById('tm-imei-Thu').value = '';
         document.getElementById('tm-mauSac-Thu').value = '';
@@ -1929,7 +1937,7 @@
       })
       .withFailureHandler(function(err) {
         setLoading('btnThuMua', false);
-        showAlertMsg('error', '❌ Lỗi: ' + err.message);
+        showAlertMsg('error', 'Lỗi: ' + err.message);
       })
       .thucHienThuMua(data);
   }
@@ -1967,7 +1975,7 @@
     var nam = parseInt(document.getElementById('ds-nam').value);
 
     if (isNaN(thang) || isNaN(nam)) {
-      showAlertMsg('error', '⚠️ Vui lòng chọn Tháng và Năm hợp lệ!');
+      showAlertMsg('error', 'Vui lòng chọn Tháng và Năm hợp lệ!');
       return;
     }
 
@@ -1982,14 +1990,14 @@
       })
       .withFailureHandler(function(err) {
         setLoading('btnXemDS', false);
-        showAlertMsg('error', '❌ Lỗi tải báo cáo: ' + err.message);
+        showAlertMsg('error', 'Lỗi tải báo cáo: ' + err.message);
       })
       .getBaoCaoDoanhSo(thang, nam);
   }
 
   function renderBaoCaoDoanhSo(result) {
     if (!result || !result.nhanVien || result.nhanVien.length === 0) {
-      showAlertMsg('error', '⚠️ Không có dữ liệu doanh số cho tháng này. Vui lòng bấm "Chốt doanh số" trước!');
+      showAlertMsg('error', 'Không có dữ liệu doanh số cho tháng này. Vui lòng bấm "Chốt doanh số" trước!');
       return;
     }
 
@@ -2039,7 +2047,7 @@
     var nam = parseInt(document.getElementById('ds-nam').value);
 
     if (isNaN(thang) || isNaN(nam)) {
-      showAlertMsg('error', '⚠️ Vui lòng chọn Tháng và Năm hợp lệ!');
+      showAlertMsg('error', 'Vui lòng chọn Tháng và Năm hợp lệ!');
       return;
     }
 
@@ -2056,17 +2064,54 @@
       .withSuccessHandler(function(success) {
         setLoading('btnChotDS', false);
         if (success) {
-          showAlertMsg('success', '✅ Đã chốt doanh số tháng ' + thang + '/' + nam + ' thành công!');
+          showAlertMsg('success', 'Đã chốt doanh số tháng ' + thang + '/' + nam + ' thành công!');
           xemBaoCaoDoanhSo();
         } else {
-          showAlertMsg('error', '❌ Chốt doanh số không thành công.');
+          showAlertMsg('error', 'hốt doanh số không thành công.');
         }
       })
       .withFailureHandler(function(err) {
         setLoading('btnChotDS', false);
-        showAlertMsg('error', '❌ Lỗi chốt doanh số: ' + err.message);
+        showAlertMsg('error', 'Lỗi chốt doanh số: ' + err.message);
       })
       .chotDoanhSoThang(thang, nam);
+  }
+
+  function extractCustomerName(str) {
+    if (!str) return '';
+    var parts = str.split(' - ');
+    if (parts.length > 1) {
+      var namePart = parts[1].trim();
+      return namePart.replace(/\s*\(.*?\)$/, '');
+    }
+    return str;
+  }
+
+  function onKHChange(prefix) {
+    var inputEl = document.getElementById(prefix + '-khachHang');
+    var maKHEl = document.getElementById(prefix + '-maKH');
+    var sdtEl = document.getElementById(prefix + '-sdtKH');
+    if (!inputEl) return;
+
+    var val = inputEl.value;
+    if (!val) {
+      if (maKHEl) maKHEl.value = '';
+      if (sdtEl) sdtEl.value = '';
+      return;
+    }
+
+    var parts = val.split(' - ');
+    var maKH = parts[0].trim();
+    if (maKHEl) maKHEl.value = maKH;
+
+    if (sdtEl) {
+      var match = val.match(/\((.*?)\)$/);
+      if (match) {
+        sdtEl.value = match[1].trim();
+      } else if (/^\d+$/.test(maKH)) {
+        sdtEl.value = maKH;
+      }
+    }
   }
 
   // ==================== HYBRID PAYMENT FUNCTIONS ====================
@@ -2205,6 +2250,8 @@
       var soTien = Number(document.getElementById('dv-soTien').value) || 0;
       var phi = Number(document.getElementById('dv-phi').value) || 0;
       return soTien + phi;
+    } else if (prefix === 'bh') {
+      return Number(document.getElementById('bh-phiSuaChua').value) || 0;
     }
     return 0;
   }
@@ -2348,6 +2395,65 @@
 
   function getPaymentMethodString(prefix) {
     return document.getElementById(prefix + '-hinhThucTT').value;
+  }
+
+  // ==================== BẢO HÀNH ====================
+  function onLoaiDichVuBHChange() {
+    // Không cần logic đặc biệt, chỉ là thay đổi text nếu muốn
+  }
+
+  function submitBaoHanh() {
+    var data = {
+      chiNhanh: document.getElementById('bh-chiNhanh').value,
+      loaiDichVu: document.getElementById('bh-loaiDichVu').value,
+      tenKH: extractCustomerName(document.getElementById('bh-khachHang').value),
+      maKH: document.getElementById('bh-maKH').value || extractId(document.getElementById('bh-khachHang').value),
+      soDienThoaiKH: document.getElementById('bh-sdtKH').value,
+      tenSP: document.getElementById('bh-tenSP').value,
+      tinhTrangLoi: document.getElementById('bh-tinhTrangLoi').value,
+      phiSuaChua: Number(document.getElementById('bh-phiSuaChua').value) || 0,
+      hinhThucThanhToan: document.getElementById('bh-hinhThucTT').value,
+      splitTienMat: Number(document.getElementById('bh-split-tienMat').value) || 0,
+      splitChuyenKhoan: Number(document.getElementById('bh-split-chuyenKhoan').value) || 0,
+      nguoiTiepNhan: extractId(document.getElementById('bh-nguoiTiepNhan').value),
+      nguoiSua: extractId(document.getElementById('bh-nguoiSua').value),
+      ghiChu: document.getElementById('bh-ghiChu').value
+    };
+
+    if (!data.chiNhanh) return showAlertMsg('error', 'Vui lòng chọn chi nhánh!');
+    if (!data.tenKH) return showAlertMsg('error', 'Vui lòng nhập tên khách hàng!');
+    if (!data.tenSP) return showAlertMsg('error', 'Vui lòng nhập tên sản phẩm!');
+    if (!data.tinhTrangLoi) return showAlertMsg('error', 'Vui lòng nhập tình trạng lỗi!');
+    if (!data.nguoiTiepNhan) return showAlertMsg('error', 'Vui lòng chọn người tiếp nhận!');
+
+    if (data.hinhThucThanhToan === 'Hỗn hợp') {
+      if (Math.abs(data.splitTienMat + data.splitChuyenKhoan - data.phiSuaChua) > 1) {
+        return showAlertMsg('error', 'Tổng số tiền chia không khớp với Phí sửa chữa!');
+      }
+    }
+
+    setLoading('btnTaoBH', true);
+    google.script.run
+      .withSuccessHandler(function(res) {
+        setLoading('btnTaoBH', false);
+        showAlertMsg('success', 'Tạo Phiếu Tiếp Nhận thành công: ' + res);
+        document.getElementById('bh-khachHang').value = '';
+        document.getElementById('bh-maKH').value = '';
+        document.getElementById('bh-sdtKH').value = '';
+        document.getElementById('bh-tenSP').value = '';
+        document.getElementById('bh-tinhTrangLoi').value = '';
+        document.getElementById('bh-phiSuaChua').value = '0';
+        document.getElementById('bh-split-tienMat').value = '0';
+        document.getElementById('bh-split-chuyenKhoan').value = '0';
+        document.getElementById('bh-nguoiSua').value = '';
+        document.getElementById('bh-ghiChu').value = '';
+        updateSplitPaymentAmounts('bh');
+      })
+      .withFailureHandler(function(err) {
+        setLoading('btnTaoBH', false);
+        showAlertMsg('error', err.message);
+      })
+      .taoBaoHanh(data);
   }
 
   // ==================== INIT ====================

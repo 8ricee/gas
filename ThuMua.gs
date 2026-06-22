@@ -19,7 +19,6 @@
  * @return {string} Mã thu mua mới
  */
 function thucHienThuMua(data) {
-  return runWithLock(function() {
     initializeColumnEnums();
     var maTM = generateId("TM", SHEET_NAMES.THU_MUA);
     var chiNhanh = data.chiNhanh;
@@ -31,7 +30,10 @@ function thucHienThuMua(data) {
       );
     }
 
-    var tenKH = lookupValue(SHEET_NAMES.KHACH_HANG, 1, data.maKH, 2) || "";
+    var tenKH = ensureKhachHangExists(data.maKH, data.tenKH);
+    if (!tenKH) {
+      tenKH = lookupValue(SHEET_NAMES.KHACH_HANG, 1, data.maKH, 2) || "";
+    }
     var giaThuMua = Number(data.giaThuMua) || 0;
     var tienHoTro = Number(data.tienHoTro) || 0;
     var tongTienTraKhach = giaThuMua + tienHoTro;
@@ -41,19 +43,35 @@ function thucHienThuMua(data) {
     try {
       // 1. Tự động đưa máy thu mua vào kho Điện thoại
       var dtSheet = ss.getSheetByName(SHEET_NAMES.DIEN_THOAI);
-      var existingRow = findRow(SHEET_NAMES.DIEN_THOAI, COL_DT.IMEI, data.imei_Thu); // Tìm theo IMEI
+      var existingRow = findRow(
+        SHEET_NAMES.DIEN_THOAI,
+        COL_DT.IMEI,
+        data.imei_Thu,
+      ); // Tìm theo IMEI
       var maSP_Thu = "";
 
       if (existingRow !== -1) {
         // Máy đã từng tồn tại ở kho cửa hàng (khách mua ở tiệm rồi bán lại) -> Cập nhật trạng thái và giá nhập mới
-        var oldGiaNhap = dtSheet.getRange(existingRow, COL_DT.GIA_NHAP).getValue();
-        var oldTrangThai = dtSheet.getRange(existingRow, COL_DT.TRANG_THAI_KHO).getValue();
-        var oldChiNhanh = dtSheet.getRange(existingRow, COL_DT.CHI_NHANH).getValue();
-        var oldTinhTrang = dtSheet.getRange(existingRow, COL_DT.TINH_TRANG).getValue();
+        var oldGiaNhap = dtSheet
+          .getRange(existingRow, COL_DT.GIA_NHAP)
+          .getValue();
+        var oldTrangThai = dtSheet
+          .getRange(existingRow, COL_DT.TRANG_THAI_KHO)
+          .getValue();
+        var oldChiNhanh = dtSheet
+          .getRange(existingRow, COL_DT.CHI_NHANH)
+          .getValue();
+        var oldTinhTrang = dtSheet
+          .getRange(existingRow, COL_DT.TINH_TRANG)
+          .getValue();
 
         maSP_Thu = dtSheet.getRange(existingRow, COL_DT.MA_DT).getValue();
-        dtSheet.getRange(existingRow, COL_DT.GIA_NHAP).setValue(tongTienTraKhach); // Giá nhập mới = Tổng giá trị thu mua
-        dtSheet.getRange(existingRow, COL_DT.TRANG_THAI_KHO).setValue("Còn hàng"); // Trở lại kho
+        dtSheet
+          .getRange(existingRow, COL_DT.GIA_NHAP)
+          .setValue(tongTienTraKhach); // Giá nhập mới = Tổng giá trị thu mua
+        dtSheet
+          .getRange(existingRow, COL_DT.TRANG_THAI_KHO)
+          .setValue("Còn hàng"); // Trở lại kho
         dtSheet.getRange(existingRow, COL_DT.CHI_NHANH).setValue(chiNhanh); // Cập nhật chi nhánh hiện tại
         dtSheet
           .getRange(existingRow, COL_DT.TINH_TRANG)
@@ -61,18 +79,26 @@ function thucHienThuMua(data) {
         clearSheetCache(SHEET_NAMES.DIEN_THOAI);
         invalidateDropdownCache(SHEET_NAMES.DIEN_THOAI);
 
-        rollbackActions.push(function() {
+        rollbackActions.push(function () {
           try {
             var ss = SpreadsheetApp.getActiveSpreadsheet();
             var dtSheet = ss.getSheetByName(SHEET_NAMES.DIEN_THOAI);
             dtSheet.getRange(existingRow, COL_DT.GIA_NHAP).setValue(oldGiaNhap);
-            dtSheet.getRange(existingRow, COL_DT.TRANG_THAI_KHO).setValue(oldTrangThai);
-            dtSheet.getRange(existingRow, COL_DT.CHI_NHANH).setValue(oldChiNhanh);
-            dtSheet.getRange(existingRow, COL_DT.TINH_TRANG).setValue(oldTinhTrang);
+            dtSheet
+              .getRange(existingRow, COL_DT.TRANG_THAI_KHO)
+              .setValue(oldTrangThai);
+            dtSheet
+              .getRange(existingRow, COL_DT.CHI_NHANH)
+              .setValue(oldChiNhanh);
+            dtSheet
+              .getRange(existingRow, COL_DT.TINH_TRANG)
+              .setValue(oldTinhTrang);
             clearSheetCache(SHEET_NAMES.DIEN_THOAI);
             invalidateDropdownCache(SHEET_NAMES.DIEN_THOAI);
           } catch (err) {
-            Logger.log("Rollback failed to restore phone values: " + err.message);
+            Logger.log(
+              "Rollback failed to restore phone values: " + err.message,
+            );
           }
         });
         showToast("Cập nhật lại kho máy thu mua: " + maSP_Thu);
@@ -92,7 +118,7 @@ function thucHienThuMua(data) {
           ghiChu: "Thu mua từ khách hàng " + tenKH,
         });
 
-        rollbackActions.push(function() {
+        rollbackActions.push(function () {
           try {
             var ss = SpreadsheetApp.getActiveSpreadsheet();
             var dtSheet = ss.getSheetByName(SHEET_NAMES.DIEN_THOAI);
@@ -118,7 +144,14 @@ function thucHienThuMua(data) {
         }
 
         var giaBanMoi =
-          Number(lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP_Moi, COL_DT.GIA_BAN)) || 0;
+          Number(
+            lookupValue(
+              SHEET_NAMES.DIEN_THOAI,
+              COL_DT.MA_DT,
+              maSP_Moi,
+              COL_DT.GIA_BAN,
+            ),
+          ) || 0;
 
         var hinhThucBan = data.hinhThucBan || "Bán thẳng";
         var giaThuMua = Number(data.giaThuMua) || 0;
@@ -148,21 +181,25 @@ function thucHienThuMua(data) {
           splitTienMat: donHangSplitTM,
           nguoiBan: data.nguoiThucHien,
           chiNhanh: chiNhanh,
-          ghiChu: "Đơn hàng Thu cũ đổi mới, liên kết tới giao dịch thu mua " + maTM,
+          ghiChu:
+            "Đơn hàng Thu cũ đổi mới, liên kết tới giao dịch thu mua " + maTM,
           coNhanQua: data.coNhanQua || "✗",
           maQuaTang: data.maQuaTang || "",
           tienGiamGia: tienGiamGia,
-          traGop: hinhThucBan === "Trả góp" && data.traGop ? {
-            traTruoc: data.traGop.traTruoc,
-            soKy: data.traGop.soKy,
-            loaiTraGop: data.traGop.loaiTraGop,
-            congTyTC: data.traGop.congTyTC,
-            tienMoiKy: data.traGop.tienMoiKy,
-            tongTien: giaBanMoi - tienGiamGia - tienHoTro
-          } : undefined
+          traGop:
+            hinhThucBan === "Trả góp" && data.traGop
+              ? {
+                  traTruoc: data.traGop.traTruoc,
+                  soKy: data.traGop.soKy,
+                  loaiTraGop: data.traGop.loaiTraGop,
+                  congTyTC: data.traGop.congTyTC,
+                  tienMoiKy: data.traGop.tienMoiKy,
+                  tongTien: giaBanMoi - tienGiamGia - tienHoTro,
+                }
+              : undefined,
         });
 
-        rollbackActions.push(function() {
+        rollbackActions.push(function () {
           try {
             huyDonHang(maDH_Moi);
             var dhSheet = ss.getSheetByName(SHEET_NAMES.DON_HANG);
@@ -189,7 +226,8 @@ function thucHienThuMua(data) {
       rowData[COL_TM.IMEI_THU - 1] = data.imei_Thu;
       rowData[COL_TM.MAU_SAC_THU - 1] = data.mauSac_Thu || "";
       rowData[COL_TM.DUNG_LUONG_THU - 1] = data.dungLuong_Thu || "";
-      rowData[COL_TM.TINH_TRANG_THU - 1] = data.tinhTrang_Thu || "Đã qua sử dụng";
+      rowData[COL_TM.TINH_TRANG_THU - 1] =
+        data.tinhTrang_Thu || "Đã qua sử dụng";
       rowData[COL_TM.GIA_THU_MUA - 1] = giaThuMua;
       rowData[COL_TM.LOAI_GD - 1] = loaiGD;
       rowData[COL_TM.MA_DH_MOI - 1] = maDH_Moi;
@@ -206,7 +244,15 @@ function thucHienThuMua(data) {
         var splitChuyenKhoan = Number(data.splitChuyenKhoan) || 0;
         var totalNeeded = tongTienTraKhach;
         if (Math.abs(splitTienMat + splitChuyenKhoan - totalNeeded) > 1) {
-          throw new Error("Lỗi dữ liệu: Tổng tiền mặt (" + splitTienMat + ") và chuyển khoản (" + splitChuyenKhoan + ") không khớp với số tiền cần thanh toán (" + totalNeeded + ")!");
+          throw new Error(
+            "Lỗi dữ liệu: Tổng tiền mặt (" +
+              splitTienMat +
+              ") và chuyển khoản (" +
+              splitChuyenKhoan +
+              ") không khớp với số tiền cần thanh toán (" +
+              totalNeeded +
+              ")!",
+          );
         }
       }
 
@@ -225,7 +271,7 @@ function thucHienThuMua(data) {
 
       var tmSheet = ss.getSheetByName(SHEET_NAMES.THU_MUA);
       var tmRow = appendRow(SHEET_NAMES.THU_MUA, rowData);
-      rollbackActions.push(function() {
+      rollbackActions.push(function () {
         try {
           var ss = SpreadsheetApp.getActiveSpreadsheet();
           var tmSheet = ss.getSheetByName(SHEET_NAMES.THU_MUA);
@@ -235,7 +281,6 @@ function thucHienThuMua(data) {
           Logger.log("Rollback failed to delete buyback row: " + err.message);
         }
       });
-
     } catch (e) {
       for (var rIdx = rollbackActions.length - 1; rIdx >= 0; rIdx--) {
         rollbackActions[rIdx]();
@@ -245,5 +290,4 @@ function thucHienThuMua(data) {
 
     showToast("✅ Đã ghi nhận thu mua thành công: " + maTM);
     return maTM;
-  });
 }

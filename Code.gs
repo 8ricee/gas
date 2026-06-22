@@ -22,7 +22,9 @@ var SHEET_NAMES = {
   DOI_TRA: "Đổi trả",
   THU_MUA: "Thu mua",
   BAO_CAO_NGAY: "Báo cáo ngày",
+  BAO_CAO_DOANH_SO: "Báo cáo doanh số",
   TON_KHO: "Tồn kho",
+  BAO_HANH: "Bảo hành",
 };
 
 // ======================== SHEET HEADERS (VIETNAMESE) ========================
@@ -250,6 +252,26 @@ SHEET_HEADERS[SHEET_NAMES.THU_MUA] = [
   "Chuyển khoản",
 ];
 
+SHEET_HEADERS[SHEET_NAMES.BAO_HANH] = [
+  "Mã bảo hành",
+  "Ngày nhận",
+  "Mã khách hàng",
+  "Tên khách hàng",
+  "Số điện thoại",
+  "Tên sản phẩm",
+  "Tình trạng lỗi",
+  "Loại dịch vụ",
+  "Phí sửa chữa",
+  "Hình thức thanh toán",
+  "Người tiếp nhận",
+  "Người sửa",
+  "Trạng thái",
+  "Ghi chú",
+  "Chi nhánh",
+  "Tiền mặt",
+  "Chuyển khoản",
+];
+
 // ======================== DEFAULT CONFIG ========================
 
 var DEFAULT_CONFIG = [
@@ -333,6 +355,8 @@ function setupSheets() {
     SHEET_NAMES.DOI_TRA,
     SHEET_NAMES.THU_MUA,
     SHEET_NAMES.BAO_CAO_NGAY,
+    SHEET_NAMES.BAO_CAO_DOANH_SO,
+    SHEET_NAMES.BAO_HANH,
   ];
 
   var createdCount = 0;
@@ -374,10 +398,7 @@ function setupSheets() {
   // Khởi tạo Báo cáo ngày nếu vừa được tạo mới hoặc chưa có dữ liệu
   var reportSheet = ss.getSheetByName(SHEET_NAMES.BAO_CAO_NGAY);
   if (reportSheet && reportSheet.getLastRow() <= 1) {
-    reportSheet
-      .getRange(3, 1)
-      .setValue("Ngày báo cáo:")
-      .setFontWeight("bold");
+    reportSheet.getRange(3, 1).setValue("Ngày báo cáo:").setFontWeight("bold");
     reportSheet
       .getRange(3, 2)
       .setValue(new Date())
@@ -390,6 +411,39 @@ function setupSheets() {
       updateDailyReportFromSheet();
     } catch (e) {
       Logger.log("Không thể chạy báo cáo ban đầu: " + e.message);
+    }
+  }
+
+  // Khởi tạo Báo cáo doanh số nếu vừa được tạo mới hoặc chưa có dữ liệu
+  var salesReportSheet = ss.getSheetByName(SHEET_NAMES.BAO_CAO_DOANH_SO);
+  if (salesReportSheet && salesReportSheet.getLastRow() <= 1) {
+    salesReportSheet.getRange(3, 1).setValue("Từ ngày:").setFontWeight("bold");
+    var now = new Date();
+    var firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    salesReportSheet
+      .getRange(3, 2)
+      .setValue(firstDay)
+      .setNumberFormat("dd/MM/yyyy");
+    salesReportSheet.getRange(3, 3).setValue("Đến ngày:").setFontWeight("bold");
+    salesReportSheet.getRange(3, 4).setValue(now).setNumberFormat("dd/MM/yyyy");
+    salesReportSheet
+      .getRange(3, 5)
+      .setValue("Nhân viên:")
+      .setFontWeight("bold");
+    salesReportSheet.getRange(3, 6).setValue("Tất cả");
+    salesReportSheet
+      .getRange(3, 7)
+      .setValue("Loại GD/Dịch vụ:")
+      .setFontWeight("bold");
+    salesReportSheet.getRange(3, 8).setValue("Tất cả");
+    salesReportSheet
+      .getRange(4, 1)
+      .setValue("Trạng thái cập nhật:")
+      .setFontWeight("bold");
+    try {
+      updateSalesReportFromSheet();
+    } catch (e) {
+      Logger.log("Không thể chạy báo cáo doanh số ban đầu: " + e.message);
     }
   }
 
@@ -434,6 +488,8 @@ function syncSheetHeaders(ss) {
     SHEET_NAMES.DOI_TRA,
     SHEET_NAMES.THU_MUA,
     SHEET_NAMES.BAO_CAO_NGAY,
+    SHEET_NAMES.BAO_CAO_DOANH_SO,
+    SHEET_NAMES.BAO_HANH,
   ];
 
   var updatedSheets = [];
@@ -446,15 +502,18 @@ function syncSheetHeaders(ss) {
     var maxCols = sheet.getMaxColumns();
     var lastCol = sheet.getLastColumn();
     var currentHeaders = [];
-    
+
     if (lastCol > 0) {
-      currentHeaders = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h) {
-        return String(h).trim();
-      });
+      currentHeaders = sheet
+        .getRange(1, 1, 1, lastCol)
+        .getValues()[0]
+        .map(function (h) {
+          return String(h).trim();
+        });
     }
 
     var needsUpdate = false;
-    
+
     // Nếu số cột hiện tại ít hơn số tiêu đề định nghĩa
     if (maxCols < targetHeaders.length) {
       sheet.insertColumnsAfter(maxCols, targetHeaders.length - maxCols);
@@ -465,7 +524,7 @@ function syncSheetHeaders(ss) {
     for (var colIdx = 0; colIdx < targetHeaders.length; colIdx++) {
       var expectedHeader = targetHeaders[colIdx];
       var actualHeader = currentHeaders[colIdx];
-      
+
       if (String(actualHeader).trim() !== expectedHeader) {
         sheet.getRange(1, colIdx + 1).setValue(expectedHeader);
         needsUpdate = true;
@@ -606,7 +665,10 @@ function _setupDataValidations(ss) {
     dhSheet.getRange("L2:L").setDataValidation(htBanRule);
 
     var htTTRule = SpreadsheetApp.newDataValidation()
-      .requireValueInList(["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Hỗn hợp"], true)
+      .requireValueInList(
+        ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Hỗn hợp"],
+        true,
+      )
       .setAllowInvalid(false)
       .build();
     dhSheet.getRange("M2:M").setDataValidation(htTTRule);
@@ -644,7 +706,10 @@ function _setupDataValidations(ss) {
     dvSheet.getRange("C2:C").setDataValidation(loaiDVRule);
 
     var htTTDVRule = SpreadsheetApp.newDataValidation()
-      .requireValueInList(["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Hỗn hợp"], true)
+      .requireValueInList(
+        ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Hỗn hợp"],
+        true,
+      )
       .setAllowInvalid(false)
       .build();
     dvSheet.getRange("I2:I").setDataValidation(htTTDVRule);
@@ -678,7 +743,10 @@ function _setupDataValidations(ss) {
   var lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
   if (lstgSheet) {
     var htTTLSTGRule = SpreadsheetApp.newDataValidation()
-      .requireValueInList(["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Hỗn hợp"], true)
+      .requireValueInList(
+        ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Hỗn hợp"],
+        true,
+      )
       .setAllowInvalid(false)
       .build();
     lstgSheet.getRange("H2:H").setDataValidation(htTTLSTGRule);
@@ -737,7 +805,10 @@ function _setupDataValidations(ss) {
     thuMuaSheet.getRange("M2:M").setDataValidation(lgdRule);
 
     var htttRule = SpreadsheetApp.newDataValidation()
-      .requireValueInList(["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Trả góp", "Hỗn hợp"], true)
+      .requireValueInList(
+        ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Trả góp", "Hỗn hợp"],
+        true,
+      )
       .setAllowInvalid(false)
       .build();
     thuMuaSheet.getRange("Q2:Q").setDataValidation(htttRule);
@@ -749,6 +820,45 @@ function _setupDataValidations(ss) {
   var dsSheet = ss.getSheetByName(SHEET_NAMES.DOANH_SO);
   if (dsSheet) {
     dsSheet.getRange("Q2:Q").setDataValidation(chiNhanhRule);
+  }
+
+  // BaoCaoDoanhSo - Danh sách nhân viên và thiết lập bộ lọc
+  var reportDS = ss.getSheetByName(SHEET_NAMES.BAO_CAO_DOANH_SO);
+  if (reportDS) {
+    var staffList = ["Tất cả"];
+    if (nvSheet) {
+      var lastRow = nvSheet.getLastRow();
+      if (lastRow > 1) {
+        var nvData = nvSheet.getRange(2, 1, lastRow - 1, 8).getValues();
+        nvData.forEach(function (row) {
+          var maNV = String(row[0]).trim();
+          var tenNV = String(row[1]).trim();
+          var trangThai = String(row[7]).trim();
+          if (maNV && trangThai !== "Nghỉ việc") {
+            staffList.push(maNV + " - " + tenNV);
+          }
+        });
+      }
+    }
+    var staffRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(staffList, true)
+      .setAllowInvalid(false)
+      .build();
+    reportDS.getRange(3, 6).setDataValidation(staffRule);
+
+    var gdList = [
+      "Tất cả",
+      "Đơn hàng (Bán máy)",
+      "Đơn hàng (Hỗ trợ)",
+      "Dịch vụ: Chuyển khoản hộ",
+      "Dịch vụ: Rút tiền mặt",
+      "Dịch vụ: Nạp thẻ điện thoại",
+    ];
+    var gdRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(gdList, true)
+      .setAllowInvalid(false)
+      .build();
+    reportDS.getRange(3, 8).setDataValidation(gdRule);
   }
 }
 
@@ -792,7 +902,7 @@ function applyConditionalFormatting(ss) {
   var chSheet = ss.getSheetByName(SHEET_NAMES.CAU_HINH);
   var branches = ["Chi nhánh 1", "Chi nhánh 2", "Chi nhánh 3"];
   var brands = ["Apple", "Samsung", "Xiaomi", "OPPO", "Vivo", "Realme", "Khác"];
-  
+
   if (chSheet) {
     var data = chSheet.getDataRange().getValues();
     for (var i = 1; i < data.length; i++) {
@@ -827,7 +937,7 @@ function applyConditionalFormatting(ss) {
 
     // 2. Trạng thái nghỉ việc, huỷ, quá hạn, không, trả máy
     "Nghỉ việc": { bg: "#fce8e6", fg: "#c5221f" },
-    "Huỷ": { bg: "#fce8e6", fg: "#c5221f" },
+    Huỷ: { bg: "#fce8e6", fg: "#c5221f" },
     "Quá hạn": { bg: "#fce8e6", fg: "#c5221f" },
     "Đã huỷ": { bg: "#fce8e6", fg: "#c5221f" },
     "Ngừng bán": { bg: "#fce8e6", fg: "#c5221f" },
@@ -849,13 +959,13 @@ function applyConditionalFormatting(ss) {
     // 4. Trạng thái khác, đã qua sử dụng, đã bán
     "Đã bán": { bg: "#f1f3f4", fg: "#5f6368" },
     "Đã qua sử dụng": { bg: "#f1f3f4", fg: "#5f6368" },
-    "Khác": { bg: "#f1f3f4", fg: "#5f6368" },
+    Khác: { bg: "#f1f3f4", fg: "#5f6368" },
 
     // 5. Chi nhánh, vai trò, hình thức, nguồn
     "Bán hàng": { bg: "#e8f0fe", fg: "#1a73e8" },
     "Chuyển khoản": { bg: "#e8f0fe", fg: "#1a73e8" },
     "Chuyển khoản hộ": { bg: "#e8f0fe", fg: "#1a73e8" },
-    "Sạc": { bg: "#e8f0fe", fg: "#1a73e8" },
+    Sạc: { bg: "#e8f0fe", fg: "#1a73e8" },
     "Like New": { bg: "#e8f0fe", fg: "#1a73e8" },
     "Điện thoại": { bg: "#e8f0fe", fg: "#1a73e8" },
 
@@ -865,7 +975,7 @@ function applyConditionalFormatting(ss) {
     "Công ty tài chính": { bg: "#f3e8fd", fg: "#a142f4" },
 
     "Ốp lưng": { bg: "#e0f7fa", fg: "#006064" },
-    "Cáp": { bg: "#fce4ec", fg: "#880e4f" },
+    Cáp: { bg: "#fce4ec", fg: "#880e4f" },
     "Cửa hàng": { bg: "#fef7e0", fg: "#b06000" },
   };
 
@@ -875,9 +985,9 @@ function applyConditionalFormatting(ss) {
     { bg: "#fce8e6", fg: "#c5221f" }, // Red
     { bg: "#fef7e0", fg: "#b06000" }, // Yellow
     { bg: "#e6f4ea", fg: "#137333" }, // Green
-    { bg: "#f3e8fd", fg: "#a142f4" }  // Purple
+    { bg: "#f3e8fd", fg: "#a142f4" }, // Purple
   ];
-  branches.forEach(function(branch, index) {
+  branches.forEach(function (branch, index) {
     var colorIdx = index % BRANCH_COLORS.length;
     COLOR_MAP[branch] = BRANCH_COLORS[colorIdx];
   });
@@ -891,9 +1001,9 @@ function applyConditionalFormatting(ss) {
     { bg: "#e0f7fa", fg: "#006064" }, // Cyan
     { bg: "#fce4ec", fg: "#880e4f" }, // Pink
     { bg: "#e8f8f5", fg: "#0e6251" }, // Teal
-    { bg: "#fbf9ff", fg: "#6a1b9a" }  // Dark Violet
+    { bg: "#fbf9ff", fg: "#6a1b9a" }, // Dark Violet
   ];
-  brands.forEach(function(brand, index) {
+  brands.forEach(function (brand, index) {
     var lowerBrand = brand.toLowerCase();
     if (lowerBrand === "apple") {
       COLOR_MAP[brand] = { bg: "#f1f3f4", fg: "#202124" }; // Light gray/black for Apple
@@ -944,13 +1054,19 @@ function applyConditionalFormatting(ss) {
   _applyRulesForSheet(ss.getSheetByName(SHEET_NAMES.DIEN_THOAI), [
     { range: "C2:C", values: brands },
     { range: "G2:G", values: ["Mới 100%", "Like New", "__NOT_EMPTY__"] },
-    { range: "K2:K", values: ["Còn hàng", "Đã bán", "Đang trả góp", "Đã trả lại"] },
+    {
+      range: "K2:K",
+      values: ["Còn hàng", "Đã bán", "Đang trả góp", "Đã trả lại"],
+    },
     { range: "M2:M", values: branches },
   ]);
 
   // 3. Phụ kiện
   _applyRulesForSheet(ss.getSheetByName(SHEET_NAMES.PHU_KIEN), [
-    { range: "C2:C", values: ["Sạc", "Ốp lưng", "Tai nghe", "Cường lực", "Cáp", "Khác"] },
+    {
+      range: "C2:C",
+      values: ["Sạc", "Ốp lưng", "Tai nghe", "Cường lực", "Cáp", "Khác"],
+    },
     { range: "D2:D", values: brands },
     { range: "I2:I", values: ["Đang bán", "Ngừng bán"] },
     { range: "J2:J", values: branches },
@@ -968,7 +1084,10 @@ function applyConditionalFormatting(ss) {
 
   // 5. Dịch vụ
   _applyRulesForSheet(ss.getSheetByName(SHEET_NAMES.DICH_VU), [
-    { range: "C2:C", values: ["Chuyển khoản hộ", "Rút tiền mặt", "Nạp thẻ điện thoại"] },
+    {
+      range: "C2:C",
+      values: ["Chuyển khoản hộ", "Rút tiền mặt", "Nạp thẻ điện thoại"],
+    },
     { range: "I2:I", values: ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)"] },
     { range: "L2:L", values: ["Hoàn thành", "Huỷ"] },
     { range: "N2:N", values: branches },
@@ -1029,7 +1148,8 @@ function onOpen() {
  */
 function doGet(e) {
   var html = HtmlService.createTemplateFromFile("Sidebar");
-  return html.evaluate()
+  return html
+    .evaluate()
     .setTitle("VanTran Mobile — Hệ thống Dịch vụ & Buôn bán Trả góp")
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag("viewport", "width=device-width, initial-scale=1");
@@ -1138,10 +1258,14 @@ function _onEditTraGop(sheet, row, col, e) {
   // Lắng nghe thay đổi Trạng thái hợp đồng (col 16)
   if (col === 16) {
     var statusVal = String(e.value).trim();
-    if (statusVal === "Đã huỷ" || statusVal.toLowerCase() === "huy" || statusVal.toLowerCase() === "huỷ") {
+    if (
+      statusVal === "Đã huỷ" ||
+      statusVal.toLowerCase() === "huy" ||
+      statusVal.toLowerCase() === "huỷ"
+    ) {
       var maTG = sheet.getRange(row, 1).getValue();
       var maDH = sheet.getRange(row, 2).getValue();
-      
+
       if (maTG && maDH) {
         // 1. Hoàn trả kho máy sang "Còn hàng" nếu là điện thoại
         var maSP = lookupValue(SHEET_NAMES.DON_HANG, 1, maDH, 5);
@@ -1159,7 +1283,9 @@ function _onEditTraGop(sheet, row, col, e) {
         if (lstgSheet) {
           var lastRow = lstgSheet.getLastRow();
           if (lastRow > 1) {
-            var allLichSu = lstgSheet.getRange(2, 2, lastRow - 1, 8).getValues();
+            var allLichSu = lstgSheet
+              .getRange(2, 2, lastRow - 1, 8)
+              .getValues();
             for (var i = 0; i < allLichSu.length; i++) {
               if (String(allLichSu[i][0]) === maTG) {
                 var status = String(allLichSu[i][7]);
@@ -1170,8 +1296,12 @@ function _onEditTraGop(sheet, row, col, e) {
             }
           }
         }
-        
-        showToast("⚠️ Hợp đồng " + maTG + " đã được huỷ. Đã hoàn kho sản phẩm và huỷ lịch sử trả góp!");
+
+        showToast(
+          "⚠️ Hợp đồng " +
+            maTG +
+            " đã được huỷ. Đã hoàn kho sản phẩm và huỷ lịch sử trả góp!",
+        );
       }
     }
   }
@@ -1250,7 +1380,11 @@ function _onEditDonHang(sheet, row, col, e) {
   // Lắng nghe thay đổi trạng thái đơn hàng (col 19) để tự động xử lý kho và trả góp khi đơn bị Huỷ trực tiếp trên sheet
   if (col === 19) {
     var statusVal = String(e.value).trim();
-    if (statusVal === "Huỷ" || statusVal.toLowerCase() === "huy" || statusVal.toLowerCase() === "huỷ") {
+    if (
+      statusVal === "Huỷ" ||
+      statusVal.toLowerCase() === "huy" ||
+      statusVal.toLowerCase() === "huỷ"
+    ) {
       var maDH = sheet.getRange(row, 1).getValue();
       var maSP = sheet.getRange(row, 5).getValue();
       var nguonSP = sheet.getRange(row, 7).getValue();
@@ -1284,8 +1418,12 @@ function _onEditDonHang(sheet, row, col, e) {
           }
         }
       }
-      
-      showToast("⚠️ Đơn hàng " + maDH + " đã được huỷ trực tiếp trên sheet. Đã đồng bộ kho hàng!");
+
+      showToast(
+        "⚠️ Đơn hàng " +
+          maDH +
+          " đã được huỷ trực tiếp trên sheet. Đã đồng bộ kho hàng!",
+      );
     }
   }
 }
@@ -1341,32 +1479,54 @@ function rebuildTonKhoSheet(ss) {
 
   // --- 1. TỔNG SỐ MÁY ĐIỆN THOẠI CỦA MỖI CHI NHÁNH (Bảng 1) ---
   var totalSummaryColIdx = 2 + N; // Cột 'Thương hiệu' (1), N Chi nhánh, Cột 'Tổng cộng' (1)
-  
+
   // Dòng 1: Tiêu đề trang tính
   var sheetTitleRange = tonKhoSheet.getRange(1, 1, 1, totalSummaryColIdx);
   sheetTitleRange.merge();
   sheetTitleRange.setValue("BÁO CÁO TỒN KHO HỆ THỐNG & TÌM KIẾM");
-  sheetTitleRange.setFontWeight("bold").setFontSize(14).setFontColor("#ffffff").setBackground("#1a73e8").setHorizontalAlignment("center");
+  sheetTitleRange
+    .setFontWeight("bold")
+    .setFontSize(14)
+    .setFontColor("#ffffff")
+    .setBackground("#1a73e8")
+    .setHorizontalAlignment("center");
 
   // Dòng 2: Ô tìm kiếm nhanh
   var searchLabelCell = tonKhoSheet.getRange(2, 1);
-  searchLabelCell.setValue("Tìm kiếm:")
-                 .setFontWeight("bold")
-                 .setHorizontalAlignment("right")
-                 .setBackground("#f1f3f4");
+  searchLabelCell
+    .setValue("Tìm kiếm:")
+    .setFontWeight("bold")
+    .setHorizontalAlignment("right")
+    .setBackground("#f1f3f4");
 
   var searchInputCell = tonKhoSheet.getRange(2, 2);
-  searchInputCell.setBackground("#ffffff")
-                 .setBorder(true, true, true, true, true, true, "#cccccc", SpreadsheetApp.BorderStyle.SOLID)
-                 .setHorizontalAlignment("left");
+  searchInputCell
+    .setBackground("#ffffff")
+    .setBorder(
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      "#cccccc",
+      SpreadsheetApp.BorderStyle.SOLID,
+    )
+    .setHorizontalAlignment("left");
 
-  var searchTipRange = tonKhoSheet.getRange(2, 3, 1, Math.max(1, totalSummaryColIdx - 2));
+  var searchTipRange = tonKhoSheet.getRange(
+    2,
+    3,
+    1,
+    Math.max(1, totalSummaryColIdx - 2),
+  );
   searchTipRange.merge();
-  searchTipRange.setValue("Nhập B2 để tìm kiếm")
-                 .setFontStyle("italic")
-                 .setFontColor("#5f6368")
-                 .setBackground("#f1f3f4")
-                 .setHorizontalAlignment("left");
+  searchTipRange
+    .setValue("Nhập B2 để tìm kiếm")
+    .setFontStyle("italic")
+    .setFontColor("#5f6368")
+    .setBackground("#f1f3f4")
+    .setHorizontalAlignment("left");
 
   // Dòng 3: Dòng spacer trống
   tonKhoSheet.setRowHeight(3, 15);
@@ -1375,11 +1535,16 @@ function rebuildTonKhoSheet(ss) {
   var summaryTitleRange = tonKhoSheet.getRange(4, 1, 1, totalSummaryColIdx);
   summaryTitleRange.merge();
   summaryTitleRange.setValue("TỔNG SỐ MÁY ĐIỆN THOẠI CỦA MỖI CHI NHÁNH");
-  summaryTitleRange.setFontWeight("bold").setFontSize(12).setFontColor("#ffffff").setBackground("#1a73e8").setHorizontalAlignment("center");
+  summaryTitleRange
+    .setFontWeight("bold")
+    .setFontSize(12)
+    .setFontColor("#ffffff")
+    .setBackground("#1a73e8")
+    .setHorizontalAlignment("center");
 
   // Dòng 5: Headers Bảng 1
   var summaryHeaders = ["Thương hiệu"];
-  branches.forEach(function(branch) {
+  branches.forEach(function (branch) {
     summaryHeaders.push(branch);
   });
   summaryHeaders.push("Tổng cộng");
@@ -1387,7 +1552,7 @@ function rebuildTonKhoSheet(ss) {
 
   // Dòng 6 đến 5 + B: Ghi danh sách thương hiệu & công thức
   var brandValues = [];
-  brands.forEach(function(brand) {
+  brands.forEach(function (brand) {
     brandValues.push([brand]);
   });
   tonKhoSheet.getRange(6, 1, B, 1).setValues(brandValues);
@@ -1396,14 +1561,20 @@ function rebuildTonKhoSheet(ss) {
   for (var r = 6; r <= 5 + B; r++) {
     for (var c = 2; c <= 1 + N; c++) {
       var colLetter = columnToLetter(c);
-      tonKhoSheet.getRange(r, c).setFormula(
-        "=COUNTIFS('Điện thoại'!$C:$C, $A" + r + ", 'Điện thoại'!$M:$M, " + colLetter + "$5, 'Điện thoại'!$K:$K, \"Còn hàng\")"
-      );
+      tonKhoSheet
+        .getRange(r, c)
+        .setFormula(
+          "=COUNTIFS('Điện thoại'!$C:$C, $A" +
+            r +
+            ", 'Điện thoại'!$M:$M, " +
+            colLetter +
+            "$5, 'Điện thoại'!$K:$K, \"Còn hàng\")",
+        );
     }
     var lastBranchColLetter = columnToLetter(1 + N);
-    tonKhoSheet.getRange(r, 2 + N).setFormula(
-      "=SUM(B" + r + ":" + lastBranchColLetter + r + ")"
-    );
+    tonKhoSheet
+      .getRange(r, 2 + N)
+      .setFormula("=SUM(B" + r + ":" + lastBranchColLetter + r + ")");
   }
 
   // Dòng 6 + B: Dòng Tổng cộng của bảng 1
@@ -1411,20 +1582,34 @@ function rebuildTonKhoSheet(ss) {
   tonKhoSheet.getRange(totalRowIdx, 1).setValue("Tổng cộng");
   for (var c = 2; c <= 1 + N; c++) {
     var colLetter = columnToLetter(c);
-    tonKhoSheet.getRange(totalRowIdx, c).setFormula(
-      "=SUM(" + colLetter + "6:" + colLetter + (5 + B) + ")"
-    );
+    tonKhoSheet
+      .getRange(totalRowIdx, c)
+      .setFormula("=SUM(" + colLetter + "6:" + colLetter + (5 + B) + ")");
   }
-  tonKhoSheet.getRange(totalRowIdx, 2 + N).setFormula(
-    "=SUM(B" + totalRowIdx + ":" + lastBranchColLetter + totalRowIdx + ")"
-  );
+  tonKhoSheet
+    .getRange(totalRowIdx, 2 + N)
+    .setFormula(
+      "=SUM(B" + totalRowIdx + ":" + lastBranchColLetter + totalRowIdx + ")",
+    );
 
   // Format Table 1
   var summaryHeaderRange = tonKhoSheet.getRange(5, 1, 1, totalSummaryColIdx);
-  summaryHeaderRange.setBackground("#e8f0fe").setFontColor("#1a73e8").setFontWeight("bold").setHorizontalAlignment("center");
-  
-  var summaryTotalRowRange = tonKhoSheet.getRange(totalRowIdx, 1, 1, totalSummaryColIdx);
-  summaryTotalRowRange.setBackground("#f1f3f4").setFontWeight("bold").setHorizontalAlignment("center");
+  summaryHeaderRange
+    .setBackground("#e8f0fe")
+    .setFontColor("#1a73e8")
+    .setFontWeight("bold")
+    .setHorizontalAlignment("center");
+
+  var summaryTotalRowRange = tonKhoSheet.getRange(
+    totalRowIdx,
+    1,
+    1,
+    totalSummaryColIdx,
+  );
+  summaryTotalRowRange
+    .setBackground("#f1f3f4")
+    .setFontWeight("bold")
+    .setHorizontalAlignment("center");
 
   // Dòng spacer trống là dòng 7 + B
   tonKhoSheet.setRowHeight(7 + B, 15);
@@ -1432,50 +1617,107 @@ function rebuildTonKhoSheet(ss) {
 
   // --- 2. TỒN KHO ĐIỆN THOẠI THEO CHI NHÁNH (Bảng 2) ---
   var totalPhoneColIdx = 3 + N + 1; // 3 cột thông tin + N chi nhánh + 1 cột tổng
-  var phoneTitleRange = tonKhoSheet.getRange(startRowB2B3, 1, 1, totalPhoneColIdx);
+  var phoneTitleRange = tonKhoSheet.getRange(
+    startRowB2B3,
+    1,
+    1,
+    totalPhoneColIdx,
+  );
   phoneTitleRange.merge();
   phoneTitleRange.setValue("TỒN KHO ĐIỆN THOẠI THEO CHI NHÁNH");
-  phoneTitleRange.setFontWeight("bold").setFontSize(13).setFontColor("#ffffff").setBackground("#1a73e8").setHorizontalAlignment("center");
+  phoneTitleRange
+    .setFontWeight("bold")
+    .setFontSize(13)
+    .setFontColor("#ffffff")
+    .setBackground("#1a73e8")
+    .setHorizontalAlignment("center");
 
   // Công thức QUERY xoay chiều theo chi nhánh M ở dòng startRowB2B3 + 1 (có lọc theo ô Tìm kiếm B2)
-  tonKhoSheet.getRange(startRowB2B3 + 1, 1).setFormula(
-    "=QUERY('Điện thoại'!A:M, \"select B, E, F, count(A) where A is not null and K = 'Còn hàng' \" & IF(ISBLANK($B$2), \"\", \"and (lower(B) contains '\"&LOWER($B$2)&\"' or lower(E) contains '\"&LOWER($B$2)&\"' or lower(F) contains '\"&LOWER($B$2)&\"' or lower(C) contains '\"&LOWER($B$2)&\"')\") & \" group by B, E, F pivot M\", 1)"
-  );
+  tonKhoSheet
+    .getRange(startRowB2B3 + 1, 1)
+    .setFormula(
+      '=QUERY(\'Điện thoại\'!A:M, "select B, E, F, count(A) where A is not null and K = \'Còn hàng\' " & IF(ISBLANK($B$2), "", "and (lower(B) contains \'"&LOWER($B$2)&"\' or lower(E) contains \'"&LOWER($B$2)&"\' or lower(F) contains \'"&LOWER($B$2)&"\' or lower(C) contains \'"&LOWER($B$2)&"\')") & " group by B, E, F pivot M", 1)',
+    );
 
   // Đầu cột Tổng tồn
-  var phoneTotalHeaderCell = tonKhoSheet.getRange(startRowB2B3 + 1, totalPhoneColIdx);
-  phoneTotalHeaderCell.setValue("Tổng tồn").setFontWeight("bold").setHorizontalAlignment("center").setBackground("#e8f0fe").setFontColor("#1a73e8");
+  var phoneTotalHeaderCell = tonKhoSheet.getRange(
+    startRowB2B3 + 1,
+    totalPhoneColIdx,
+  );
+  phoneTotalHeaderCell
+    .setValue("Tổng tồn")
+    .setFontWeight("bold")
+    .setHorizontalAlignment("center")
+    .setBackground("#e8f0fe")
+    .setFontColor("#1a73e8");
 
   // Công thức tính Tổng tồn dùng MAP và OFFSET động từ dòng startRowB2B3 + 2
-  var phoneTotalFormulaCell = tonKhoSheet.getRange(startRowB2B3 + 2, totalPhoneColIdx);
+  var phoneTotalFormulaCell = tonKhoSheet.getRange(
+    startRowB2B3 + 2,
+    totalPhoneColIdx,
+  );
   phoneTotalFormulaCell.setFormula(
-    "=MAP(A" + (startRowB2B3 + 2) + ":A, LAMBDA(val, IF(val=\"\", \"\", SUM(OFFSET(val, 0, 3, 1, " + N + ")))))"
+    "=MAP(A" +
+      (startRowB2B3 + 2) +
+      ':A, LAMBDA(val, IF(val="", "", SUM(OFFSET(val, 0, 3, 1, ' +
+      N +
+      ")))))",
   );
 
   // --- 3. TỒN KHO PHỤ KIỆN THEO CHI NHÁNH (Bảng 3) ---
   var spacerColIdx = totalPhoneColIdx + 1; // Cột khoảng cách trống
-  var startAccColIdx = spacerColIdx + 1;  // Cột bắt đầu bảng Phụ kiện
+  var startAccColIdx = spacerColIdx + 1; // Cột bắt đầu bảng Phụ kiện
   var totalAccColIdx = startAccColIdx + 4 + N; // 4 cột thông tin + N chi nhánh + 1 cột tổng
 
-  var accTitleRange = tonKhoSheet.getRange(startRowB2B3, startAccColIdx, 1, 4 + N + 1);
+  var accTitleRange = tonKhoSheet.getRange(
+    startRowB2B3,
+    startAccColIdx,
+    1,
+    4 + N + 1,
+  );
   accTitleRange.merge();
   accTitleRange.setValue("TỒN KHO PHỤ KIỆN THEO CHI NHÁNH");
-  accTitleRange.setFontWeight("bold").setFontSize(13).setFontColor("#ffffff").setBackground("#1a73e8").setHorizontalAlignment("center");
+  accTitleRange
+    .setFontWeight("bold")
+    .setFontSize(13)
+    .setFontColor("#ffffff")
+    .setBackground("#1a73e8")
+    .setHorizontalAlignment("center");
 
   // Công thức QUERY xoay chiều theo chi nhánh J (có lọc theo ô Tìm kiếm B2)
   var startAccColLetter = columnToLetter(startAccColIdx);
-  tonKhoSheet.getRange(startRowB2B3 + 1, startAccColIdx).setFormula(
-    "=QUERY('Phụ kiện'!A:J, \"select A, B, C, D, sum(G) where A is not null and I = 'Đang bán' and G > 0 \" & IF(ISBLANK($B$2), \"\", \"and (lower(A) contains '\"&LOWER($B$2)&\"' or lower(B) contains '\"&LOWER($B$2)&\"' or lower(C) contains '\"&LOWER($B$2)&\"' or lower(D) contains '\"&LOWER($B$2)&\"')\") & \" group by A, B, C, D pivot J\", 1)"
-  );
+  tonKhoSheet
+    .getRange(startRowB2B3 + 1, startAccColIdx)
+    .setFormula(
+      '=QUERY(\'Phụ kiện\'!A:J, "select A, B, C, D, sum(G) where A is not null and I = \'Đang bán\' and G > 0 " & IF(ISBLANK($B$2), "", "and (lower(A) contains \'"&LOWER($B$2)&"\' or lower(B) contains \'"&LOWER($B$2)&"\' or lower(C) contains \'"&LOWER($B$2)&"\' or lower(D) contains \'"&LOWER($B$2)&"\')") & " group by A, B, C, D pivot J", 1)',
+    );
 
   // Đầu cột Tổng tồn của Phụ kiện
-  var accTotalHeaderCell = tonKhoSheet.getRange(startRowB2B3 + 1, totalAccColIdx);
-  accTotalHeaderCell.setValue("Tổng tồn").setFontWeight("bold").setHorizontalAlignment("center").setBackground("#e8f0fe").setFontColor("#1a73e8");
+  var accTotalHeaderCell = tonKhoSheet.getRange(
+    startRowB2B3 + 1,
+    totalAccColIdx,
+  );
+  accTotalHeaderCell
+    .setValue("Tổng tồn")
+    .setFontWeight("bold")
+    .setHorizontalAlignment("center")
+    .setBackground("#e8f0fe")
+    .setFontColor("#1a73e8");
 
   // Công thức tính Tổng tồn Phụ kiện
-  var accTotalFormulaCell = tonKhoSheet.getRange(startRowB2B3 + 2, totalAccColIdx);
+  var accTotalFormulaCell = tonKhoSheet.getRange(
+    startRowB2B3 + 2,
+    totalAccColIdx,
+  );
   accTotalFormulaCell.setFormula(
-    "=MAP(" + startAccColLetter + (startRowB2B3 + 2) + ":" + startAccColLetter + ", LAMBDA(val, IF(val=\"\", \"\", SUM(OFFSET(val, 0, 4, 1, " + N + ")))))"
+    "=MAP(" +
+      startAccColLetter +
+      (startRowB2B3 + 2) +
+      ":" +
+      startAccColLetter +
+      ', LAMBDA(val, IF(val="", "", SUM(OFFSET(val, 0, 4, 1, ' +
+      N +
+      ")))))",
   );
 
   // Đảm bảo số cột trong sheet đủ lớn
@@ -1492,11 +1734,29 @@ function rebuildTonKhoSheet(ss) {
   fullRange.setFontFamily("Times New Roman").setFontSize(12);
 
   // Tô màu nền cho header dòng startRowB2B3 + 1 của cả 2 bảng
-  var phoneHeaderRange = tonKhoSheet.getRange(startRowB2B3 + 1, 1, 1, totalPhoneColIdx);
-  phoneHeaderRange.setBackground("#e8f0fe").setFontColor("#1a73e8").setFontWeight("bold").setHorizontalAlignment("center");
+  var phoneHeaderRange = tonKhoSheet.getRange(
+    startRowB2B3 + 1,
+    1,
+    1,
+    totalPhoneColIdx,
+  );
+  phoneHeaderRange
+    .setBackground("#e8f0fe")
+    .setFontColor("#1a73e8")
+    .setFontWeight("bold")
+    .setHorizontalAlignment("center");
 
-  var accHeaderRange = tonKhoSheet.getRange(startRowB2B3 + 1, startAccColIdx, 1, 4 + N + 1);
-  accHeaderRange.setBackground("#e8f0fe").setFontColor("#1a73e8").setFontWeight("bold").setHorizontalAlignment("center");
+  var accHeaderRange = tonKhoSheet.getRange(
+    startRowB2B3 + 1,
+    startAccColIdx,
+    1,
+    4 + N + 1,
+  );
+  accHeaderRange
+    .setBackground("#e8f0fe")
+    .setFontColor("#1a73e8")
+    .setFontWeight("bold")
+    .setHorizontalAlignment("center");
 
   // Điều chỉnh độ rộng cột
   for (var c = 1; c <= lastCol; c++) {
@@ -1515,7 +1775,8 @@ function rebuildTonKhoSheet(ss) {
  * @return {string}
  */
 function columnToLetter(column) {
-  var temp, letter = "";
+  var temp,
+    letter = "";
   while (column > 0) {
     temp = (column - 1) % 26;
     letter = String.fromCharCode(temp + 65) + letter;
@@ -1533,6 +1794,6 @@ function getPreloadData() {
   return {
     dienThoai: getDienThoaiDropdown(""),
     phuKien: getPhuKienDropdown(""),
-    phuKienUnique: getPhuKienUniqueList()
+    phuKienUnique: getPhuKienUniqueList(),
   };
 }

@@ -17,7 +17,6 @@
  * @return {string} Mã đổi trả mới
  */
 function thucHienDoiTra(data) {
-  return runWithLock(function() {
     initializeColumnEnums();
 
     // Backend validation for Hỗn hợp payments
@@ -30,9 +29,18 @@ function thucHienDoiTra(data) {
     }
 
     if (data.hinhThucThanhToan === "Hỗn hợp") {
-      var tongThanhToan = (Number(data.splitChuyenKhoan) || 0) + (Number(data.splitTienMat) || 0);
+      var tongThanhToan =
+        (Number(data.splitChuyenKhoan) || 0) + (Number(data.splitTienMat) || 0);
       if (Math.abs(tongThanhToan - expectedPaid) > 1) {
-        throw new Error("Lỗi dữ liệu: Tổng tiền mặt (" + data.splitTienMat + ") và chuyển khoản (" + data.splitChuyenKhoan + ") không khớp với số tiền cần thanh toán (" + expectedPaid + ")!");
+        throw new Error(
+          "Lỗi dữ liệu: Tổng tiền mặt (" +
+            data.splitTienMat +
+            ") và chuyển khoản (" +
+            data.splitChuyenKhoan +
+            ") không khớp với số tiền cần thanh toán (" +
+            expectedPaid +
+            ")!",
+        );
       }
     }
 
@@ -76,11 +84,15 @@ function thucHienDoiTra(data) {
     try {
       if (doiTuong === "Quà tặng kèm") {
         var maQuaCu = dhSheet.getRange(dhRow, COL_DH.MA_QUA_TANG).getValue();
-        var tenQuaCu = dhSheet.getRange(dhRow, COL_DH.TEN_QUA_TANG).getValue() || "(Không tên)";
+        var tenQuaCu =
+          dhSheet.getRange(dhRow, COL_DH.TEN_QUA_TANG).getValue() ||
+          "(Không tên)";
         var coNhanQua = dhSheet.getRange(dhRow, COL_DH.CO_NHAN_QUA).getValue();
 
         if (coNhanQua !== "✓") {
-          throw new Error("Đơn hàng " + maDH + " không nhận quà tặng kèm trước đó!");
+          throw new Error(
+            "Đơn hàng " + maDH + " không nhận quà tặng kèm trước đó!",
+          );
         }
 
         var maQuaMoi = data.maSP_Nhan;
@@ -96,7 +108,7 @@ function thucHienDoiTra(data) {
         var maQuaMoiList = String(maQuaMoi).split(",");
         var tenQuaMoiList = [];
         var pkSheet = ss.getSheetByName(SHEET_NAMES.PHU_KIEN);
-        
+
         var codeCounts = {};
         for (var i = 0; i < maQuaMoiList.length; i++) {
           var code = maQuaMoiList[i].trim();
@@ -111,14 +123,22 @@ function thucHienDoiTra(data) {
               "Quà tặng mới " + code + " không tồn tại ở chi nhánh " + chiNhanh,
             );
           }
-          var tonQuaMoi = Number(pkSheet.getRange(newRow, COL_PK.SO_LUONG_TON).getValue()) || 0;
+          var tonQuaMoi =
+            Number(pkSheet.getRange(newRow, COL_PK.SO_LUONG_TON).getValue()) ||
+            0;
           var requiredQty = codeCounts[code];
           if (tonQuaMoi < requiredQty) {
             throw new Error(
-              "Quà tặng mới " + code + " không đủ số lượng tại chi nhánh này! Hiện tại: " + tonQuaMoi + ", cần: " + requiredQty,
+              "Quà tặng mới " +
+                code +
+                " không đủ số lượng tại chi nhánh này! Hiện tại: " +
+                tonQuaMoi +
+                ", cần: " +
+                requiredQty,
             );
           }
-          var giftName = pkSheet.getRange(newRow, COL_PK.TEN_SP).getValue() || "";
+          var giftName =
+            pkSheet.getRange(newRow, COL_PK.TEN_SP).getValue() || "";
           for (var k = 0; k < requiredQty; k++) {
             tenQuaMoiList.push(giftName);
           }
@@ -136,9 +156,11 @@ function thucHienDoiTra(data) {
               returnedGifts.push(code);
             }
           }
-          rollbackActions.push(function() {
-            returnedGifts.forEach(function(code) {
-              try { updateTonKhoPhuKien(code, 1, "xuat", chiNhanh); } catch(err){}
+          rollbackActions.push(function () {
+            returnedGifts.forEach(function (code) {
+              try {
+                updateTonKhoPhuKien(code, 1, "xuat", chiNhanh);
+              } catch (err) {}
             });
           });
         }
@@ -152,9 +174,11 @@ function thucHienDoiTra(data) {
             issuedGifts.push(code);
           }
         }
-        rollbackActions.push(function() {
-          issuedGifts.forEach(function(code) {
-            try { updateTonKhoPhuKien(code, 1, "nhap", chiNhanh); } catch(err){}
+        rollbackActions.push(function () {
+          issuedGifts.forEach(function (code) {
+            try {
+              updateTonKhoPhuKien(code, 1, "nhap", chiNhanh);
+            } catch (err) {}
           });
         });
 
@@ -179,12 +203,22 @@ function thucHienDoiTra(data) {
           "]";
         updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.GHI_CHU, newNote);
 
-        rollbackActions.push(function() {
+        rollbackActions.push(function () {
           try {
-            updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.MA_QUA_TANG, oldMaQua);
-            updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.TEN_QUA_TANG, oldTenQua);
+            updateCell(
+              SHEET_NAMES.DON_HANG,
+              dhRow,
+              COL_DH.MA_QUA_TANG,
+              oldMaQua,
+            );
+            updateCell(
+              SHEET_NAMES.DON_HANG,
+              dhRow,
+              COL_DH.TEN_QUA_TANG,
+              oldTenQua,
+            );
             updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.GHI_CHU, oldNote);
-          } catch(err){}
+          } catch (err) {}
         });
 
         // Ghi nhận giao dịch vào bảng DoiTra
@@ -203,7 +237,8 @@ function thucHienDoiTra(data) {
         rowData[COL_DT_TRA.IMEI_NHAN - 1] = "";
         rowData[COL_DT_TRA.TIEN_HOAN_TRA - 1] = 0;
         rowData[COL_DT_TRA.PHI_DOI_TRA - 1] = Number(data.phiDoiTra) || 0;
-        rowData[COL_DT_TRA.HINH_THUC_TT - 1] = data.hinhThucThanhToan || "Tiền mặt";
+        rowData[COL_DT_TRA.HINH_THUC_TT - 1] =
+          data.hinhThucThanhToan || "Tiền mặt";
         rowData[COL_DT_TRA.CHI_NHANH - 1] = chiNhanh;
         rowData[COL_DT_TRA.NGUOI_THUC_HIEN - 1] = data.nguoiThucHien || "";
         rowData[COL_DT_TRA.TRANG_THAI - 1] = "Hoàn thành";
@@ -225,16 +260,15 @@ function thucHienDoiTra(data) {
 
         var dtSheet = ss.getSheetByName(SHEET_NAMES.DOI_TRA);
         var dtRow = appendRow(SHEET_NAMES.DOI_TRA, rowData);
-        rollbackActions.push(function() {
+        rollbackActions.push(function () {
           try {
             dtSheet.deleteRow(dtRow);
             clearSheetCache(SHEET_NAMES.DOI_TRA);
-          } catch(err){}
+          } catch (err) {}
         });
 
         showToast("✅ Đổi quà tặng thành công đơn " + maDH);
         return maDT;
-
       } else {
         // ĐỐI TƯỢNG LÀ SẢN PHẨM CHÍNH
         var maSP_Tra = dhSheet.getRange(dhRow, COL_DH.MA_SP).getValue();
@@ -242,20 +276,34 @@ function thucHienDoiTra(data) {
         var nguonSP_Tra = dhSheet.getRange(dhRow, COL_DH.NGUON_SP).getValue();
 
         if (nguonSP_Tra === "Phụ kiện") {
-          var soLuong = Number(dhSheet.getRange(dhRow, COL_DH.SO_LUONG).getValue()) || 1;
+          var soLuong =
+            Number(dhSheet.getRange(dhRow, COL_DH.SO_LUONG).getValue()) || 1;
 
           // 1. Chuyển trạng thái đơn hàng gốc sang "Đổi trả"
-          var oldDHStatus = dhSheet.getRange(dhRow, COL_DH.TRANG_THAI).getValue();
+          var oldDHStatus = dhSheet
+            .getRange(dhRow, COL_DH.TRANG_THAI)
+            .getValue();
           updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.TRANG_THAI, "Đổi trả");
-          rollbackActions.push(function() {
-            try { updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.TRANG_THAI, oldDHStatus); } catch(err){}
+          rollbackActions.push(function () {
+            try {
+              updateCell(
+                SHEET_NAMES.DON_HANG,
+                dhRow,
+                COL_DH.TRANG_THAI,
+                oldDHStatus,
+              );
+            } catch (err) {}
           });
 
           // 2. Hoàn trả kho phụ kiện cũ vào chi nhánh của đơn hàng gốc
-          var originalBranch = dhSheet.getRange(dhRow, COL_DH.CHI_NHANH).getValue();
+          var originalBranch = dhSheet
+            .getRange(dhRow, COL_DH.CHI_NHANH)
+            .getValue();
           updateTonKhoPhuKien(maSP_Tra, soLuong, "nhap", originalBranch);
-          rollbackActions.push(function() {
-            try { updateTonKhoPhuKien(maSP_Tra, soLuong, "xuat", originalBranch); } catch(err){}
+          rollbackActions.push(function () {
+            try {
+              updateTonKhoPhuKien(maSP_Tra, soLuong, "xuat", originalBranch);
+            } catch (err) {}
           });
 
           var maSP_Nhan = "";
@@ -271,15 +319,29 @@ function thucHienDoiTra(data) {
             var pkSheet = ss.getSheetByName(SHEET_NAMES.PHU_KIEN);
             var pkRow = findPhuKienRow(maSP_Nhan, chiNhanh);
             if (pkRow === -1) {
-              throw new Error("Phụ kiện mới " + maSP_Nhan + " không tồn tại ở chi nhánh " + chiNhanh);
+              throw new Error(
+                "Phụ kiện mới " +
+                  maSP_Nhan +
+                  " không tồn tại ở chi nhánh " +
+                  chiNhanh,
+              );
             }
-            var tonMoi = Number(pkSheet.getRange(pkRow, COL_PK.SO_LUONG_TON).getValue()) || 0;
+            var tonMoi =
+              Number(pkSheet.getRange(pkRow, COL_PK.SO_LUONG_TON).getValue()) ||
+              0;
             if (tonMoi < 1) {
-              throw new Error("Phụ kiện mới " + maSP_Nhan + " đã hết hàng tại chi nhánh " + chiNhanh);
+              throw new Error(
+                "Phụ kiện mới " +
+                  maSP_Nhan +
+                  " đã hết hàng tại chi nhánh " +
+                  chiNhanh,
+              );
             }
 
-            tenSP_Nhan = pkSheet.getRange(pkRow, COL_PK.TEN_SP).getValue() || "";
-            var giaBanMoi = Number(pkSheet.getRange(pkRow, COL_PK.GIA_BAN).getValue()) || 0;
+            tenSP_Nhan =
+              pkSheet.getRange(pkRow, COL_PK.TEN_SP).getValue() || "";
+            var giaBanMoi =
+              Number(pkSheet.getRange(pkRow, COL_PK.GIA_BAN).getValue()) || 0;
 
             // Tạo đơn hàng mới cho phụ kiện nhận
             var maDHMoi = taoDonHang({
@@ -295,7 +357,7 @@ function thucHienDoiTra(data) {
               ghiChu: "Đơn hàng đổi phụ kiện, thay thế cho đơn gốc " + maDH,
             });
 
-            rollbackActions.push(function() {
+            rollbackActions.push(function () {
               try {
                 huyDonHang(maDHMoi);
                 var oSheet = ss.getSheetByName(SHEET_NAMES.DON_HANG);
@@ -304,16 +366,17 @@ function thucHienDoiTra(data) {
                   oSheet.deleteRow(oRow);
                   clearSheetCache(SHEET_NAMES.DON_HANG);
                 }
-              } catch(err){}
+              } catch (err) {}
             });
 
-            data.ghiChu = (data.ghiChu || "") + " [Đổi sang đơn mới: " + maDHMoi + "]";
+            data.ghiChu =
+              (data.ghiChu || "") + " [Đổi sang đơn mới: " + maDHMoi + "]";
           }
 
           // 4. Ghi nhận giao dịch vào bảng DoiTra
           var tienHoanTra = Number(data.tienHoanTra) || 0;
           var phiDoiTra = Number(data.phiDoiTra) || 0;
-          
+
           var rowData = [];
           rowData[COL_DT_TRA.MA_DT - 1] = maDT;
           rowData[COL_DT_TRA.NGAY_DT - 1] = new Date();
@@ -329,7 +392,8 @@ function thucHienDoiTra(data) {
           rowData[COL_DT_TRA.IMEI_NHAN - 1] = "";
           rowData[COL_DT_TRA.TIEN_HOAN_TRA - 1] = tienHoanTra;
           rowData[COL_DT_TRA.PHI_DOI_TRA - 1] = phiDoiTra;
-          rowData[COL_DT_TRA.HINH_THUC_TT - 1] = data.hinhThucThanhToan || "Tiền mặt";
+          rowData[COL_DT_TRA.HINH_THUC_TT - 1] =
+            data.hinhThucThanhToan || "Tiền mặt";
           rowData[COL_DT_TRA.CHI_NHANH - 1] = chiNhanh;
           rowData[COL_DT_TRA.NGUOI_THUC_HIEN - 1] = data.nguoiThucHien || "";
           rowData[COL_DT_TRA.TRANG_THAI - 1] = "Hoàn thành";
@@ -351,35 +415,64 @@ function thucHienDoiTra(data) {
 
           var dtSheet = ss.getSheetByName(SHEET_NAMES.DOI_TRA);
           var dtRow = appendRow(SHEET_NAMES.DOI_TRA, rowData);
-          rollbackActions.push(function() {
+          rollbackActions.push(function () {
             try {
               dtSheet.deleteRow(dtRow);
               clearSheetCache(SHEET_NAMES.DOI_TRA);
-            } catch(err){}
+            } catch (err) {}
           });
 
           showToast("✅ Ghi nhận Đổi trả phụ kiện thành công: " + maDT);
           return maDT;
-
         } else {
           // ĐỐI TƯỢNG LÀ ĐIỆN THOẠI (logic cũ)
-          var ghiChuDH = dhSheet.getRange(dhRow, COL_DH.GHI_CHU).getValue() || "";
+          var ghiChuDH =
+            dhSheet.getRange(dhRow, COL_DH.GHI_CHU).getValue() || "";
           var imeiMatch = ghiChuDH.match(/\[IMEI:\s*([^\s\]]+)\]/);
-          var imei_Tra = imeiMatch ? imeiMatch[1] : (lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP_Tra, COL_DT.IMEI) || "");
+          var imei_Tra = imeiMatch
+            ? imeiMatch[1]
+            : lookupValue(
+                SHEET_NAMES.DIEN_THOAI,
+                COL_DT.MA_DT,
+                maSP_Tra,
+                COL_DT.IMEI,
+              ) || "";
 
           // 1. Đổi trạng thái đơn hàng gốc sang "Đổi trả" để trừ doanh thu/hoa hồng
-          var oldDHStatus = dhSheet.getRange(dhRow, COL_DH.TRANG_THAI).getValue();
+          var oldDHStatus = dhSheet
+            .getRange(dhRow, COL_DH.TRANG_THAI)
+            .getValue();
           updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.TRANG_THAI, "Đổi trả");
-          rollbackActions.push(function() {
-            try { updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.TRANG_THAI, oldDHStatus); } catch(err){}
+          rollbackActions.push(function () {
+            try {
+              updateCell(
+                SHEET_NAMES.DON_HANG,
+                dhRow,
+                COL_DH.TRANG_THAI,
+                oldDHStatus,
+              );
+            } catch (err) {}
           });
 
           // 2. Hoàn trả kho máy trả về trạng thái "Còn hàng"
-          var oldPhoneStatus = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.IMEI, imei_Tra, COL_DT.TRANG_THAI_KHO);
-          if (oldPhoneStatus === null) oldPhoneStatus = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP_Tra, COL_DT.TRANG_THAI_KHO);
+          var oldPhoneStatus = lookupValue(
+            SHEET_NAMES.DIEN_THOAI,
+            COL_DT.IMEI,
+            imei_Tra,
+            COL_DT.TRANG_THAI_KHO,
+          );
+          if (oldPhoneStatus === null)
+            oldPhoneStatus = lookupValue(
+              SHEET_NAMES.DIEN_THOAI,
+              COL_DT.MA_DT,
+              maSP_Tra,
+              COL_DT.TRANG_THAI_KHO,
+            );
           updateTrangThaiKhoDT(imei_Tra || maSP_Tra, "Còn hàng");
-          rollbackActions.push(function() {
-            try { updateTrangThaiKhoDT(imei_Tra || maSP_Tra, oldPhoneStatus); } catch(err){}
+          rollbackActions.push(function () {
+            try {
+              updateTrangThaiKhoDT(imei_Tra || maSP_Tra, oldPhoneStatus);
+            } catch (err) {}
           });
 
           // 3. Huỷ hợp đồng trả góp gốc nếu có
@@ -389,16 +482,21 @@ function thucHienDoiTra(data) {
           if (maTG) {
             var tgRow = findRow(SHEET_NAMES.TRA_GOP, 1, maTG);
             if (tgRow !== -1) {
-              oldTGStatus = ss.getSheetByName(SHEET_NAMES.TRA_GOP).getRange(tgRow, 16).getValue();
+              oldTGStatus = ss
+                .getSheetByName(SHEET_NAMES.TRA_GOP)
+                .getRange(tgRow, 16)
+                .getValue();
               var lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
               var lastRow = lstgSheet.getLastRow();
               if (lastRow > 1) {
-                var lstgData = lstgSheet.getRange(2, 2, lastRow - 1, 8).getValues();
+                var lstgData = lstgSheet
+                  .getRange(2, 2, lastRow - 1, 8)
+                  .getValues();
                 for (var i = 0; i < lstgData.length; i++) {
                   if (String(lstgData[i][0]) === maTG) {
                     oldLSTGStates.push({
                       row: i + 2,
-                      status: String(lstgData[i][7])
+                      status: String(lstgData[i][7]),
                     });
                   }
                 }
@@ -408,7 +506,7 @@ function thucHienDoiTra(data) {
 
           huyHopDongTraGop(maDH);
 
-          rollbackActions.push(function() {
+          rollbackActions.push(function () {
             try {
               if (maTG) {
                 var tgRow = findRow(SHEET_NAMES.TRA_GOP, 1, maTG);
@@ -416,12 +514,12 @@ function thucHienDoiTra(data) {
                   updateCell(SHEET_NAMES.TRA_GOP, tgRow, 16, oldTGStatus);
                 }
                 var lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
-                oldLSTGStates.forEach(function(item) {
+                oldLSTGStates.forEach(function (item) {
                   lstgSheet.getRange(item.row, 9).setValue(item.status);
                 });
                 clearSheetCache(SHEET_NAMES.LICH_SU_TRA_GOP);
               }
-            } catch(err){}
+            } catch (err) {}
           });
 
           var maSP_Nhan = "";
@@ -435,8 +533,14 @@ function thucHienDoiTra(data) {
               throw new Error("Vui lòng chọn máy mới để đổi!");
             }
 
-            tenSP_Nhan = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP_Nhan, COL_DT.TEN_SP) || "";
-            
+            tenSP_Nhan =
+              lookupValue(
+                SHEET_NAMES.DIEN_THOAI,
+                COL_DT.MA_DT,
+                maSP_Nhan,
+                COL_DT.TEN_SP,
+              ) || "";
+
             imei_Nhan = data.imei_Nhan;
             if (!imei_Nhan) {
               // Tự động tìm máy có mã SP_Nhan tại chi nhánh này và đang "Còn hàng"
@@ -446,22 +550,37 @@ function thucHienDoiTra(data) {
               var chiNhanhIdx = COL_DT.CHI_NHANH - 1;
               var trangThaiKhoIdx = COL_DT.TRANG_THAI_KHO - 1;
               var imeiIdx = COL_DT.IMEI - 1;
-              
+
               for (var i = 0; i < dtData.length; i++) {
-                if (String(dtData[i][maDTIdx]) === maSP_Nhan && 
-                    String(dtData[i][chiNhanhIdx]) === chiNhanh && 
-                    String(dtData[i][trangThaiKhoIdx]) === "Còn hàng") {
+                if (
+                  String(dtData[i][maDTIdx]) === maSP_Nhan &&
+                  String(dtData[i][chiNhanhIdx]) === chiNhanh &&
+                  String(dtData[i][trangThaiKhoIdx]) === "Còn hàng"
+                ) {
                   imei_Nhan = String(dtData[i][imeiIdx]);
                   break;
                 }
               }
             }
             if (!imei_Nhan) {
-              imei_Nhan = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP_Nhan, COL_DT.IMEI) || "";
+              imei_Nhan =
+                lookupValue(
+                  SHEET_NAMES.DIEN_THOAI,
+                  COL_DT.MA_DT,
+                  maSP_Nhan,
+                  COL_DT.IMEI,
+                ) || "";
             }
 
             var giaBanMoi =
-              Number(lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP_Nhan, COL_DT.GIA_BAN)) || 0;
+              Number(
+                lookupValue(
+                  SHEET_NAMES.DIEN_THOAI,
+                  COL_DT.MA_DT,
+                  maSP_Nhan,
+                  COL_DT.GIA_BAN,
+                ),
+              ) || 0;
 
             // Tạo đơn hàng mới cho máy nhận
             var maDHMoi = taoDonHang({
@@ -478,7 +597,7 @@ function thucHienDoiTra(data) {
               ghiChu: "Đơn hàng đổi máy, thay thế cho đơn gốc " + maDH,
             });
 
-            rollbackActions.push(function() {
+            rollbackActions.push(function () {
               try {
                 huyDonHang(maDHMoi);
                 var oSheet = ss.getSheetByName(SHEET_NAMES.DON_HANG);
@@ -487,10 +606,11 @@ function thucHienDoiTra(data) {
                   oSheet.deleteRow(oRow);
                   clearSheetCache(SHEET_NAMES.DON_HANG);
                 }
-              } catch(err){}
+              } catch (err) {}
             });
 
-            data.ghiChu = (data.ghiChu || "") + " [Đổi sang đơn mới: " + maDHMoi + "]";
+            data.ghiChu =
+              (data.ghiChu || "") + " [Đổi sang đơn mới: " + maDHMoi + "]";
           }
 
           // 5. Ghi nhận giao dịch vào bảng DoiTra
@@ -512,7 +632,8 @@ function thucHienDoiTra(data) {
           rowData[COL_DT_TRA.IMEI_NHAN - 1] = imei_Nhan;
           rowData[COL_DT_TRA.TIEN_HOAN_TRA - 1] = tienHoanTra;
           rowData[COL_DT_TRA.PHI_DOI_TRA - 1] = phiDoiTra;
-          rowData[COL_DT_TRA.HINH_THUC_TT - 1] = data.hinhThucThanhToan || "Tiền mặt";
+          rowData[COL_DT_TRA.HINH_THUC_TT - 1] =
+            data.hinhThucThanhToan || "Tiền mặt";
           rowData[COL_DT_TRA.CHI_NHANH - 1] = chiNhanh;
           rowData[COL_DT_TRA.NGUOI_THUC_HIEN - 1] = data.nguoiThucHien || "";
           rowData[COL_DT_TRA.TRANG_THAI - 1] = "Hoàn thành";
@@ -534,22 +655,23 @@ function thucHienDoiTra(data) {
 
           var dtSheet = ss.getSheetByName(SHEET_NAMES.DOI_TRA);
           var dtRow = appendRow(SHEET_NAMES.DOI_TRA, rowData);
-          rollbackActions.push(function() {
+          rollbackActions.push(function () {
             try {
               dtSheet.deleteRow(dtRow);
               clearSheetCache(SHEET_NAMES.DOI_TRA);
-            } catch(err){}
+            } catch (err) {}
           });
 
           showToast("✅ Ghi nhận Đổi trả thành công: " + maDT);
           return maDT;
         }
       }
-    } catch(e) {
+    } catch (e) {
       for (var rIdx = rollbackActions.length - 1; rIdx >= 0; rIdx--) {
-        try { rollbackActions[rIdx](); } catch(err){}
+        try {
+          rollbackActions[rIdx]();
+        } catch (err) {}
       }
       throw e;
     }
-  });
 }

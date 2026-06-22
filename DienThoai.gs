@@ -130,7 +130,12 @@ function addDienThoai(data) {
   initializeColumnEnums();
   // Kiểm tra IMEI trùng
   if (data.imei) {
-    var existing = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.IMEI, data.imei, COL_DT.MA_DT);
+    var existing = lookupValue(
+      SHEET_NAMES.DIEN_THOAI,
+      COL_DT.IMEI,
+      data.imei,
+      COL_DT.MA_DT,
+    );
     if (existing) {
       throw new Error(
         'IMEI "' +
@@ -185,39 +190,71 @@ function updateDienThoai(maDT, data) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(SHEET_NAMES.DIEN_THOAI);
   invalidateDropdownCache(SHEET_NAMES.DIEN_THOAI);
-  
+
   // Đảm bảo đủ số cột
   var maxColNeeded = Math.max(
-    COL_DT.MA_DT, COL_DT.TEN_SP, COL_DT.THUONG_HIEU, COL_DT.IMEI, COL_DT.MAU_SAC,
-    COL_DT.DUNG_LUONG, COL_DT.TINH_TRANG, COL_DT.GIA_NHAP, COL_DT.GIA_BAN, COL_DT.GIA_TRA_GOP,
-    COL_DT.TRANG_THAI_KHO, COL_DT.GHI_CHU, COL_DT.CHI_NHANH, COL_DT.NGAY_NHAP, COL_DT.NGAY_XUAT
+    COL_DT.MA_DT,
+    COL_DT.TEN_SP,
+    COL_DT.THUONG_HIEU,
+    COL_DT.IMEI,
+    COL_DT.MAU_SAC,
+    COL_DT.DUNG_LUONG,
+    COL_DT.TINH_TRANG,
+    COL_DT.GIA_NHAP,
+    COL_DT.GIA_BAN,
+    COL_DT.GIA_TRA_GOP,
+    COL_DT.TRANG_THAI_KHO,
+    COL_DT.GHI_CHU,
+    COL_DT.CHI_NHANH,
+    COL_DT.NGAY_NHAP,
+    COL_DT.NGAY_XUAT,
   );
   var maxCols = sheet.getMaxColumns();
   if (maxCols < maxColNeeded) {
     sheet.insertColumnsAfter(maxCols, maxColNeeded - maxCols);
   }
 
-  if (data.tenSP !== undefined) sheet.getRange(row, COL_DT.TEN_SP).setValue(data.tenSP);
-  if (data.thuongHieu !== undefined) sheet.getRange(row, COL_DT.THUONG_HIEU).setValue(data.thuongHieu);
-  if (data.imei !== undefined) sheet.getRange(row, COL_DT.IMEI).setValue(data.imei);
-  if (data.mauSac !== undefined) sheet.getRange(row, COL_DT.MAU_SAC).setValue(data.mauSac);
-  if (data.dungLuong !== undefined) sheet.getRange(row, COL_DT.DUNG_LUONG).setValue(data.dungLuong);
-  if (data.tinhTrang !== undefined) sheet.getRange(row, COL_DT.TINH_TRANG).setValue(data.tinhTrang);
-  if (data.giaNhap !== undefined) sheet.getRange(row, COL_DT.GIA_NHAP).setValue(Number(data.giaNhap));
-  if (data.giaBan !== undefined) sheet.getRange(row, COL_DT.GIA_BAN).setValue(Number(data.giaBan));
-  if (data.giaTraGop !== undefined) sheet.getRange(row, COL_DT.GIA_TRA_GOP).setValue(Number(data.giaTraGop));
+  if (data.tenSP !== undefined)
+    sheet.getRange(row, COL_DT.TEN_SP).setValue(data.tenSP);
+  if (data.thuongHieu !== undefined)
+    sheet.getRange(row, COL_DT.THUONG_HIEU).setValue(data.thuongHieu);
+  if (data.imei !== undefined)
+    sheet.getRange(row, COL_DT.IMEI).setValue(data.imei);
+  if (data.mauSac !== undefined)
+    sheet.getRange(row, COL_DT.MAU_SAC).setValue(data.mauSac);
+  if (data.dungLuong !== undefined)
+    sheet.getRange(row, COL_DT.DUNG_LUONG).setValue(data.dungLuong);
+  if (data.tinhTrang !== undefined)
+    sheet.getRange(row, COL_DT.TINH_TRANG).setValue(data.tinhTrang);
+  if (data.giaNhap !== undefined)
+    sheet.getRange(row, COL_DT.GIA_NHAP).setValue(Number(data.giaNhap));
+  if (data.giaBan !== undefined)
+    sheet.getRange(row, COL_DT.GIA_BAN).setValue(Number(data.giaBan));
+  if (data.giaTraGop !== undefined)
+    sheet.getRange(row, COL_DT.GIA_TRA_GOP).setValue(Number(data.giaTraGop));
   if (data.trangThaiKho !== undefined) {
     sheet.getRange(row, COL_DT.TRANG_THAI_KHO).setValue(data.trangThaiKho);
-    if (data.trangThaiKho === "Đã bán" || data.trangThaiKho === "Đang trả góp") {
+    if (
+      data.trangThaiKho === "Đã bán" ||
+      data.trangThaiKho === "Đang trả góp"
+    ) {
       sheet.getRange(row, COL_DT.NGAY_XUAT).setValue(new Date());
     } else {
       sheet.getRange(row, COL_DT.NGAY_XUAT).setValue("");
     }
   }
-  if (data.ghiChu !== undefined) sheet.getRange(row, COL_DT.GHI_CHU).setValue(data.ghiChu);
-  if (data.chiNhanh !== undefined) sheet.getRange(row, COL_DT.CHI_NHANH).setValue(data.chiNhanh);
-  if (data.ngayNhap !== undefined) sheet.getRange(row, COL_DT.NGAY_NHAP).setValue(data.ngayNhap ? new Date(data.ngayNhap) : "");
-  if (data.ngayXuat !== undefined) sheet.getRange(row, COL_DT.NGAY_XUAT).setValue(data.ngayXuat ? new Date(data.ngayXuat) : "");
+  if (data.ghiChu !== undefined)
+    sheet.getRange(row, COL_DT.GHI_CHU).setValue(data.ghiChu);
+  if (data.chiNhanh !== undefined)
+    sheet.getRange(row, COL_DT.CHI_NHANH).setValue(data.chiNhanh);
+  if (data.ngayNhap !== undefined)
+    sheet
+      .getRange(row, COL_DT.NGAY_NHAP)
+      .setValue(data.ngayNhap ? new Date(data.ngayNhap) : "");
+  if (data.ngayXuat !== undefined)
+    sheet
+      .getRange(row, COL_DT.NGAY_XUAT)
+      .setValue(data.ngayXuat ? new Date(data.ngayXuat) : "");
 
   showToast("Đã cập nhật ĐT: " + maDT);
   return true;
@@ -338,7 +375,11 @@ function backfillDienThoaiDates(silent) {
 
   var lastRow = dtSheet.getLastRow();
   if (lastRow <= 1) {
-    if (!silent) showAlert("Thông báo", "Sheet Điện thoại chưa có dòng dữ liệu nào để chuẩn hóa!");
+    if (!silent)
+      showAlert(
+        "Thông báo",
+        "Sheet Điện thoại chưa có dòng dữ liệu nào để chuẩn hóa!",
+      );
     return;
   }
 
@@ -354,7 +395,7 @@ function backfillDienThoaiDates(silent) {
     var maDT = String(dtData[i][0]);
     var imei = String(dtData[i][3]);
     var status = String(dtData[i][10]);
-    
+
     var currentNgayNhap = dtData[i][13];
     var currentNgayXuat = dtData[i][14];
     var changed = false;
@@ -378,7 +419,7 @@ function backfillDienThoaiDates(silent) {
           }
         }
       }
-      
+
       if (ngayNhap) {
         dtData[i][13] = new Date(ngayNhap);
       } else {
@@ -421,10 +462,7 @@ function backfillDienThoaiDates(silent) {
 
   // 4. Ghi ngược kết quả bằng Batch Write để tối ưu hóa hiệu suất
   var datesToUpdate = dtData.map(function (row) {
-    return [
-      row[13] ? new Date(row[13]) : "",
-      row[14] ? new Date(row[14]) : "",
-    ];
+    return [row[13] ? new Date(row[13]) : "", row[14] ? new Date(row[14]) : ""];
   });
 
   var updateRange = dtSheet.getRange(2, 14, lastRow - 1, 2);
@@ -443,7 +481,9 @@ function backfillDienThoaiDates(silent) {
   if (!silent) {
     showAlert(
       "Thành công",
-      "Đã chuẩn hóa cấu trúc cột và cập nhật " + updatedCount + " dòng dữ liệu Điện thoại cũ thành công!",
+      "Đã chuẩn hóa cấu trúc cột và cập nhật " +
+        updatedCount +
+        " dòng dữ liệu Điện thoại cũ thành công!",
     );
   }
 }
@@ -465,12 +505,30 @@ function _buildDienThoaiDropdownCache() {
       var cn = String(row[12] || "");
       result.push({
         v: String(row[0]),
-        t: row[0] + " - " + row[1] + " (" + row[4] + ", " + row[5] + " | IMEI: " + row[3] + " | " + cn + ")",
+        t:
+          row[0] +
+          " - " +
+          row[1] +
+          " (" +
+          row[4] +
+          ", " +
+          row[5] +
+          " | IMEI: " +
+          row[3] +
+          " | " +
+          cn +
+          ")",
         th: String(row[2]),
         gb: Number(row[8]),
         gtg: Number(row[9]),
         cn: cn,
-        _s: (String(row[0]) + " " + String(row[1]) + " " + String(row[3])).toLowerCase(),
+        _s: (
+          String(row[0]) +
+          " " +
+          String(row[1]) +
+          " " +
+          String(row[3])
+        ).toLowerCase(),
       });
     }
   });
@@ -489,10 +547,10 @@ function _buildDienThoaiDropdownCache() {
 function getDienThoaiDropdownSearch(chiNhanh, keyword) {
   var kw = String(keyword).trim().toLowerCase();
 
-  var allItems = getChunkedCache('dd_dt');
+  var allItems = getChunkedCache("dd_dt");
   if (!allItems) {
     allItems = _buildDienThoaiDropdownCache();
-    setChunkedCache('dd_dt', allItems);
+    setChunkedCache("dd_dt", allItems);
   }
 
   var result = [];
@@ -514,5 +572,3 @@ function getDienThoaiDropdownSearch(chiNhanh, keyword) {
 
   return result;
 }
-
-

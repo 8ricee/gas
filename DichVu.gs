@@ -18,7 +18,6 @@
  * @return {string} Mã dịch vụ mới
  */
 function taoDichVu(data) {
-  return runWithLock(function() {
     initializeColumnEnums();
     var maDV = generateId("DV", SHEET_NAMES.DICH_VU);
     var chiNhanh = data.chiNhanh;
@@ -35,8 +34,8 @@ function taoDichVu(data) {
     }
 
     // Auto lookup tên KH nếu có mã KH
-    var tenKH = data.tenKH || "";
-    if (data.maKH && !tenKH) {
+    var tenKH = ensureKhachHangExists(data.maKH, data.tenKH, data.soDienThoaiKH);
+    if (!tenKH && data.maKH) {
       tenKH = lookupValue(SHEET_NAMES.KHACH_HANG, 1, data.maKH, 2) || "";
     }
 
@@ -65,14 +64,23 @@ function taoDichVu(data) {
       var splitChuyenKhoan = Number(data.splitChuyenKhoan) || 0;
       var totalNeeded = soTienGiaoDich + phiDichVu;
       if (Math.abs(splitTienMat + splitChuyenKhoan - totalNeeded) > 1) {
-        throw new Error("Lỗi dữ liệu: Tổng tiền mặt (" + splitTienMat + ") và chuyển khoản (" + splitChuyenKhoan + ") không khớp với số tiền cần thanh toán (" + totalNeeded + ")!");
+        throw new Error(
+          "Lỗi dữ liệu: Tổng tiền mặt (" +
+            splitTienMat +
+            ") và chuyển khoản (" +
+            splitChuyenKhoan +
+            ") không khớp với số tiền cần thanh toán (" +
+            totalNeeded +
+            ")!",
+        );
       }
       tienMat = splitTienMat;
       chuyenKhoan = splitChuyenKhoan;
       hinhThucTTDisplay = "Hỗn hợp";
     } else if (data.hinhThucThanhToan === "Tiền mặt") {
       tienMat = soTienGiaoDich + phiDichVu;
-    } else { // Chuyển khoản hoặc Quẹt thẻ (POS)
+    } else {
+      // Chuyển khoản hoặc Quẹt thẻ (POS)
       chuyenKhoan = soTienGiaoDich + phiDichVu;
     }
 
@@ -107,7 +115,6 @@ function taoDichVu(data) {
         "đ",
     );
     return maDV;
-  });
 }
 
 /**

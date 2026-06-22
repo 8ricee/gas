@@ -12,7 +12,6 @@
  * @return {boolean}
  */
 function chuyenKho(data) {
-  return runWithLock(function() {
     initializeColumnEnums();
     var nguonSP = data.nguonSP || "Điện thoại";
     var maSP = data.maSP;
@@ -44,11 +43,13 @@ function chuyenKho(data) {
         var chiNhanhIdx = COL_DT.CHI_NHANH - 1;
         var trangThaiKhoIdx = COL_DT.TRANG_THAI_KHO - 1;
         var imeiIdx = COL_DT.IMEI - 1;
-        
+
         for (var i = 0; i < dtData.length; i++) {
-          if (String(dtData[i][maDTIdx]) === maSP && 
-              String(dtData[i][chiNhanhIdx]) === cnNguon && 
-              String(dtData[i][trangThaiKhoIdx]) === "Còn hàng") {
+          if (
+            String(dtData[i][maDTIdx]) === maSP &&
+            String(dtData[i][chiNhanhIdx]) === cnNguon &&
+            String(dtData[i][trangThaiKhoIdx]) === "Còn hàng"
+          ) {
             row = i + 2;
             data.imei = String(dtData[i][imeiIdx]); // Lưu lại IMEI tìm được
             break;
@@ -59,7 +60,11 @@ function chuyenKho(data) {
         }
       }
 
-      if (row === -1) throw new Error("Không tìm thấy điện thoại: " + (data.imei ? "IMEI: " + data.imei : maSP));
+      if (row === -1)
+        throw new Error(
+          "Không tìm thấy điện thoại: " +
+            (data.imei ? "IMEI: " + data.imei : maSP),
+        );
 
       var currentBranch = sheet.getRange(row, COL_DT.CHI_NHANH).getValue();
       var currentStatus = sheet.getRange(row, COL_DT.TRANG_THAI_KHO).getValue();
@@ -93,8 +98,13 @@ function chuyenKho(data) {
     }
 
     showToast(
-      "✅ Chuyển kho thành công: " + maSP + " (" + cnNguon + " ➔ " + cnDich + ")",
+      "✅ Chuyển kho thành công: " +
+        maSP +
+        " (" +
+        cnNguon +
+        " ➔ " +
+        cnDich +
+        ")",
     );
     return true;
-  });
 }

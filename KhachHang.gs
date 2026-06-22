@@ -42,7 +42,10 @@ function getKhachHangDropdown() {
     if (ma.trim() !== "") {
       var ten = String(row[COL_KH.HO_TEN - 1] || "");
       var sdt = String(row[COL_KH.SO_DIEN_THOAI - 1] || "");
-      var displayText = (ma === sdt || !sdt) ? ma + " - " + ten : ma + " - " + ten + " (" + sdt + ")";
+      var displayText =
+        ma === sdt || !sdt
+          ? ma + " - " + ten
+          : ma + " - " + ten + " (" + sdt + ")";
       result.push({
         value: ma,
         text: displayText,
@@ -65,13 +68,27 @@ function addKhachHang(data) {
   var maKH = phone ? phone : generateId("KH", SHEET_NAMES.KHACH_HANG);
 
   // Kiểm tra SĐT/Mã KH trùng
-  var existing = lookupValue(SHEET_NAMES.KHACH_HANG, COL_KH.MA_KH, maKH, COL_KH.MA_KH);
+  var existing = lookupValue(
+    SHEET_NAMES.KHACH_HANG,
+    COL_KH.MA_KH,
+    maKH,
+    COL_KH.MA_KH,
+  );
   if (phone && !existing && COL_KH.SO_DIEN_THOAI !== COL_KH.MA_KH) {
-    existing = lookupValue(SHEET_NAMES.KHACH_HANG, COL_KH.SO_DIEN_THOAI, phone, COL_KH.MA_KH);
+    existing = lookupValue(
+      SHEET_NAMES.KHACH_HANG,
+      COL_KH.SO_DIEN_THOAI,
+      phone,
+      COL_KH.MA_KH,
+    );
   }
   if (existing) {
     throw new Error(
-      'Khách hàng với SĐT/Mã KH "' + (phone || maKH) + '" đã tồn tại (Mã: ' + existing + ")"
+      'Khách hàng với SĐT/Mã KH "' +
+        (phone || maKH) +
+        '" đã tồn tại (Mã: ' +
+        existing +
+        ")",
     );
   }
 
@@ -115,10 +132,14 @@ function updateKhachHang(maKH, data) {
       sheet.getRange(row, COL_KH.SO_DIEN_THOAI).setValue(data.soDienThoai);
     }
   }
-  if (data.hoTen !== undefined) sheet.getRange(row, COL_KH.HO_TEN).setValue(data.hoTen);
-  if (data.cccd !== undefined) sheet.getRange(row, COL_KH.CCCD).setValue(data.cccd);
-  if (data.diaChi !== undefined) sheet.getRange(row, COL_KH.DIA_CHI).setValue(data.diaChi);
-  if (data.ghiChu !== undefined) sheet.getRange(row, COL_KH.GHI_CHU).setValue(data.ghiChu);
+  if (data.hoTen !== undefined)
+    sheet.getRange(row, COL_KH.HO_TEN).setValue(data.hoTen);
+  if (data.cccd !== undefined)
+    sheet.getRange(row, COL_KH.CCCD).setValue(data.cccd);
+  if (data.diaChi !== undefined)
+    sheet.getRange(row, COL_KH.DIA_CHI).setValue(data.diaChi);
+  if (data.ghiChu !== undefined)
+    sheet.getRange(row, COL_KH.GHI_CHU).setValue(data.ghiChu);
 
   showToast("Đã cập nhật KH: " + maKH);
   return true;
@@ -173,7 +194,10 @@ function _buildKhachHangDropdownCache() {
       var ten = String(row[COL_KH.HO_TEN - 1] || "");
       var sdt = String(row[COL_KH.SO_DIEN_THOAI - 1] || "");
       var cccd = String(row[COL_KH.CCCD - 1] || "");
-      var displayText = (ma === sdt || !sdt) ? ma + " - " + ten : ma + " - " + ten + " (" + sdt + ")";
+      var displayText =
+        ma === sdt || !sdt
+          ? ma + " - " + ten
+          : ma + " - " + ten + " (" + sdt + ")";
       result.push({
         v: ma,
         t: displayText,
@@ -196,10 +220,10 @@ function getKhachHangDropdownSearch(keyword) {
   var kw = String(keyword).trim().toLowerCase();
 
   // Đọc từ cache, nếu miss thì build lại
-  var allItems = getChunkedCache('dd_kh');
+  var allItems = getChunkedCache("dd_kh");
   if (!allItems) {
     allItems = _buildKhachHangDropdownCache();
-    setChunkedCache('dd_kh', allItems);
+    setChunkedCache("dd_kh", allItems);
   }
 
   var result = [];
@@ -216,4 +240,39 @@ function getKhachHangDropdownSearch(keyword) {
   return result;
 }
 
-
+/**
+ * Đảm bảo khách hàng tồn tại trong danh sách (tự động thêm mới nếu chưa có)
+ * 
+ * @param {string} maKH Mã khách hàng (thường là SĐT)
+ * @param {string} hoTen Tên khách hàng
+ * @param {string} [soDienThoai] Số điện thoại (tuỳ chọn, mặc định lấy maKH nếu là số)
+ * @return {string} Tên khách hàng (đã được làm sạch)
+ */
+function ensureKhachHangExists(maKH, hoTen, soDienThoai) {
+  if (!maKH) return "";
+  
+  initializeColumnEnums();
+  
+  // Kiểm tra xem mã khách hàng đã có trong DB chưa
+  var existingRow = findRow(SHEET_NAMES.KHACH_HANG, COL_KH.MA_KH, maKH);
+  
+  if (existingRow === -1 && hoTen && hoTen !== maKH) {
+    // Khách hàng chưa tồn tại, tự động thêm mới
+    var phone = soDienThoai || (/\d{9,11}/.test(maKH) ? maKH : "");
+    var rowData = [];
+    rowData[COL_KH.MA_KH - 1] = maKH;
+    rowData[COL_KH.HO_TEN - 1] = hoTen;
+    if (COL_KH.SO_DIEN_THOAI !== COL_KH.MA_KH) {
+      rowData[COL_KH.SO_DIEN_THOAI - 1] = phone;
+    }
+    rowData[COL_KH.NGAY_TAO - 1] = new Date();
+    
+    appendRow(SHEET_NAMES.KHACH_HANG, rowData);
+    
+    // Clear cache để dropdown cập nhật
+    clearSheetCache(SHEET_NAMES.KHACH_HANG);
+    setChunkedCache("dd_kh", null); 
+  }
+  
+  return hoTen;
+}

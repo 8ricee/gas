@@ -22,7 +22,6 @@
  * @return {string} Mã nhập kho
  */
 function nhapKho(data) {
-  return runWithLock(function() {
     initializeColumnEnums();
     var maNK = generateId("NK", SHEET_NAMES.NHAP_KHO);
     var nguonNhap = data.nguonNhap || "Điện thoại";
@@ -58,7 +57,13 @@ function nhapKho(data) {
       if (data.maSP) {
         // Phụ kiện đã tồn tại → cộng tồn kho
         maSP = data.maSP;
-        tenSP = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, maSP, COL_PK.TEN_SP) || "";
+        tenSP =
+          lookupValue(
+            SHEET_NAMES.PHU_KIEN,
+            COL_PK.MA_PK,
+            maSP,
+            COL_PK.TEN_SP,
+          ) || "";
         updateTonKhoPhuKien(maSP, soLuong, "nhap", chiNhanh);
 
         // Cập nhật giá nhập mới nếu có (cho đúng dòng chi nhánh!)
@@ -112,7 +117,6 @@ function nhapKho(data) {
         "đ",
     );
     return maNK;
-  });
 }
 
 /**

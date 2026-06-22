@@ -28,15 +28,6 @@ function clearSheetCache(sheetName) {
   }
 }
 
-/**
- * Thực thi một hàm callback dưới sự bảo vệ của Script Lock để tránh tranh chấp dữ liệu
- *
- * @param {Function} callback - Hàm nghiệp vụ cần thực thi
- * @return {*} Kết quả trả về của callback
- */
-function runWithLock(callback) {
-  return callback();
-}
 
 // Các Enum cột mặc định (sẽ được cập nhật động bằng initializeColumnEnums)
 var COL_DT = {
@@ -213,6 +204,26 @@ var COL_KH = {
   DIA_CHI: 4,
   NGAY_TAO: 5,
   GHI_CHU: 6,
+};
+
+var COL_BH = {
+  MA_BH: 1,
+  NGAY_NHAN: 2,
+  MA_KH: 3,
+  TEN_KH: 4,
+  SDT_KH: 5,
+  TEN_SP: 6,
+  TINH_TRANG_LOI: 7,
+  LOAI_DICH_VU: 8,
+  PHI_SUA_CHUA: 9,
+  HINH_THUC_TT: 10,
+  NGUOI_TIEP_NHAN: 11,
+  NGUOI_SUA: 12,
+  TRANG_THAI: 13,
+  GHI_CHU: 14,
+  CHI_NHANH: 15,
+  TIEN_MAT: 16,
+  CHUYEN_KHOAN: 17,
 };
 
 var _columnEnumsInitialized = false;
@@ -417,6 +428,27 @@ function initializeColumnEnums() {
     COL_KH.GHI_CHU = mapKH["ghi chú"] || COL_KH.GHI_CHU;
   }
 
+  var mapBH = getColMapFromSheet(SHEET_NAMES.BAO_HANH);
+  if (mapBH) {
+    COL_BH.MA_BH = mapBH["mã bảo hành"] || COL_BH.MA_BH;
+    COL_BH.NGAY_NHAN = mapBH["ngày nhận"] || COL_BH.NGAY_NHAN;
+    COL_BH.MA_KH = mapBH["mã khách hàng"] || COL_BH.MA_KH;
+    COL_BH.TEN_KH = mapBH["tên khách hàng"] || COL_BH.TEN_KH;
+    COL_BH.SDT_KH = mapBH["số điện thoại"] || COL_BH.SDT_KH;
+    COL_BH.TEN_SP = mapBH["tên sản phẩm"] || COL_BH.TEN_SP;
+    COL_BH.TINH_TRANG_LOI = mapBH["tình trạng lỗi"] || COL_BH.TINH_TRANG_LOI;
+    COL_BH.LOAI_DICH_VU = mapBH["loại dịch vụ"] || COL_BH.LOAI_DICH_VU;
+    COL_BH.PHI_SUA_CHUA = mapBH["phí sửa chữa"] || COL_BH.PHI_SUA_CHUA;
+    COL_BH.HINH_THUC_TT = mapBH["hình thức thanh toán"] || COL_BH.HINH_THUC_TT;
+    COL_BH.NGUOI_TIEP_NHAN = mapBH["người tiếp nhận"] || COL_BH.NGUOI_TIEP_NHAN;
+    COL_BH.NGUOI_SUA = mapBH["người sửa"] || COL_BH.NGUOI_SUA;
+    COL_BH.TRANG_THAI = mapBH["trạng thái"] || COL_BH.TRANG_THAI;
+    COL_BH.GHI_CHU = mapBH["ghi chú"] || COL_BH.GHI_CHU;
+    COL_BH.CHI_NHANH = mapBH["chi nhánh"] || COL_BH.CHI_NHANH;
+    COL_BH.TIEN_MAT = mapBH["tiền mặt"] || COL_BH.TIEN_MAT;
+    COL_BH.CHUYEN_KHOAN = mapBH["chuyển khoản"] || COL_BH.CHUYEN_KHOAN;
+  }
+
   _columnEnumsInitialized = true;
 }
 
@@ -465,9 +497,14 @@ function getSheetIndex(sheetName, searchCol) {
     for (var i = 0; i < data.length; i++) {
       var row = data[i];
       if (row.length < searchCol) continue;
-      var cellVal = String(row[searchCol - 1])
-        .trim()
-        .toLowerCase();
+      var rawVal = row[searchCol - 1];
+      var cellVal = "";
+      if (sheetName === SHEET_NAMES.DOANH_SO && searchCol === 1) {
+        cellVal = formatMonthYear(rawVal);
+      } else {
+        cellVal = String(rawVal).trim();
+      }
+      cellVal = cellVal.toLowerCase();
       if (!(cellVal in indexMap)) {
         indexMap[cellVal] = i; // Lưu index 0-indexed trong mảng data
       }
@@ -707,6 +744,27 @@ function formatDate(date) {
   var mm = ("0" + (date.getMonth() + 1)).slice(-2);
   var yyyy = date.getFullYear();
   return dd + "/" + mm + "/" + yyyy;
+}
+
+/**
+ * Chuyển đổi cell value (Date hoặc String) thành định dạng MM/yyyy
+ *
+ * @param {*} val - Giá trị cell
+ * @return {string} Chuỗi định dạng "MM/yyyy"
+ */
+function formatMonthYear(val) {
+  if (!val) return "";
+  if (val instanceof Date) {
+    var mm = ("0" + (val.getMonth() + 1)).slice(-2);
+    return mm + "/" + val.getFullYear();
+  }
+  var str = String(val).trim();
+  if (str.length > 7 && !isNaN(Date.parse(str))) {
+    var d = new Date(str);
+    var mm = ("0" + (d.getMonth() + 1)).slice(-2);
+    return mm + "/" + d.getFullYear();
+  }
+  return str;
 }
 
 /**
