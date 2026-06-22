@@ -370,7 +370,7 @@ function backfillDienThoaiDates(silent) {
     newHeadersRange.setBackground("#1a73e8");
     newHeadersRange.setFontColor("#ffffff");
     newHeadersRange.setFontWeight("bold");
-    newHeadersRange.setHorizontalAlignment("center");
+    newHeadersRange.setHorizontalAlignment("left");
   }
 
   var lastRow = dtSheet.getLastRow();
@@ -472,7 +472,7 @@ function backfillDienThoaiDates(silent) {
   updateRange.setNumberFormat("dd/MM/yyyy");
   updateRange.setFontFamily("Times New Roman");
   updateRange.setFontSize(12);
-  updateRange.setHorizontalAlignment("center");
+  updateRange.setHorizontalAlignment("left");
 
   // Tự động căn chỉnh lại độ rộng cột N & O
   dtSheet.autoResizeColumn(14);

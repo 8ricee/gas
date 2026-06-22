@@ -459,7 +459,7 @@ function setupSheets() {
   }
 
   showAlert(
-    "✅ Hoàn tất!",
+    "Hoàn tất!",
     "Đã tạo " +
       createdCount +
       " sheet mới.\n\nHệ thống sẵn sàng hoạt động với font Times New Roman cỡ 12!",
@@ -537,7 +537,7 @@ function syncSheetHeaders(ss) {
       headerRange.setBackground("#1a73e8");
       headerRange.setFontColor("#ffffff");
       headerRange.setFontWeight("bold");
-      headerRange.setHorizontalAlignment("center");
+      headerRange.setHorizontalAlignment("left");
       sheet.setFrozenRows(1);
       updatedSheets.push(name);
     }
@@ -895,7 +895,32 @@ function _setupDataValidations(ss) {
  */
 function formatAllSheets() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  // Thiết lập locale tiếng Việt cho spreadsheet để các định dạng ngày giờ chuẩn hóa theo vi_VN
+  try {
+    ss.setSpreadsheetLocale("vi_VN");
+  } catch (e) {
+    Logger.log("Không thể thiết lập locale vi_VN: " + e.message);
+  }
+
   var sheets = ss.getSheets();
+
+  // Danh sách các sheet dữ liệu chuẩn cần tự động format định dạng tiền tệ và ngày giờ
+  var standardDataSheets = [
+    SHEET_NAMES.NHAN_VIEN,
+    SHEET_NAMES.DIEN_THOAI,
+    SHEET_NAMES.PHU_KIEN,
+    SHEET_NAMES.KHACH_HANG,
+    SHEET_NAMES.DON_HANG,
+    SHEET_NAMES.DICH_VU,
+    SHEET_NAMES.TRA_GOP,
+    SHEET_NAMES.LICH_SU_TRA_GOP,
+    SHEET_NAMES.DOANH_SO,
+    SHEET_NAMES.NHAP_KHO,
+    SHEET_NAMES.DOI_TRA,
+    SHEET_NAMES.THU_MUA,
+    SHEET_NAMES.BAO_HANH
+  ];
 
   sheets.forEach(function (sheet) {
     var sheetName = sheet.getName();
@@ -908,19 +933,85 @@ function formatAllSheets() {
       range.setFontSize(12);
     }
 
-    // Reformat headers to remain bold and centered (skip Tồn kho to preserve custom layout and column widths)
+    // Reformat headers to remain bold and lefted (skip Tồn kho to preserve custom layout and column widths)
     var lastCol = sheet.getLastColumn();
+    var lastRow = sheet.getLastRow();
+
     if (lastCol > 0 && sheetName !== SHEET_NAMES.TON_KHO) {
       var headerRange = sheet.getRange(1, 1, 1, lastCol);
       headerRange.setFontWeight("bold");
-      headerRange.setHorizontalAlignment("center");
+      headerRange.setHorizontalAlignment("left");
 
       // Auto resize columns
       for (var col = 1; col <= lastCol; col++) {
         sheet.autoResizeColumn(col);
       }
+
+      // Tự động định dạng tiền tệ #,##0 và ngày giờ cho các cột tương ứng nếu thuộc danh sách sheet dữ liệu chuẩn
+      if (standardDataSheets.indexOf(sheetName) !== -1 && lastRow > 1) {
+        var headers = headerRange.getValues()[0];
+        for (var col = 1; col <= lastCol; col++) {
+          var headerName = headers[col - 1];
+          if (isFinancialHeader(headerName)) {
+            sheet.getRange(2, col, lastRow - 1, 1).setNumberFormat("#,##0");
+          } else if (isDateTimeHeader(headerName)) {
+            sheet.getRange(2, col, lastRow - 1, 1).setNumberFormat("dd/MM/yyyy HH:mm:ss");
+          } else if (isDateHeader(headerName)) {
+            sheet.getRange(2, col, lastRow - 1, 1).setNumberFormat("dd/MM/yyyy");
+          }
+        }
+      }
     }
   });
+}
+
+function isFinancialHeader(name) {
+  if (!name) return false;
+  var n = String(name).trim().toLowerCase();
+  
+  // Các từ khóa chỉ tiền tệ, giá cả, chi phí, thu nhập
+  var keywords = [
+    "giá",
+    "tiền",
+    "phí",
+    "thành tiền",
+    "đơn giá",
+    "hoa hồng",
+    "thu nhập",
+    "thưởng",
+    "mặt", // Tiền mặt
+    "khoản", // Chuyển khoản
+    "trước", // Trả trước
+    "lại", // Còn lại, Tiền hoàn trả, Đã trả lại
+    "doanh thu"
+  ];
+  
+  // Loại trừ các trường hợp không phải tiền tệ
+  if (n.indexOf("ngày") !== -1) return false;
+  if (n.indexOf("nguồn") !== -1) return false;
+  if (n.indexOf("tài khoản") !== -1) return false;
+  if (n.indexOf("cccd") !== -1) return false;
+  if (n.indexOf("số điện thoại") !== -1) return false;
+  if (n.indexOf("sđt") !== -1) return false;
+
+  for (var i = 0; i < keywords.length; i++) {
+    if (n.indexOf(keywords[i]) !== -1) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function isDateTimeHeader(name) {
+  if (!name) return false;
+  var n = String(name).trim().toLowerCase();
+  return n === "thời gian" || n.indexOf("thời gian") !== -1;
+}
+
+function isDateHeader(name) {
+  if (!name) return false;
+  var n = String(name).trim().toLowerCase();
+  return n.indexOf("ngày") !== -1;
 }
 
 /**
@@ -963,7 +1054,7 @@ function applyConditionalFormatting(ss) {
     "Tiền mặt": { bg: "#e6f4ea", fg: "#137333" },
     "Rút tiền mặt": { bg: "#e6f4ea", fg: "#137333" },
 
-    // 2. Trạng thái nghỉ việc, huỷ, quá hạn, không, trả máy
+    // 2. Trạng thái nghỉ việc, huỷ, quá hạn, không, trả máy, đổi trả
     "Nghỉ việc": { bg: "#fce8e6", fg: "#c5221f" },
     "Huỷ": { bg: "#fce8e6", fg: "#c5221f" },
     "Quá hạn": { bg: "#fce8e6", fg: "#c5221f" },
@@ -971,6 +1062,8 @@ function applyConditionalFormatting(ss) {
     "Ngừng bán": { bg: "#fce8e6", fg: "#c5221f" },
     "✗": { bg: "#fce8e6", fg: "#c5221f" },
     "Trả máy": { bg: "#fce8e6", fg: "#c5221f" },
+    "Đã trả lại": { bg: "#fce8e6", fg: "#c5221f" },
+    "Đổi trả": { bg: "#fce8e6", fg: "#c5221f" },
 
     // 3. Trạng thái chờ, đang xử lý, đang trả, chưa trả, đổi máy, phụ kiện
     "Đang trả góp": { bg: "#fef7e0", fg: "#b06000" },
@@ -985,9 +1078,9 @@ function applyConditionalFormatting(ss) {
     "Kỹ thuật": { bg: "#fef7e0", fg: "#b06000" },
 
     // 4. Trạng thái khác, đã qua sử dụng, đã bán
-    "Đã bán": { bg: "#f1f3f4", fg: "#5f6368" },
-    "Đã qua sử dụng": { bg: "#f1f3f4", fg: "#5f6368" },
-    "Khác": { bg: "#f1f3f4", fg: "#5f6368" },
+    "Đã bán": { bg: "#cbd5e1", fg: "#334155" },       // Slate 300 / 700 (Thay cho màu mặc định #f1f3f4 / #5f6368)
+    "Đã qua sử dụng": { bg: "#e2e8f0", fg: "#334155" }, // Slate 200 / 700
+    "Khác": { bg: "#e2e8f0", fg: "#475569" },           // Slate 200 / 600
 
     // 5. Chi nhánh, vai trò, hình thức, nguồn
     "Bán hàng": { bg: "#e8f0fe", fg: "#1a73e8" },
@@ -1005,6 +1098,13 @@ function applyConditionalFormatting(ss) {
     "Ốp lưng": { bg: "#e0f7fa", fg: "#006064" },
     "Cáp": { bg: "#fce4ec", fg: "#880e4f" },
     "Cửa hàng": { bg: "#fef7e0", fg: "#b06000" },
+
+    // Bổ sung các hình thức thanh toán & loại dịch vụ
+    "Bán thẳng": { bg: "#e6f4ea", fg: "#137333" },
+    "Trả góp": { bg: "#f3e8fd", fg: "#a142f4" },
+    "Hỗn hợp": { bg: "#e0f7fa", fg: "#006064" },
+    "Sửa chữa": { bg: "#e0f7fa", fg: "#006064" },
+    "Bảo hành": { bg: "#fce4ec", fg: "#880e4f" }
   };
 
   // Dynamic colors for branches
@@ -1034,9 +1134,9 @@ function applyConditionalFormatting(ss) {
   brands.forEach(function (brand, index) {
     var lowerBrand = brand.toLowerCase();
     if (lowerBrand === "apple") {
-      COLOR_MAP[brand] = { bg: "#f1f3f4", fg: "#202124" }; // Light gray/black for Apple
+      COLOR_MAP[brand] = { bg: "#cbd5e1", fg: "#1e293b" }; // Slate 300 / 900 cho Apple (Không dùng màu mặc định f1f3f4)
     } else if (lowerBrand === "khác") {
-      COLOR_MAP[brand] = { bg: "#f5f5f5", fg: "#757575" }; // Gray for Khác
+      COLOR_MAP[brand] = { bg: "#e2e8f0", fg: "#475569" }; // Slate 200 / 600 cho Khác
     } else {
       var colorIdx = index % BRAND_COLORS.length;
       COLOR_MAP[brand] = BRAND_COLORS[colorIdx];
@@ -1104,7 +1204,7 @@ function applyConditionalFormatting(ss) {
   _applyRulesForSheet(ss.getSheetByName(SHEET_NAMES.DON_HANG), [
     { range: "G2:G", values: ["Điện thoại", "Phụ kiện"] },
     { range: "L2:L", values: ["Bán thẳng", "Trả góp"] },
-    { range: "M2:M", values: ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)"] },
+    { range: "M2:M", values: ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Hỗn hợp"] },
     { range: "S2:S", values: ["Hoàn thành", "Đang xử lý", "Huỷ", "Đổi trả"] },
     { range: "U2:U", values: branches },
     { range: "X2:X", values: ["✓", "✗"] },
@@ -1116,7 +1216,7 @@ function applyConditionalFormatting(ss) {
       range: "C2:C",
       values: ["Chuyển khoản hộ", "Rút tiền mặt", "Nạp thẻ điện thoại"],
     },
-    { range: "I2:I", values: ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)"] },
+    { range: "I2:I", values: ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Hỗn hợp"] },
     { range: "L2:L", values: ["Hoàn thành", "Huỷ"] },
     { range: "N2:N", values: branches },
   ]);
@@ -1130,7 +1230,7 @@ function applyConditionalFormatting(ss) {
 
   // 7. Lịch sử trả góp
   _applyRulesForSheet(ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP), [
-    { range: "H2:H", values: ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)"] },
+    { range: "H2:H", values: ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Hỗn hợp"] },
     { range: "I2:I", values: ["Đã trả", "Chưa trả", "Quá hạn", "Đã huỷ"] },
   ]);
 
@@ -1143,7 +1243,7 @@ function applyConditionalFormatting(ss) {
   // 9. Đổi trả
   _applyRulesForSheet(ss.getSheetByName(SHEET_NAMES.DOI_TRA), [
     { range: "F2:F", values: ["Trả máy", "Đổi máy"] },
-    { range: "O2:O", values: ["Tiền mặt", "Chuyển khoản"] },
+    { range: "O2:O", values: ["Tiền mặt", "Chuyển khoản", "Hỗn hợp"] },
     { range: "P2:P", values: branches },
     { range: "R2:R", values: ["Hoàn thành", "Huỷ"] },
   ]);
@@ -1153,7 +1253,7 @@ function applyConditionalFormatting(ss) {
     { range: "G2:G", values: brands },
     { range: "K2:K", values: ["Mới 100%", "Like New", "__NOT_EMPTY__"] },
     { range: "M2:M", values: ["Bán thẳng", "Thu cũ đổi mới"] },
-    { range: "Q2:Q", values: ["Tiền mặt", "Chuyển khoản"] },
+    { range: "Q2:Q", values: ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Trả góp", "Hỗn hợp"] },
     { range: "R2:R", values: branches },
   ]);
 
@@ -1165,7 +1265,10 @@ function applyConditionalFormatting(ss) {
   // 12. Bảo hành
   _applyRulesForSheet(ss.getSheetByName(SHEET_NAMES.BAO_HANH), [
     { range: "H2:H", values: ["Sửa chữa", "Bảo hành"] },
-    { range: "J2:J", values: ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Hỗn hợp"] },
+    {
+      range: "J2:J",
+      values: ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Hỗn hợp"],
+    },
     { range: "M2:M", values: ["Đang xử lý", "Hoàn thành", "Huỷ"] },
     { range: "O2:O", values: branches },
   ]);
@@ -1351,7 +1454,7 @@ function _onEditTraGop(sheet, row, col, e) {
         }
 
         showToast(
-          "⚠️ Hợp đồng " +
+          "Hợp đồng " +
             maTG +
             " đã được huỷ. Đã hoàn kho sản phẩm và huỷ lịch sử trả góp!",
         );
@@ -1473,7 +1576,7 @@ function _onEditDonHang(sheet, row, col, e) {
       }
 
       showToast(
-        "⚠️ Đơn hàng " +
+        "Đơn hàng " +
           maDH +
           " đã được huỷ trực tiếp trên sheet. Đã đồng bộ kho hàng!",
       );
@@ -1542,7 +1645,7 @@ function rebuildTonKhoSheet(ss) {
     .setFontSize(14)
     .setFontColor("#ffffff")
     .setBackground("#1a73e8")
-    .setHorizontalAlignment("center");
+    .setHorizontalAlignment("left");
 
   // Dòng 2: Ô tìm kiếm nhanh
   var searchLabelCell = tonKhoSheet.getRange(2, 1);
@@ -1593,7 +1696,7 @@ function rebuildTonKhoSheet(ss) {
     .setFontSize(12)
     .setFontColor("#ffffff")
     .setBackground("#1a73e8")
-    .setHorizontalAlignment("center");
+    .setHorizontalAlignment("left");
 
   // Dòng 5: Headers Bảng 1
   var summaryHeaders = ["Thương hiệu"];
@@ -1651,7 +1754,7 @@ function rebuildTonKhoSheet(ss) {
     .setBackground("#e8f0fe")
     .setFontColor("#1a73e8")
     .setFontWeight("bold")
-    .setHorizontalAlignment("center");
+    .setHorizontalAlignment("left");
 
   var summaryTotalRowRange = tonKhoSheet.getRange(
     totalRowIdx,
@@ -1662,7 +1765,7 @@ function rebuildTonKhoSheet(ss) {
   summaryTotalRowRange
     .setBackground("#f1f3f4")
     .setFontWeight("bold")
-    .setHorizontalAlignment("center");
+    .setHorizontalAlignment("left");
 
   // Dòng spacer trống là dòng 7 + B
   tonKhoSheet.setRowHeight(7 + B, 15);
@@ -1683,7 +1786,7 @@ function rebuildTonKhoSheet(ss) {
     .setFontSize(13)
     .setFontColor("#ffffff")
     .setBackground("#1a73e8")
-    .setHorizontalAlignment("center");
+    .setHorizontalAlignment("left");
 
   // Công thức QUERY xoay chiều theo chi nhánh M ở dòng startRowB2B3 + 1 (có lọc theo ô Tìm kiếm B2)
   tonKhoSheet
@@ -1700,7 +1803,7 @@ function rebuildTonKhoSheet(ss) {
   phoneTotalHeaderCell
     .setValue("Tổng tồn")
     .setFontWeight("bold")
-    .setHorizontalAlignment("center")
+    .setHorizontalAlignment("left")
     .setBackground("#e8f0fe")
     .setFontColor("#1a73e8");
 
@@ -1735,7 +1838,7 @@ function rebuildTonKhoSheet(ss) {
     .setFontSize(13)
     .setFontColor("#ffffff")
     .setBackground("#1a73e8")
-    .setHorizontalAlignment("center");
+    .setHorizontalAlignment("left");
 
   // Công thức QUERY xoay chiều theo chi nhánh J (có lọc theo ô Tìm kiếm B2)
   var startAccColLetter = columnToLetter(startAccColIdx);
@@ -1753,7 +1856,7 @@ function rebuildTonKhoSheet(ss) {
   accTotalHeaderCell
     .setValue("Tổng tồn")
     .setFontWeight("bold")
-    .setHorizontalAlignment("center")
+    .setHorizontalAlignment("left")
     .setBackground("#e8f0fe")
     .setFontColor("#1a73e8");
 
@@ -1797,7 +1900,7 @@ function rebuildTonKhoSheet(ss) {
     .setBackground("#e8f0fe")
     .setFontColor("#1a73e8")
     .setFontWeight("bold")
-    .setHorizontalAlignment("center");
+    .setHorizontalAlignment("left");
 
   var accHeaderRange = tonKhoSheet.getRange(
     startRowB2B3 + 1,
@@ -1809,7 +1912,7 @@ function rebuildTonKhoSheet(ss) {
     .setBackground("#e8f0fe")
     .setFontColor("#1a73e8")
     .setFontWeight("bold")
-    .setHorizontalAlignment("center");
+    .setHorizontalAlignment("left");
 
   // Điều chỉnh độ rộng cột
   for (var c = 1; c <= lastCol; c++) {

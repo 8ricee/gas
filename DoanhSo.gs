@@ -483,7 +483,7 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
     .setBackground("#1a73e8")
     .setFontColor("#ffffff")
     .setFontWeight("bold")
-    .setHorizontalAlignment("center");
+    .setHorizontalAlignment("left");
 
   var summaryData = [
     ["Chỉ tiêu", "Giá trị"],
@@ -497,7 +497,7 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
     .getRange(7, 1, 1, 2)
     .setFontWeight("bold")
     .setBackground("#e8f0fe")
-    .setHorizontalAlignment("center");
+    .setHorizontalAlignment("left");
   sheet.getRange(8, 2, summaryData.length - 1, 1).setNumberFormat("#,##0");
   sheet.getRange(8, 1, summaryData.length - 1, 2).setFontWeight("bold");
   sheet.getRange(11, 1, 1, 2).setFontColor("#1a73e8").setFontWeight("bold");
@@ -524,7 +524,7 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
     .setBackground("#1a73e8")
     .setFontColor("#ffffff")
     .setFontWeight("bold")
-    .setHorizontalAlignment("center");
+    .setHorizontalAlignment("left");
 
   var detailHeaders = [
     "Mã nhân viên",
@@ -545,7 +545,7 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
     .getRange(startRow + 1, 1, 1, 12)
     .setFontWeight("bold")
     .setBackground("#e8f0fe")
-    .setHorizontalAlignment("center");
+    .setHorizontalAlignment("left");
 
   var totalRowIdx = startRow + 2;
 
@@ -638,7 +638,7 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
         "Không có dữ liệu doanh số nào phát sinh trong khoảng thời gian này.",
       )
       .setFontStyle("italic")
-      .setHorizontalAlignment("center");
+      .setHorizontalAlignment("left");
 
     sheet
       .getRange(startRow, 1, 3, 12)
@@ -664,7 +664,7 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
     .setBackground("#1a73e8")
     .setFontColor("#ffffff")
     .setFontWeight("bold")
-    .setHorizontalAlignment("center");
+    .setHorizontalAlignment("left");
 
   var txHeaders = [
     "Thời gian",
@@ -685,7 +685,7 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
     .getRange(txStartRow + 1, 1, 1, 12)
     .setFontWeight("bold")
     .setBackground("#e8f0fe")
-    .setHorizontalAlignment("center");
+    .setHorizontalAlignment("left");
 
   // Thu thập giao dịch chi tiết
   var allNV = getAllData(SHEET_NAMES.NHAN_VIEN);
@@ -960,7 +960,7 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
     emptyRange
       .setValue("Không có giao dịch chi tiết nào phù hợp với bộ lọc.")
       .setFontStyle("italic")
-      .setHorizontalAlignment("center");
+      .setHorizontalAlignment("left");
 
     sheet
       .getRange(txStartRow, 1, 3, 12)

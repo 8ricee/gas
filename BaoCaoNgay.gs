@@ -926,7 +926,7 @@ function generateDailyReport(targetDate) {
     .setBackground("#1a73e8")
     .setFontColor("#ffffff")
     .setFontWeight("bold")
-    .setHorizontalAlignment("center");
+    .setHorizontalAlignment("left");
 
   // Tiêu đề cột bảng tổng hợp
   var summaryHeaders = ["Chỉ tiêu"];
@@ -939,7 +939,7 @@ function generateDailyReport(targetDate) {
     .getRange(7, 1, 1, totalSummaryColIdx)
     .setFontWeight("bold")
     .setBackground("#e8f0fe")
-    .setHorizontalAlignment("center");
+    .setHorizontalAlignment("left");
 
   // Ghi dữ liệu bảng tổng hợp
   var metricsList = [
@@ -1022,7 +1022,7 @@ function generateDailyReport(targetDate) {
       .setBackground("#1a73e8")
       .setFontColor("#ffffff")
       .setFontWeight("bold")
-      .setHorizontalAlignment("center");
+      .setHorizontalAlignment("left");
 
     // 2. Headers cột giao dịch (lược bỏ cột Chi nhánh)
     var detailHeaders = [
@@ -1042,7 +1042,7 @@ function generateDailyReport(targetDate) {
       .getRange(startRow + 1, 1, 1, 10)
       .setFontWeight("bold")
       .setBackground("#e8f0fe")
-      .setHorizontalAlignment("center");
+      .setHorizontalAlignment("left");
 
     // 3. Ghi dữ liệu giao dịch chi tiết
     if (branchTxs.length > 0) {
@@ -1125,7 +1125,7 @@ function generateDailyReport(targetDate) {
           "Không có giao dịch nào phát sinh trong ngày tại chi nhánh này.",
         )
         .setFontStyle("italic")
-        .setHorizontalAlignment("center");
+        .setHorizontalAlignment("left");
 
       // Vẽ viền cho bảng trống
       reportSheet
