@@ -69,6 +69,26 @@
     </select>
   </div>
 
+  <div class="form-group">
+    <label>Hình thức trả tiền thu máy</label>
+    <select id="tm-Thu-hinhThucTT" onchange="onPaymentMethodChange('tm-Thu'); onThuMuaHinhThucTTChange()">
+      <option value="Tiền mặt">Tiền mặt</option>
+      <option value="Chuyển khoản">Chuyển khoản</option>
+      <option value="Hỗn hợp">Hỗn hợp</option>
+    </select>
+  </div>
+
+  <div id="tm-Thu-split-payment-row" class="form-row" style="display:none; background: #f1f3f4; padding: 8px; border-radius: 4px; margin-bottom: 12px; border: 1px solid #dadce0;">
+    <div class="form-group" style="margin-bottom: 0;">
+      <label style="color: #202124; font-weight: bold;">Số tiền mặt</label>
+      <input type="number" id="tm-Thu-split-tienMat" value="0" oninput="validateSplitPayment('tm-Thu')">
+    </div>
+    <div class="form-group" style="margin-bottom: 0;">
+      <label style="color: #202124; font-weight: bold;">Số tiền chuyển khoản</label>
+      <input type="number" id="tm-Thu-split-chuyenKhoan" value="0" oninput="validateSplitPayment('tm-Thu')">
+    </div>
+  </div>
+
   <!-- Trade-in fields -->
   <div id="tm-tradeInFields" style="display:none; background: #e8f0fe; border: 1px solid #a8c7fa; border-radius: 4px; padding: 12px; margin-top: 12px;">
     <h3>Thông tin máy đổi mới mua</h3>
@@ -113,24 +133,24 @@
     </select>
   </div>
 
-  <div class="form-group" style="margin-top:12px;">
-    <label>Hình thức thanh toán</label>
-    <select id="tm-hinhThucTT" onchange="onPaymentMethodChange('tm'); onThuMuaHinhThucTTChange()">
+  <div class="form-group" id="tm-Moi-hinhThucTTGroup" style="display:none; margin-top:12px;">
+    <label>Hình thức thanh toán máy mới</label>
+    <select id="tm-Moi-hinhThucTT" onchange="onPaymentMethodChange('tm-Moi')">
       <option value="Tiền mặt">Tiền mặt</option>
       <option value="Chuyển khoản">Chuyển khoản</option>
       <option value="Quẹt thẻ (POS)">Quẹt thẻ (POS)</option>
-      <option value="Hỗn hợp">Hỗn hợp (Tiền mặt + Chuyển khoản)</option>
+      <option value="Hỗn hợp">Hỗn hợp</option>
     </select>
   </div>
 
-  <div id="tm-split-payment-row" class="form-row" style="display:none; background: #f1f3f4; padding: 8px; border-radius: 4px; margin-bottom: 12px; border: 1px solid #dadce0;">
+  <div id="tm-Moi-split-payment-row" class="form-row" style="display:none; background: #f1f3f4; padding: 8px; border-radius: 4px; margin-bottom: 12px; border: 1px solid #dadce0;">
     <div class="form-group" style="margin-bottom: 0;">
       <label style="color: #202124; font-weight: bold;">Số tiền mặt</label>
-      <input type="number" id="tm-split-tienMat" value="0" oninput="validateSplitPayment('tm')">
+      <input type="number" id="tm-Moi-split-tienMat" value="0" oninput="validateSplitPayment('tm-Moi')">
     </div>
     <div class="form-group" style="margin-bottom: 0;">
       <label style="color: #202124; font-weight: bold;">Số tiền chuyển khoản</label>
-      <input type="number" id="tm-split-chuyenKhoan" value="0" oninput="validateSplitPayment('tm')">
+      <input type="number" id="tm-Moi-split-chuyenKhoan" value="0" oninput="validateSplitPayment('tm-Moi')">
     </div>
   </div>
 

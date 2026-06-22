@@ -11,6 +11,7 @@
  * @return {Object[]}
  */
 function getAllKhachHang() {
+  initializeColumnEnums();
   var data = getAllData(SHEET_NAMES.KHACH_HANG);
   var headers = SHEET_HEADERS[SHEET_NAMES.KHACH_HANG];
   var result = [];
@@ -32,14 +33,19 @@ function getAllKhachHang() {
  * @return {Object[]} [{value: 'KH001', text: 'KH001 - Nguyễn Văn A (0901234567)'}, ...]
  */
 function getKhachHangDropdown() {
+  initializeColumnEnums();
   var data = getAllData(SHEET_NAMES.KHACH_HANG);
   var result = [];
 
   data.forEach(function (row) {
-    if (row[0] && String(row[0]).trim() !== "") {
+    var ma = String(row[COL_KH.MA_KH - 1] || "");
+    if (ma.trim() !== "") {
+      var ten = String(row[COL_KH.HO_TEN - 1] || "");
+      var sdt = String(row[COL_KH.SO_DIEN_THOAI - 1] || "");
+      var displayText = (ma === sdt || !sdt) ? ma + " - " + ten : ma + " - " + ten + " (" + sdt + ")";
       result.push({
-        value: String(row[0]),
-        text: row[0] + " - " + row[1] + " (" + row[2] + ")",
+        value: ma,
+        text: displayText,
       });
     }
   });
@@ -54,27 +60,31 @@ function getKhachHangDropdown() {
  * @return {string} Mã KH mới
  */
 function addKhachHang(data) {
-  // Kiểm tra SĐT trùng
-  if (data.soDienThoai) {
-    var existing = lookupValue(SHEET_NAMES.KHACH_HANG, 3, data.soDienThoai, 1);
-    if (existing) {
-      throw new Error(
-        'SĐT "' + data.soDienThoai + '" đã tồn tại (Mã: ' + existing + ")",
-      );
-    }
+  initializeColumnEnums();
+  var phone = String(data.soDienThoai || "").trim();
+  var maKH = phone ? phone : generateId("KH", SHEET_NAMES.KHACH_HANG);
+
+  // Kiểm tra SĐT/Mã KH trùng
+  var existing = lookupValue(SHEET_NAMES.KHACH_HANG, COL_KH.MA_KH, maKH, COL_KH.MA_KH);
+  if (phone && !existing && COL_KH.SO_DIEN_THOAI !== COL_KH.MA_KH) {
+    existing = lookupValue(SHEET_NAMES.KHACH_HANG, COL_KH.SO_DIEN_THOAI, phone, COL_KH.MA_KH);
+  }
+  if (existing) {
+    throw new Error(
+      'Khách hàng với SĐT/Mã KH "' + (phone || maKH) + '" đã tồn tại (Mã: ' + existing + ")"
+    );
   }
 
-  var maKH = generateId("KH", SHEET_NAMES.KHACH_HANG);
-
-  var rowData = [
-    maKH,
-    data.hoTen || "",
-    data.soDienThoai || "",
-    data.cccd || "",
-    data.diaChi || "",
-    new Date(),
-    data.ghiChu || "",
-  ];
+  var rowData = [];
+  rowData[COL_KH.MA_KH - 1] = maKH;
+  rowData[COL_KH.HO_TEN - 1] = data.hoTen || "";
+  if (COL_KH.SO_DIEN_THOAI !== COL_KH.MA_KH) {
+    rowData[COL_KH.SO_DIEN_THOAI - 1] = phone;
+  }
+  rowData[COL_KH.CCCD - 1] = data.cccd || "";
+  rowData[COL_KH.DIA_CHI - 1] = data.diaChi || "";
+  rowData[COL_KH.NGAY_TAO - 1] = new Date();
+  rowData[COL_KH.GHI_CHU - 1] = data.ghiChu || "";
 
   appendRow(SHEET_NAMES.KHACH_HANG, rowData);
   showToast("Đã thêm khách hàng: " + data.hoTen + " (" + maKH + ")");
@@ -89,7 +99,8 @@ function addKhachHang(data) {
  * @return {boolean}
  */
 function updateKhachHang(maKH, data) {
-  var row = findRow(SHEET_NAMES.KHACH_HANG, 1, maKH);
+  initializeColumnEnums();
+  var row = findRow(SHEET_NAMES.KHACH_HANG, COL_KH.MA_KH, maKH);
   if (row === -1) {
     showAlert("Lỗi", "Không tìm thấy khách hàng: " + maKH);
     return false;
@@ -98,12 +109,16 @@ function updateKhachHang(maKH, data) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(SHEET_NAMES.KHACH_HANG);
 
-  if (data.hoTen !== undefined) sheet.getRange(row, 2).setValue(data.hoTen);
-  if (data.soDienThoai !== undefined)
-    sheet.getRange(row, 3).setValue(data.soDienThoai);
-  if (data.cccd !== undefined) sheet.getRange(row, 4).setValue(data.cccd);
-  if (data.diaChi !== undefined) sheet.getRange(row, 5).setValue(data.diaChi);
-  if (data.ghiChu !== undefined) sheet.getRange(row, 7).setValue(data.ghiChu);
+  if (data.soDienThoai !== undefined) {
+    sheet.getRange(row, COL_KH.MA_KH).setValue(data.soDienThoai);
+    if (COL_KH.SO_DIEN_THOAI !== COL_KH.MA_KH) {
+      sheet.getRange(row, COL_KH.SO_DIEN_THOAI).setValue(data.soDienThoai);
+    }
+  }
+  if (data.hoTen !== undefined) sheet.getRange(row, COL_KH.HO_TEN).setValue(data.hoTen);
+  if (data.cccd !== undefined) sheet.getRange(row, COL_KH.CCCD).setValue(data.cccd);
+  if (data.diaChi !== undefined) sheet.getRange(row, COL_KH.DIA_CHI).setValue(data.diaChi);
+  if (data.ghiChu !== undefined) sheet.getRange(row, COL_KH.GHI_CHU).setValue(data.ghiChu);
 
   showToast("Đã cập nhật KH: " + maKH);
   return true;
@@ -116,15 +131,16 @@ function updateKhachHang(maKH, data) {
  * @return {Object[]}
  */
 function searchKhachHang(keyword) {
+  initializeColumnEnums();
   var data = getAllData(SHEET_NAMES.KHACH_HANG);
   var headers = SHEET_HEADERS[SHEET_NAMES.KHACH_HANG];
   var result = [];
   var kw = String(keyword).trim().toLowerCase();
 
   data.forEach(function (row) {
-    var hoTen = String(row[1]).toLowerCase();
-    var sdt = String(row[2]).toLowerCase();
-    var cccd = String(row[3]).toLowerCase();
+    var hoTen = String(row[COL_KH.HO_TEN - 1] || "").toLowerCase();
+    var sdt = String(row[COL_KH.SO_DIEN_THOAI - 1] || "").toLowerCase();
+    var cccd = String(row[COL_KH.CCCD - 1] || "").toLowerCase();
 
     if (
       hoTen.indexOf(kw) !== -1 ||
@@ -147,15 +163,21 @@ function searchKhachHang(keyword) {
  * @private
  */
 function _buildKhachHangDropdownCache() {
+  initializeColumnEnums();
   var data = getAllData(SHEET_NAMES.KHACH_HANG);
   var result = [];
 
   data.forEach(function (row) {
-    if (row[0] && String(row[0]).trim() !== "") {
+    var ma = String(row[COL_KH.MA_KH - 1] || "");
+    if (ma.trim() !== "") {
+      var ten = String(row[COL_KH.HO_TEN - 1] || "");
+      var sdt = String(row[COL_KH.SO_DIEN_THOAI - 1] || "");
+      var cccd = String(row[COL_KH.CCCD - 1] || "");
+      var displayText = (ma === sdt || !sdt) ? ma + " - " + ten : ma + " - " + ten + " (" + sdt + ")";
       result.push({
-        v: String(row[0]),
-        t: row[0] + " - " + row[1] + " (" + row[2] + ")",
-        _s: (String(row[0]) + " " + String(row[1]) + " " + String(row[2]) + " " + String(row[3])).toLowerCase(),
+        v: ma,
+        t: displayText,
+        _s: (ma + " " + ten + " " + sdt + " " + cccd).toLowerCase(),
       });
     }
   });

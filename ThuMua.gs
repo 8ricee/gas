@@ -126,6 +126,15 @@ function thucHienThuMua(data) {
         var tienGiamGia = Number(data.tienGiamGia) || 0;
 
         // Tạo đơn hàng mua máy mới
+        var donHangHTTT = data.hinhThucThanhToanPhu || "Tiền mặt";
+        var donHangSplitTM = undefined;
+        var donHangSplitCK = undefined;
+
+        if (donHangHTTT === "Hỗn hợp") {
+          donHangSplitTM = data.splitTienMatPhu;
+          donHangSplitCK = data.splitChuyenKhoanPhu;
+        }
+
         maDH_Moi = taoDonHang({
           maKH: data.maKH,
           maSP: maSP_Moi,
@@ -134,9 +143,9 @@ function thucHienThuMua(data) {
           soLuong: 1,
           donGia: giaBanMoi,
           hinhThucBan: hinhThucBan,
-          hinhThucThanhToan: hinhThucBan === "Trả góp" ? (data.hinhThucThanhToanPhu || "Tiền mặt") : (data.hinhThucThanhToan || "Tiền mặt"),
-          splitChuyenKhoan: data.splitChuyenKhoan,
-          splitTienMat: data.splitTienMat,
+          hinhThucThanhToan: donHangHTTT,
+          splitChuyenKhoan: donHangSplitCK,
+          splitTienMat: donHangSplitTM,
           nguoiBan: data.nguoiThucHien,
           chiNhanh: chiNhanh,
           ghiChu: "Đơn hàng Thu cũ đổi mới, liên kết tới giao dịch thu mua " + maTM,
@@ -190,6 +199,16 @@ function thucHienThuMua(data) {
       rowData[COL_TM.CHI_NHANH - 1] = chiNhanh;
       rowData[COL_TM.NGUOI_THUC_HIEN - 1] = data.nguoiThucHien || "";
       rowData[COL_TM.GHI_CHU - 1] = data.ghiChu || "";
+
+      // Backend validation for Hỗn hợp buyback payment
+      if (data.hinhThucThanhToan === "Hỗn hợp") {
+        var splitTienMat = Number(data.splitTienMat) || 0;
+        var splitChuyenKhoan = Number(data.splitChuyenKhoan) || 0;
+        var totalNeeded = tongTienTraKhach;
+        if (Math.abs(splitTienMat + splitChuyenKhoan - totalNeeded) > 1) {
+          throw new Error("Lỗi dữ liệu: Tổng tiền mặt (" + splitTienMat + ") và chuyển khoản (" + splitChuyenKhoan + ") không khớp với số tiền cần thanh toán (" + totalNeeded + ")!");
+        }
+      }
 
       var tienMat = 0;
       var chuyenKhoan = 0;

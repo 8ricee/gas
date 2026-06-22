@@ -76,7 +76,6 @@ SHEET_HEADERS[SHEET_NAMES.PHU_KIEN] = [
 SHEET_HEADERS[SHEET_NAMES.KHACH_HANG] = [
   "Mã khách hàng",
   "Họ tên",
-  "Số điện thoại",
   "CCCD",
   "Địa chỉ",
   "Ngày tạo",

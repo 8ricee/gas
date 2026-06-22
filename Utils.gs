@@ -13,7 +13,10 @@ function clearSheetCache(sheetName) {
   if (sheetName) {
     delete _sheetDataCache[sheetName];
     delete _sheetIndexCache[sheetName];
-    if (sheetName === SHEET_NAMES.PHU_KIEN && typeof clearPhuKienCompositeIndex === "function") {
+    if (
+      sheetName === SHEET_NAMES.PHU_KIEN &&
+      typeof clearPhuKienCompositeIndex === "function"
+    ) {
       clearPhuKienCompositeIndex();
     }
   } else {
@@ -32,77 +35,191 @@ function clearSheetCache(sheetName) {
  * @return {*} Kết quả trả về của callback
  */
 function runWithLock(callback) {
-  var lock = LockService.getScriptLock();
-  try {
-    lock.waitLock(10000); // Khoá tối đa 10s cho người khác chờ
-    return callback();
-  } catch(e) {
-    Logger.log("Lock error: " + e.message);
-    throw new Error("Hệ thống đang bận xử lý, vui lòng thử lại sau 3 giây.");
-  } finally {
-    lock.releaseLock();
-  }
+  return callback();
 }
 
 // Các Enum cột mặc định (sẽ được cập nhật động bằng initializeColumnEnums)
 var COL_DT = {
-  MA_DT: 1, TEN_SP: 2, THUONG_HIEU: 3, IMEI: 4, MAU_SAC: 5,
-  DUNG_LUONG: 6, TINH_TRANG: 7, GIA_NHAP: 8, GIA_BAN: 9, GIA_TRA_GOP: 10,
-  TRANG_THAI_KHO: 11, GHI_CHU: 12, CHI_NHANH: 13, NGAY_NHAP: 14, NGAY_XUAT: 15
+  MA_DT: 1,
+  TEN_SP: 2,
+  THUONG_HIEU: 3,
+  IMEI: 4,
+  MAU_SAC: 5,
+  DUNG_LUONG: 6,
+  TINH_TRANG: 7,
+  GIA_NHAP: 8,
+  GIA_BAN: 9,
+  GIA_TRA_GOP: 10,
+  TRANG_THAI_KHO: 11,
+  GHI_CHU: 12,
+  CHI_NHANH: 13,
+  NGAY_NHAP: 14,
+  NGAY_XUAT: 15,
 };
 
 var COL_PK = {
-  MA_PK: 1, TEN_SP: 2, LOAI_PK: 3, THUONG_HIEU: 4, GIA_NHAP: 5,
-  GIA_BAN: 6, SO_LUONG_TON: 7, MO_TA: 8, TRANG_THAI: 9, CHI_NHANH: 10
+  MA_PK: 1,
+  TEN_SP: 2,
+  LOAI_PK: 3,
+  THUONG_HIEU: 4,
+  GIA_NHAP: 5,
+  GIA_BAN: 6,
+  SO_LUONG_TON: 7,
+  MO_TA: 8,
+  TRANG_THAI: 9,
+  CHI_NHANH: 10,
 };
 
 var COL_DH = {
-  MA_DH: 1, NGAY_BAN: 2, MA_KH: 3, TEN_KH: 4, MA_SP: 5, TEN_SP: 6, NGUON_SP: 7,
-  THUONG_HIEU: 8, SO_LUONG: 9, DON_GIA: 10, THANH_TIEN: 11, HINH_THUC_BAN: 12,
-  HINH_THUC_TT: 13, NGUOI_BAN: 14, TEN_NGUOI_BAN: 15, QUYEN_XUAT: 16, NGUOI_HO_TRO: 17,
-  TEN_NGUOI_HO_TRO: 18, TRANG_THAI: 19, GHI_CHU: 20, CHI_NHANH: 21, MA_QUA_TANG: 22,
-  TEN_QUA_TANG: 23, CO_NHAN_QUA: 24, TIEN_GIAM_GIA: 25, TIEN_MAT: 26, CHUYEN_KHOAN: 27
+  MA_DH: 1,
+  NGAY_BAN: 2,
+  MA_KH: 3,
+  TEN_KH: 4,
+  MA_SP: 5,
+  TEN_SP: 6,
+  NGUON_SP: 7,
+  THUONG_HIEU: 8,
+  SO_LUONG: 9,
+  DON_GIA: 10,
+  THANH_TIEN: 11,
+  HINH_THUC_BAN: 12,
+  HINH_THUC_TT: 13,
+  NGUOI_BAN: 14,
+  TEN_NGUOI_BAN: 15,
+  QUYEN_XUAT: 16,
+  NGUOI_HO_TRO: 17,
+  TEN_NGUOI_HO_TRO: 18,
+  TRANG_THAI: 19,
+  GHI_CHU: 20,
+  CHI_NHANH: 21,
+  MA_QUA_TANG: 22,
+  TEN_QUA_TANG: 23,
+  CO_NHAN_QUA: 24,
+  TIEN_GIAM_GIA: 25,
+  TIEN_MAT: 26,
+  CHUYEN_KHOAN: 27,
 };
 
 var COL_TM = {
-  MA_TM: 1, NGAY_TM: 2, MA_KH: 3, TEN_KH: 4, SDT_KH: 5, TEN_SP_THU: 6, THUONG_HIEU_THU: 7,
-  IMEI_THU: 8, MAU_SAC_THU: 9, DUNG_LUONG_THU: 10, TINH_TRANG_THU: 11, GIA_THU_MUA: 12,
-  LOAI_GD: 13, MA_DH_MOI: 14, TIEN_HO_TRO: 15, TONG_TIEN_TRA: 16, HINH_THUC_TT: 17,
-  CHI_NHANH: 18, NGUOI_THUC_HIEN: 19, GHI_CHU: 20, TIEN_MAT: 21, CHUYEN_KHOAN: 22
+  MA_TM: 1,
+  NGAY_TM: 2,
+  MA_KH: 3,
+  TEN_KH: 4,
+  SDT_KH: 5,
+  TEN_SP_THU: 6,
+  THUONG_HIEU_THU: 7,
+  IMEI_THU: 8,
+  MAU_SAC_THU: 9,
+  DUNG_LUONG_THU: 10,
+  TINH_TRANG_THU: 11,
+  GIA_THU_MUA: 12,
+  LOAI_GD: 13,
+  MA_DH_MOI: 14,
+  TIEN_HO_TRO: 15,
+  TONG_TIEN_TRA: 16,
+  HINH_THUC_TT: 17,
+  CHI_NHANH: 18,
+  NGUOI_THUC_HIEN: 19,
+  GHI_CHU: 20,
+  TIEN_MAT: 21,
+  CHUYEN_KHOAN: 22,
 };
 
 var COL_TG = {
-  MA_TG: 1, MA_DH: 2, MA_KH: 3, TEN_KH: 4, TONG_TIEN: 5, TRA_TRUOC: 6,
-  CON_LAI: 7, SO_KY: 8, TIEN_MOI_KY: 9, NGAY_BAT_DAU: 10, NGAY_KET_THUC: 11,
-  DA_TRA_SO_KY: 12, DA_TRA_SO_TIEN: 13, LOAI_TRA_GOP: 14, CONG_TY_TC: 15,
-  TRANG_THAI: 16, CHI_NHANH: 17, TIEN_MAT: 18, CHUYEN_KHOAN: 19
+  MA_TG: 1,
+  MA_DH: 2,
+  MA_KH: 3,
+  TEN_KH: 4,
+  TONG_TIEN: 5,
+  TRA_TRUOC: 6,
+  CON_LAI: 7,
+  SO_KY: 8,
+  TIEN_MOI_KY: 9,
+  NGAY_BAT_DAU: 10,
+  NGAY_KET_THUC: 11,
+  DA_TRA_SO_KY: 12,
+  DA_TRA_SO_TIEN: 13,
+  LOAI_TRA_GOP: 14,
+  CONG_TY_TC: 15,
+  TRANG_THAI: 16,
+  CHI_NHANH: 17,
+  TIEN_MAT: 18,
+  CHUYEN_KHOAN: 19,
 };
 
 var COL_LSTG = {
-  MA_LS: 1, MA_TG: 2, KY_SO: 3, SO_TIEN_CAN_TRA: 4, SO_TIEN_DA_TRA: 5,
-  NGAY_CAN_TRA: 6, NGAY_THUC_TRA: 7, HINH_THUC_TT: 8, TRANG_THAI: 9, GHI_CHU: 10,
-  TIEN_MAT: 11, CHUYEN_KHOAN: 12
+  MA_LS: 1,
+  MA_TG: 2,
+  KY_SO: 3,
+  SO_TIEN_CAN_TRA: 4,
+  SO_TIEN_DA_TRA: 5,
+  NGAY_CAN_TRA: 6,
+  NGAY_THUC_TRA: 7,
+  HINH_THUC_TT: 8,
+  TRANG_THAI: 9,
+  GHI_CHU: 10,
+  TIEN_MAT: 11,
+  CHUYEN_KHOAN: 12,
 };
 
 var COL_DV = {
-  MA_DV: 1, NGAY_GD: 2, LOAI_DV: 3, MA_KH: 4, TEN_KH: 5, SDT_KH: 6,
-  SO_TIEN_GD: 7, PHI_DV: 8, HINH_THUC_TT: 9, NGUOI_THUC_HIEN: 10,
-  TEN_NGUOI_THUC_HIEN: 11, TRANG_THAI: 12, GHI_CHU: 13, CHI_NHANH: 14,
-  TIEN_MAT: 15, CHUYEN_KHOAN: 16
+  MA_DV: 1,
+  NGAY_GD: 2,
+  LOAI_DV: 3,
+  MA_KH: 4,
+  TEN_KH: 5,
+  SDT_KH: 6,
+  SO_TIEN_GD: 7,
+  PHI_DV: 8,
+  HINH_THUC_TT: 9,
+  NGUOI_THUC_HIEN: 10,
+  TEN_NGUOI_THUC_HIEN: 11,
+  TRANG_THAI: 12,
+  GHI_CHU: 13,
+  CHI_NHANH: 14,
+  TIEN_MAT: 15,
+  CHUYEN_KHOAN: 16,
 };
 
 var COL_DT_TRA = {
-  MA_DT: 1, NGAY_DT: 2, MA_DH: 3, MA_KH: 4, TEN_KH: 5, LOAI_GD: 6,
-  MA_SP_TRA: 7, TEN_SP_TRA: 8, IMEI_TRA: 9, MA_SP_NHAN: 10, TEN_SP_NHAN: 11, IMEI_NHAN: 12,
-  TIEN_HOAN_TRA: 13, PHI_DOI_TRA: 14, HINH_THUC_TT: 15, CHI_NHANH: 16, NGUOI_THUC_HIEN: 17,
-  TRANG_THAI: 18, GHI_CHU: 19, TIEN_MAT: 20, CHUYEN_KHOAN: 21
+  MA_DT: 1,
+  NGAY_DT: 2,
+  MA_DH: 3,
+  MA_KH: 4,
+  TEN_KH: 5,
+  LOAI_GD: 6,
+  MA_SP_TRA: 7,
+  TEN_SP_TRA: 8,
+  IMEI_TRA: 9,
+  MA_SP_NHAN: 10,
+  TEN_SP_NHAN: 11,
+  IMEI_NHAN: 12,
+  TIEN_HOAN_TRA: 13,
+  PHI_DOI_TRA: 14,
+  HINH_THUC_TT: 15,
+  CHI_NHANH: 16,
+  NGUOI_THUC_HIEN: 17,
+  TRANG_THAI: 18,
+  GHI_CHU: 19,
+  TIEN_MAT: 20,
+  CHUYEN_KHOAN: 21,
+};
+
+var COL_KH = {
+  MA_KH: 1,
+  HO_TEN: 2,
+  SO_DIEN_THOAI: 1,
+  CCCD: 3,
+  DIA_CHI: 4,
+  NGAY_TAO: 5,
+  GHI_CHU: 6,
 };
 
 var _columnEnumsInitialized = false;
 
 function initializeColumnEnums() {
   if (_columnEnumsInitialized) return;
-  
+
   var mapDT = getColMapFromSheet(SHEET_NAMES.DIEN_THOAI);
   if (mapDT) {
     COL_DT.MA_DT = mapDT["mã điện thoại"] || COL_DT.MA_DT;
@@ -121,7 +238,7 @@ function initializeColumnEnums() {
     COL_DT.NGAY_NHAP = mapDT["ngày nhập"] || COL_DT.NGAY_NHAP;
     COL_DT.NGAY_XUAT = mapDT["ngày xuất"] || COL_DT.NGAY_XUAT;
   }
-  
+
   var mapPK = getColMapFromSheet(SHEET_NAMES.PHU_KIEN);
   if (mapPK) {
     COL_PK.MA_PK = mapPK["mã phụ kiện"] || COL_PK.MA_PK;
@@ -135,7 +252,7 @@ function initializeColumnEnums() {
     COL_PK.TRANG_THAI = mapPK["trạng thái"] || COL_PK.TRANG_THAI;
     COL_PK.CHI_NHANH = mapPK["chi nhánh"] || COL_PK.CHI_NHANH;
   }
-  
+
   var mapDH = getColMapFromSheet(SHEET_NAMES.DON_HANG);
   if (mapDH) {
     COL_DH.MA_DH = mapDH["mã đơn hàng"] || COL_DH.MA_DH;
@@ -155,7 +272,8 @@ function initializeColumnEnums() {
     COL_DH.TEN_NGUOI_BAN = mapDH["tên người bán"] || COL_DH.TEN_NGUOI_BAN;
     COL_DH.QUYEN_XUAT = mapDH["có quyền xuất máy"] || COL_DH.QUYEN_XUAT;
     COL_DH.NGUOI_HO_TRO = mapDH["người hỗ trợ"] || COL_DH.NGUOI_HO_TRO;
-    COL_DH.TEN_NGUOI_HO_TRO = mapDH["tên người hỗ trợ"] || COL_DH.TEN_NGUOI_HO_TRO;
+    COL_DH.TEN_NGUOI_HO_TRO =
+      mapDH["tên người hỗ trợ"] || COL_DH.TEN_NGUOI_HO_TRO;
     COL_DH.TRANG_THAI = mapDH["trạng thái"] || COL_DH.TRANG_THAI;
     COL_DH.GHI_CHU = mapDH["ghi chú"] || COL_DH.GHI_CHU;
     COL_DH.CHI_NHANH = mapDH["chi nhánh"] || COL_DH.CHI_NHANH;
@@ -166,7 +284,7 @@ function initializeColumnEnums() {
     COL_DH.TIEN_MAT = mapDH["tiền mặt"] || COL_DH.TIEN_MAT;
     COL_DH.CHUYEN_KHOAN = mapDH["chuyển khoản"] || COL_DH.CHUYEN_KHOAN;
   }
-  
+
   var mapTM = getColMapFromSheet(SHEET_NAMES.THU_MUA);
   if (mapTM) {
     COL_TM.MA_TM = mapTM["mã thu mua"] || COL_TM.MA_TM;
@@ -221,11 +339,14 @@ function initializeColumnEnums() {
     COL_LSTG.MA_LS = mapLSTG["mã lịch sử"] || COL_LSTG.MA_LS;
     COL_LSTG.MA_TG = mapLSTG["mã trả góp"] || COL_LSTG.MA_TG;
     COL_LSTG.KY_SO = mapLSTG["kỳ số"] || COL_LSTG.KY_SO;
-    COL_LSTG.SO_TIEN_CAN_TRA = mapLSTG["số tiền cần trả"] || COL_LSTG.SO_TIEN_CAN_TRA;
-    COL_LSTG.SO_TIEN_DA_TRA = mapLSTG["số tiền đã trả"] || COL_LSTG.SO_TIEN_DA_TRA;
+    COL_LSTG.SO_TIEN_CAN_TRA =
+      mapLSTG["số tiền cần trả"] || COL_LSTG.SO_TIEN_CAN_TRA;
+    COL_LSTG.SO_TIEN_DA_TRA =
+      mapLSTG["số tiền đã trả"] || COL_LSTG.SO_TIEN_DA_TRA;
     COL_LSTG.NGAY_CAN_TRA = mapLSTG["ngày cần trả"] || COL_LSTG.NGAY_CAN_TRA;
     COL_LSTG.NGAY_THUC_TRA = mapLSTG["ngày thực trả"] || COL_LSTG.NGAY_THUC_TRA;
-    COL_LSTG.HINH_THUC_TT = mapLSTG["hình thức thanh toán"] || COL_LSTG.HINH_THUC_TT;
+    COL_LSTG.HINH_THUC_TT =
+      mapLSTG["hình thức thanh toán"] || COL_LSTG.HINH_THUC_TT;
     COL_LSTG.TRANG_THAI = mapLSTG["trạng thái"] || COL_LSTG.TRANG_THAI;
     COL_LSTG.GHI_CHU = mapLSTG["ghi chú"] || COL_LSTG.GHI_CHU;
     COL_LSTG.TIEN_MAT = mapLSTG["tiền mặt"] || COL_LSTG.TIEN_MAT;
@@ -244,7 +365,8 @@ function initializeColumnEnums() {
     COL_DV.PHI_DV = mapDV["phí dịch vụ"] || COL_DV.PHI_DV;
     COL_DV.HINH_THUC_TT = mapDV["hình thức thanh toán"] || COL_DV.HINH_THUC_TT;
     COL_DV.NGUOI_THUC_HIEN = mapDV["người thực hiện"] || COL_DV.NGUOI_THUC_HIEN;
-    COL_DV.TEN_NGUOI_THUC_HIEN = mapDV["tên người thực hiện"] || COL_DV.TEN_NGUOI_THUC_HIEN;
+    COL_DV.TEN_NGUOI_THUC_HIEN =
+      mapDV["tên người thực hiện"] || COL_DV.TEN_NGUOI_THUC_HIEN;
     COL_DV.TRANG_THAI = mapDV["trạng thái"] || COL_DV.TRANG_THAI;
     COL_DV.GHI_CHU = mapDV["ghi chú"] || COL_DV.GHI_CHU;
     COL_DV.CHI_NHANH = mapDV["chi nhánh"] || COL_DV.CHI_NHANH;
@@ -261,22 +383,40 @@ function initializeColumnEnums() {
     COL_DT_TRA.TEN_KH = mapDoiTra["tên khách hàng"] || COL_DT_TRA.TEN_KH;
     COL_DT_TRA.LOAI_GD = mapDoiTra["loại giao dịch"] || COL_DT_TRA.LOAI_GD;
     COL_DT_TRA.MA_SP_TRA = mapDoiTra["mã sản phẩm trả"] || COL_DT_TRA.MA_SP_TRA;
-    COL_DT_TRA.TEN_SP_TRA = mapDoiTra["tên sản phẩm trả"] || COL_DT_TRA.TEN_SP_TRA;
+    COL_DT_TRA.TEN_SP_TRA =
+      mapDoiTra["tên sản phẩm trả"] || COL_DT_TRA.TEN_SP_TRA;
     COL_DT_TRA.IMEI_TRA = mapDoiTra["imei trả"] || COL_DT_TRA.IMEI_TRA;
-    COL_DT_TRA.MA_SP_NHAN = mapDoiTra["mã sản phẩm nhận"] || COL_DT_TRA.MA_SP_NHAN;
-    COL_DT_TRA.TEN_SP_NHAN = mapDoiTra["tên sản phẩm nhận"] || COL_DT_TRA.TEN_SP_NHAN;
+    COL_DT_TRA.MA_SP_NHAN =
+      mapDoiTra["mã sản phẩm nhận"] || COL_DT_TRA.MA_SP_NHAN;
+    COL_DT_TRA.TEN_SP_NHAN =
+      mapDoiTra["tên sản phẩm nhận"] || COL_DT_TRA.TEN_SP_NHAN;
     COL_DT_TRA.IMEI_NHAN = mapDoiTra["imei nhận"] || COL_DT_TRA.IMEI_NHAN;
-    COL_DT_TRA.TIEN_HOAN_TRA = mapDoiTra["tiền hoàn trả"] || COL_DT_TRA.TIEN_HOAN_TRA;
+    COL_DT_TRA.TIEN_HOAN_TRA =
+      mapDoiTra["tiền hoàn trả"] || COL_DT_TRA.TIEN_HOAN_TRA;
     COL_DT_TRA.PHI_DOI_TRA = mapDoiTra["phí đổi trả"] || COL_DT_TRA.PHI_DOI_TRA;
-    COL_DT_TRA.HINH_THUC_TT = mapDoiTra["hình thức thanh toán"] || COL_DT_TRA.HINH_THUC_TT;
+    COL_DT_TRA.HINH_THUC_TT =
+      mapDoiTra["hình thức thanh toán"] || COL_DT_TRA.HINH_THUC_TT;
     COL_DT_TRA.CHI_NHANH = mapDoiTra["chi nhánh"] || COL_DT_TRA.CHI_NHANH;
-    COL_DT_TRA.NGUOI_THUC_HIEN = mapDoiTra["người thực hiện"] || COL_DT_TRA.NGUOI_THUC_HIEN;
+    COL_DT_TRA.NGUOI_THUC_HIEN =
+      mapDoiTra["người thực hiện"] || COL_DT_TRA.NGUOI_THUC_HIEN;
     COL_DT_TRA.TRANG_THAI = mapDoiTra["trạng thái"] || COL_DT_TRA.TRANG_THAI;
     COL_DT_TRA.GHI_CHU = mapDoiTra["ghi chú"] || COL_DT_TRA.GHI_CHU;
     COL_DT_TRA.TIEN_MAT = mapDoiTra["tiền mặt"] || COL_DT_TRA.TIEN_MAT;
-    COL_DT_TRA.CHUYEN_KHOAN = mapDoiTra["chuyển khoản"] || COL_DT_TRA.CHUYEN_KHOAN;
+    COL_DT_TRA.CHUYEN_KHOAN =
+      mapDoiTra["chuyển khoản"] || COL_DT_TRA.CHUYEN_KHOAN;
   }
-  
+
+  var mapKH = getColMapFromSheet(SHEET_NAMES.KHACH_HANG);
+  if (mapKH) {
+    COL_KH.MA_KH = mapKH["mã khách hàng"] || COL_KH.MA_KH;
+    COL_KH.HO_TEN = mapKH["họ tên"] || mapKH["họ và tên"] || COL_KH.HO_TEN;
+    COL_KH.SO_DIEN_THOAI = mapKH["số điện thoại"] || COL_KH.MA_KH;
+    COL_KH.CCCD = mapKH["cccd"] || COL_KH.CCCD;
+    COL_KH.DIA_CHI = mapKH["địa chỉ"] || COL_KH.DIA_CHI;
+    COL_KH.NGAY_TAO = mapKH["ngày tạo"] || COL_KH.NGAY_TAO;
+    COL_KH.GHI_CHU = mapKH["ghi chú"] || COL_KH.GHI_CHU;
+  }
+
   _columnEnumsInitialized = true;
 }
 
@@ -285,25 +425,25 @@ function getColMapFromSheet(sheetName) {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName(sheetName);
     if (!sheet) return null;
-    
+
     var lastCol = sheet.getLastColumn();
     var headers = [];
     if (lastCol > 0) {
       headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
     }
-    
+
     // Tự động kiểm tra và thêm các cột còn thiếu theo SHEET_HEADERS
     var expectedHeaders = SHEET_HEADERS[sheetName];
     if (expectedHeaders && expectedHeaders.length > headers.length) {
       var nextCol = headers.length + 1;
       var missing = expectedHeaders.slice(headers.length);
       sheet.getRange(1, nextCol, 1, missing.length).setValues([missing]);
-      
+
       // Tải lại các header mới
       lastCol = sheet.getLastColumn();
       headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
     }
-    
+
     var map = {};
     for (var i = 0; i < headers.length; i++) {
       map[String(headers[i]).trim().toLowerCase()] = i + 1;
@@ -325,7 +465,9 @@ function getSheetIndex(sheetName, searchCol) {
     for (var i = 0; i < data.length; i++) {
       var row = data[i];
       if (row.length < searchCol) continue;
-      var cellVal = String(row[searchCol - 1]).trim().toLowerCase();
+      var cellVal = String(row[searchCol - 1])
+        .trim()
+        .toLowerCase();
       if (!(cellVal in indexMap)) {
         indexMap[cellVal] = i; // Lưu index 0-indexed trong mảng data
       }
@@ -353,15 +495,18 @@ function setChunkedCache(key, data) {
     var numChunks = Math.ceil(json.length / CHUNK_SIZE);
 
     var cacheObj = {};
-    cacheObj[key + '_m'] = JSON.stringify({ c: numChunks });
+    cacheObj[key + "_m"] = JSON.stringify({ c: numChunks });
 
     for (var i = 0; i < numChunks; i++) {
-      cacheObj[key + '_' + i] = json.substring(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+      cacheObj[key + "_" + i] = json.substring(
+        i * CHUNK_SIZE,
+        (i + 1) * CHUNK_SIZE,
+      );
     }
 
     cache.putAll(cacheObj, DROPDOWN_CACHE_TTL);
   } catch (e) {
-    Logger.log('CacheService setChunkedCache error: ' + e.message);
+    Logger.log("CacheService setChunkedCache error: " + e.message);
   }
 }
 
@@ -374,7 +519,7 @@ function setChunkedCache(key, data) {
 function getChunkedCache(key) {
   try {
     var cache = CacheService.getScriptCache();
-    var meta = cache.get(key + '_m');
+    var meta = cache.get(key + "_m");
     if (!meta) return null;
 
     var metaObj = JSON.parse(meta);
@@ -382,20 +527,20 @@ function getChunkedCache(key) {
 
     var keys = [];
     for (var i = 0; i < numChunks; i++) {
-      keys.push(key + '_' + i);
+      keys.push(key + "_" + i);
     }
 
     var all = cache.getAll(keys);
-    var json = '';
+    var json = "";
     for (var i = 0; i < numChunks; i++) {
-      var chunk = all[key + '_' + i];
+      var chunk = all[key + "_" + i];
       if (!chunk) return null; // Partial cache miss
       json += chunk;
     }
 
     return JSON.parse(json);
   } catch (e) {
-    Logger.log('CacheService getChunkedCache error: ' + e.message);
+    Logger.log("CacheService getChunkedCache error: " + e.message);
     return null;
   }
 }
@@ -408,13 +553,13 @@ function getChunkedCache(key) {
 function invalidateDropdownCache(sheetName) {
   var cacheKeys = [];
   if (sheetName === SHEET_NAMES.KHACH_HANG) {
-    cacheKeys = ['dd_kh'];
+    cacheKeys = ["dd_kh"];
   } else if (sheetName === SHEET_NAMES.DIEN_THOAI) {
-    cacheKeys = ['dd_dt'];
+    cacheKeys = ["dd_dt"];
   } else if (sheetName === SHEET_NAMES.PHU_KIEN) {
-    cacheKeys = ['dd_pk', 'dd_pku'];
+    cacheKeys = ["dd_pk", "dd_pku"];
   } else if (sheetName === SHEET_NAMES.TRA_GOP) {
-    cacheKeys = ['dd_tg'];
+    cacheKeys = ["dd_tg"];
   }
 
   if (cacheKeys.length === 0) return;
@@ -423,21 +568,20 @@ function invalidateDropdownCache(sheetName) {
     var cache = CacheService.getScriptCache();
     for (var k = 0; k < cacheKeys.length; k++) {
       var key = cacheKeys[k];
-      var meta = cache.get(key + '_m');
+      var meta = cache.get(key + "_m");
       if (meta) {
         var metaObj = JSON.parse(meta);
-        var removeKeys = [key + '_m'];
+        var removeKeys = [key + "_m"];
         for (var i = 0; i < metaObj.c; i++) {
-          removeKeys.push(key + '_' + i);
+          removeKeys.push(key + "_" + i);
         }
         cache.removeAll(removeKeys);
       }
     }
   } catch (e) {
-    Logger.log('CacheService invalidateDropdownCache error: ' + e.message);
+    Logger.log("CacheService invalidateDropdownCache error: " + e.message);
   }
 }
-
 
 function getSheetDataCached(sheetName) {
   if (_sheetDataCache[sheetName]) {
@@ -446,11 +590,11 @@ function getSheetDataCached(sheetName) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(sheetName);
   if (!sheet) return [];
-  
+
   var lastRow = sheet.getLastRow();
   var lastCol = sheet.getLastColumn();
   if (lastRow <= 1 || lastCol === 0) return [];
-  
+
   var data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   _sheetDataCache[sheetName] = data;
   return data;
@@ -767,7 +911,8 @@ function getBranchesDropdown() {
  */
 function getFinanceCompaniesList() {
   var listStr = getConfig("Danh sách công ty tài chính");
-  if (!listStr) return ["FE Credit", "Home Credit", "HD Saison", "MIRAES Asset"];
+  if (!listStr)
+    return ["FE Credit", "Home Credit", "HD Saison", "MIRAES Asset"];
   return listStr.split(",").map(function (item) {
     return item.trim();
   });
@@ -812,9 +957,14 @@ function ensureConfigKey(key, defaultValue, description) {
  * @return {string[]}
  */
 function getBrandsList() {
-  ensureConfigKey("Danh sách thương hiệu", "Apple, Samsung, Xiaomi, OPPO, Vivo, Realme, Khác", "Danh sách các thương hiệu điện thoại, phân cách bằng dấu phẩy");
+  ensureConfigKey(
+    "Danh sách thương hiệu",
+    "Apple, Samsung, Xiaomi, OPPO, Vivo, Realme, Khác",
+    "Danh sách các thương hiệu điện thoại, phân cách bằng dấu phẩy",
+  );
   var brandsStr = getConfig("Danh sách thương hiệu");
-  if (!brandsStr) return ["Apple", "Samsung", "Xiaomi", "OPPO", "Vivo", "Realme", "Khác"];
+  if (!brandsStr)
+    return ["Apple", "Samsung", "Xiaomi", "OPPO", "Vivo", "Realme", "Khác"];
   return brandsStr.split(",").map(function (item) {
     return item.trim();
   });
@@ -847,27 +997,27 @@ function parseMixedPayment(hinhThucTT, totalAmount) {
   if (str === "Chuyển khoản" || str === "Quẹt thẻ (POS)") {
     return { tm: 0, ck: totalAmount };
   }
-  
+
   if (str.indexOf("+") !== -1 || str.indexOf(":") !== -1) {
     var tmMatch = str.match(/Tiền mặt:\s*([\d,]+)/i);
     var ckMatch = str.match(/Chuyển khoản:\s*([\d,]+)/i);
     var posMatch = str.match(/Quẹt thẻ\s*\(POS\):\s*([\d,]+)/i);
-    
-    var tmVal = tmMatch ? Number(tmMatch[1].replace(/,/g, '')) : 0;
-    var ckVal = ckMatch ? Number(ckMatch[1].replace(/,/g, '')) : 0;
-    var posVal = posMatch ? Number(posMatch[1].replace(/,/g, '')) : 0;
-    
+
+    var tmVal = tmMatch ? Number(tmMatch[1].replace(/,/g, "")) : 0;
+    var ckVal = ckMatch ? Number(ckMatch[1].replace(/,/g, "")) : 0;
+    var posVal = posMatch ? Number(posMatch[1].replace(/,/g, "")) : 0;
+
     var sum = tmVal + ckVal + posVal;
     if (sum > 0) {
       // Tính tỷ lệ để phân bổ chính xác theo totalAmount thực tế thu/chi
       var ratio = totalAmount / sum;
       return {
         tm: Math.round(tmVal * ratio),
-        ck: Math.round((ckVal + posVal) * ratio)
+        ck: Math.round((ckVal + posVal) * ratio),
       };
     }
   }
-  
+
   // Mặc định chuyển khoản nếu không khớp
   return { tm: 0, ck: totalAmount };
 }

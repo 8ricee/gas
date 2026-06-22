@@ -55,23 +55,24 @@ function taoDichVu(data) {
 
     var soTienGiaoDich = Number(data.soTienGiaoDich) || 0;
 
-    // Backend validation for Hỗn hợp payments
-    if (data.hinhThucThanhToan === "Hỗn hợp") {
-      var tongThanhToan = (Number(data.splitChuyenKhoan) || 0) + (Number(data.splitTienMat) || 0);
-      var soTienYeuCau = soTienGiaoDich + phiDichVu;
-      if (Math.abs(tongThanhToan - soTienYeuCau) > 1) {
-        throw new Error("Lỗi dữ liệu: Tổng tiền mặt (" + data.splitTienMat + ") và chuyển khoản (" + data.splitChuyenKhoan + ") không khớp với số tiền cần thanh toán (" + soTienYeuCau + ")!");
-      }
-    }
-
+    // Backend validation and calculation for Hỗn hợp / Tiền mặt / Chuyển khoản payments
     var tienMat = 0;
     var chuyenKhoan = 0;
+    var hinhThucTTDisplay = data.hinhThucThanhToan;
+
     if (data.hinhThucThanhToan === "Hỗn hợp") {
-      tienMat = Number(data.splitTienMat) || 0;
-      chuyenKhoan = Number(data.splitChuyenKhoan) || 0;
+      var splitTienMat = Number(data.splitTienMat) || 0;
+      var splitChuyenKhoan = Number(data.splitChuyenKhoan) || 0;
+      var totalNeeded = soTienGiaoDich + phiDichVu;
+      if (Math.abs(splitTienMat + splitChuyenKhoan - totalNeeded) > 1) {
+        throw new Error("Lỗi dữ liệu: Tổng tiền mặt (" + splitTienMat + ") và chuyển khoản (" + splitChuyenKhoan + ") không khớp với số tiền cần thanh toán (" + totalNeeded + ")!");
+      }
+      tienMat = splitTienMat;
+      chuyenKhoan = splitChuyenKhoan;
+      hinhThucTTDisplay = "Hỗn hợp";
     } else if (data.hinhThucThanhToan === "Tiền mặt") {
       tienMat = soTienGiaoDich + phiDichVu;
-    } else {
+    } else { // Chuyển khoản hoặc Quẹt thẻ (POS)
       chuyenKhoan = soTienGiaoDich + phiDichVu;
     }
 
@@ -84,7 +85,7 @@ function taoDichVu(data) {
     rowData[COL_DV.SDT_KH - 1] = data.soDienThoaiKH || "";
     rowData[COL_DV.SO_TIEN_GD - 1] = soTienGiaoDich;
     rowData[COL_DV.PHI_DV - 1] = phiDichVu;
-    rowData[COL_DV.HINH_THUC_TT - 1] = data.hinhThucThanhToan || "Tiền mặt";
+    rowData[COL_DV.HINH_THUC_TT - 1] = hinhThucTTDisplay;
     rowData[COL_DV.NGUOI_THUC_HIEN - 1] = data.nguoiThucHien || "";
     rowData[COL_DV.TEN_NGUOI_THUC_HIEN - 1] = tenNguoiThucHien;
     rowData[COL_DV.TRANG_THAI - 1] = "Hoàn thành";
