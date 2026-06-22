@@ -853,12 +853,40 @@ function _setupDataValidations(ss) {
       "Dịch vụ: Chuyển khoản hộ",
       "Dịch vụ: Rút tiền mặt",
       "Dịch vụ: Nạp thẻ điện thoại",
+      "Dịch vụ: Sửa chữa",
+      "Dịch vụ: Bảo hành",
     ];
     var gdRule = SpreadsheetApp.newDataValidation()
       .requireValueInList(gdList, true)
       .setAllowInvalid(false)
       .build();
     reportDS.getRange(3, 8).setDataValidation(gdRule);
+  }
+
+  // BaoHanh - LoaiDichVu, HinhThucThanhToan, TrangThai, ChiNhanh
+  var bhSheet = ss.getSheetByName(SHEET_NAMES.BAO_HANH);
+  if (bhSheet) {
+    var loaiBHRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(["Sửa chữa", "Bảo hành"], true)
+      .setAllowInvalid(false)
+      .build();
+    bhSheet.getRange("H2:H").setDataValidation(loaiBHRule);
+
+    var htTTBHRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(
+        ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Hỗn hợp"],
+        true,
+      )
+      .setAllowInvalid(false)
+      .build();
+    bhSheet.getRange("J2:J").setDataValidation(htTTBHRule);
+
+    var ttBHRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(["Đang xử lý", "Hoàn thành", "Huỷ"], true)
+      .setAllowInvalid(false)
+      .build();
+    bhSheet.getRange("M2:M").setDataValidation(ttBHRule);
+    bhSheet.getRange("O2:O").setDataValidation(chiNhanhRule);
   }
 }
 
@@ -937,7 +965,7 @@ function applyConditionalFormatting(ss) {
 
     // 2. Trạng thái nghỉ việc, huỷ, quá hạn, không, trả máy
     "Nghỉ việc": { bg: "#fce8e6", fg: "#c5221f" },
-    Huỷ: { bg: "#fce8e6", fg: "#c5221f" },
+    "Huỷ": { bg: "#fce8e6", fg: "#c5221f" },
     "Quá hạn": { bg: "#fce8e6", fg: "#c5221f" },
     "Đã huỷ": { bg: "#fce8e6", fg: "#c5221f" },
     "Ngừng bán": { bg: "#fce8e6", fg: "#c5221f" },
@@ -959,13 +987,13 @@ function applyConditionalFormatting(ss) {
     // 4. Trạng thái khác, đã qua sử dụng, đã bán
     "Đã bán": { bg: "#f1f3f4", fg: "#5f6368" },
     "Đã qua sử dụng": { bg: "#f1f3f4", fg: "#5f6368" },
-    Khác: { bg: "#f1f3f4", fg: "#5f6368" },
+    "Khác": { bg: "#f1f3f4", fg: "#5f6368" },
 
     // 5. Chi nhánh, vai trò, hình thức, nguồn
     "Bán hàng": { bg: "#e8f0fe", fg: "#1a73e8" },
     "Chuyển khoản": { bg: "#e8f0fe", fg: "#1a73e8" },
     "Chuyển khoản hộ": { bg: "#e8f0fe", fg: "#1a73e8" },
-    Sạc: { bg: "#e8f0fe", fg: "#1a73e8" },
+    "Sạc": { bg: "#e8f0fe", fg: "#1a73e8" },
     "Like New": { bg: "#e8f0fe", fg: "#1a73e8" },
     "Điện thoại": { bg: "#e8f0fe", fg: "#1a73e8" },
 
@@ -975,7 +1003,7 @@ function applyConditionalFormatting(ss) {
     "Công ty tài chính": { bg: "#f3e8fd", fg: "#a142f4" },
 
     "Ốp lưng": { bg: "#e0f7fa", fg: "#006064" },
-    Cáp: { bg: "#fce4ec", fg: "#880e4f" },
+    "Cáp": { bg: "#fce4ec", fg: "#880e4f" },
     "Cửa hàng": { bg: "#fef7e0", fg: "#b06000" },
   };
 
@@ -1133,6 +1161,14 @@ function applyConditionalFormatting(ss) {
   _applyRulesForSheet(ss.getSheetByName(SHEET_NAMES.DOANH_SO), [
     { range: "Q2:Q", values: branches },
   ]);
+
+  // 12. Bảo hành
+  _applyRulesForSheet(ss.getSheetByName(SHEET_NAMES.BAO_HANH), [
+    { range: "H2:H", values: ["Sửa chữa", "Bảo hành"] },
+    { range: "J2:J", values: ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Hỗn hợp"] },
+    { range: "M2:M", values: ["Đang xử lý", "Hoàn thành", "Huỷ"] },
+    { range: "O2:O", values: branches },
+  ]);
 }
 
 /**
@@ -1176,6 +1212,11 @@ function onEdit(e) {
   } catch (ex) {}
 
   try {
+    clearSheetCache(sheetName);
+    invalidateDropdownCache(sheetName);
+  } catch (ex) {}
+
+  try {
     switch (sheetName) {
       case SHEET_NAMES.CAU_HINH:
         _setupDataValidations(e.source);
@@ -1188,6 +1229,9 @@ function onEdit(e) {
         break;
       case SHEET_NAMES.BAO_CAO_NGAY:
         _onEditBaoCaoNgay(sheet, row, col, e);
+        break;
+      case SHEET_NAMES.BAO_CAO_DOANH_SO:
+        _onEditBaoCaoDoanhSo(sheet, row, col, e);
         break;
       case SHEET_NAMES.LICH_SU_TRA_GOP:
         _onEditLichSuTraGop(sheet, row, col, e);
@@ -1208,6 +1252,15 @@ function _onEditBaoCaoNgay(sheet, row, col, e) {
   if (row === 3 && col === 2) {
     // Ô B3
     updateDailyReportFromSheet();
+  }
+}
+
+/**
+ * Xử lý sự kiện chỉnh sửa trên sheet Báo cáo doanh số
+ */
+function _onEditBaoCaoDoanhSo(sheet, row, col, e) {
+  if (row === 3 && (col === 2 || col === 4 || col === 6 || col === 8)) {
+    updateSalesReportFromSheet();
   }
 }
 

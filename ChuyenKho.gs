@@ -98,7 +98,7 @@ function chuyenKho(data) {
     }
 
     showToast(
-      "✅ Chuyển kho thành công: " +
+      "Chuyển kho thành công: " +
         maSP +
         " (" +
         cnNguon +

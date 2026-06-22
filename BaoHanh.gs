@@ -86,7 +86,7 @@ function capNhatTrangThaiBaoHanh(maBH, trangThaiMoi, ghiChuMoi) {
   if (ghiChuMoi) {
       updateCell(SHEET_NAMES.BAO_HANH, row, COL_BH.GHI_CHU, ghiChuMoi);
   }
-  showToast("✅ Cập nhật trạng thái thành công: " + maBH);
+  showToast("Cập nhật trạng thái thành công: " + maBH);
   return true;
 }
 

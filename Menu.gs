@@ -12,43 +12,24 @@ function createCustomMenu() {
   var ui = SpreadsheetApp.getUi();
 
   ui.createMenu("VanTran Store")
-    // Bán hàng
-    .addItem("Tạo đơn hàng mới", "showSidebarDonHang")
-    .addItem("Thêm khách hàng", "showSidebarKhachHang")
+    .addItem("Bảng điều khiển ", "showSidebar")
     .addSeparator()
-    // Sản phẩm & Kho
     .addSubMenu(
       ui
-        .createMenu("Sản phẩm & Kho")
-        .addItem("Nhập kho sản phẩm", "showSidebarNhapKho")
-        .addItem("Chuyển kho chi nhánh", "showSidebarChuyenKho")
-        .addItem("Phụ kiện sắp hết", "menuPhuKienSapHet"),
-    )
-    .addSeparator()
-    // Dịch vụ & Giao dịch
-    .addSubMenu(
-      ui
-        .createMenu("Dịch vụ & Giao dịch")
-        .addItem("Giao dịch dịch vụ", "showSidebarDichVu")
-        .addItem("Đổi trả & Đổi quà", "showSidebarDoiTra")
-        .addItem("Thu mua & Thu cũ đổi mới", "showSidebarThuMua"),
-    )
-    .addSeparator()
-    // Trả góp
-    .addSubMenu(
-      ui
-        .createMenu("Trả góp")
-        .addItem("Ghi nhận thanh toán", "showSidebarThanhToan")
+        .createMenu("Kiểm tra nhanh")
+        .addItem("Phụ kiện sắp hết", "menuPhuKienSapHet")
         .addItem("DS trả góp quá hạn", "menuTraGopQuaHan"),
     )
     .addSeparator()
-    // Báo cáo & Doanh số
-    .addItem("Cập nhật báo cáo ngày", "updateDailyReportFromSheet")
-    .addItem("Cập nhật báo cáo doanh số", "updateSalesReportFromSheet")
-    .addItem("Chốt doanh số tháng", "menuChotDoanhSo")
-    .addItem("Xem báo cáo doanh số", "menuXemBaoCao")
+    .addSubMenu(
+      ui
+        .createMenu("Báo cáo & Doanh số")
+        .addItem("Cập nhật báo cáo ngày", "updateDailyReportFromSheet")
+        .addItem("Cập nhật báo cáo doanh số", "updateSalesReportFromSheet")
+        .addItem("Chốt doanh số tháng", "menuChotDoanhSo")
+        .addItem("Xem báo cáo doanh số", "menuXemBaoCao"),
+    )
     .addSeparator()
-    // Hệ thống
     .addSubMenu(
       ui
         .createMenu("Hệ thống")
@@ -61,82 +42,12 @@ function createCustomMenu() {
 // ======================== SIDEBAR LAUNCHERS ========================
 
 /**
- * Hiển thị sidebar tạo đơn hàng
+ * Hiển thị sidebar Quản lý cửa hàng (Bảng điều khiển chung)
  */
-function showSidebarDonHang() {
+function showSidebar() {
   var html = HtmlService.createTemplateFromFile("Sidebar");
-  html.mode = "donHang";
-  var output = html.evaluate().setTitle("Tạo đơn hàng mới");
-  SpreadsheetApp.getUi().showSidebar(output);
-}
-
-/**
- * Hiển thị sidebar thêm khách hàng
- */
-function showSidebarKhachHang() {
-  var html = HtmlService.createTemplateFromFile("Sidebar");
-  html.mode = "khachHang";
-  var output = html.evaluate().setTitle("Thêm khách hàng");
-  SpreadsheetApp.getUi().showSidebar(output);
-}
-
-/**
- * Hiển thị sidebar nhập kho
- */
-function showSidebarNhapKho() {
-  var html = HtmlService.createTemplateFromFile("Sidebar");
-  html.mode = "nhapKho";
-  var output = html.evaluate().setTitle("Nhập kho sản phẩm");
-  SpreadsheetApp.getUi().showSidebar(output);
-}
-
-/**
- * Hiển thị sidebar dịch vụ
- */
-function showSidebarDichVu() {
-  var html = HtmlService.createTemplateFromFile("Sidebar");
-  html.mode = "dichVu";
-  var output = html.evaluate().setTitle("Giao dịch dịch vụ");
-  SpreadsheetApp.getUi().showSidebar(output);
-}
-
-/**
- * Hiển thị sidebar ghi nhận thanh toán trả góp
- */
-function showSidebarThanhToan() {
-  var html = HtmlService.createTemplateFromFile("Sidebar");
-  html.mode = "thanhToan";
-  var output = html.evaluate().setTitle("Thanh toán trả góp");
-  SpreadsheetApp.getUi().showSidebar(output);
-}
-
-/**
- * Hiển thị sidebar chuyển kho
- */
-function showSidebarChuyenKho() {
-  var html = HtmlService.createTemplateFromFile("Sidebar");
-  html.mode = "chuyenKho";
-  var output = html.evaluate().setTitle("Chuyển kho chi nhánh");
-  SpreadsheetApp.getUi().showSidebar(output);
-}
-
-/**
- * Hiển thị sidebar đổi trả
- */
-function showSidebarDoiTra() {
-  var html = HtmlService.createTemplateFromFile("Sidebar");
-  html.mode = "doiTra";
-  var output = html.evaluate().setTitle("Đổi trả điện thoại");
-  SpreadsheetApp.getUi().showSidebar(output);
-}
-
-/**
- * Hiển thị sidebar thu mua
- */
-function showSidebarThuMua() {
-  var html = HtmlService.createTemplateFromFile("Sidebar");
-  html.mode = "thuMua";
-  var output = html.evaluate().setTitle("Thu mua & Thu cũ đổi mới");
+  html.mode = "donHang"; // Mặc định mở phần Đơn hàng
+  var output = html.evaluate().setTitle("VanTran Mobile — Quản lý cửa hàng");
   SpreadsheetApp.getUi().showSidebar(output);
 }
 

@@ -820,6 +820,14 @@ function appendRow(sheetName, rowData) {
     sheet.insertColumnsAfter(maxCols, rowData.length - maxCols);
   }
 
+  // Tránh mất số 0 ở đầu đối với chuỗi số điện thoại hoặc mã bắt đầu bằng 0
+  for (var i = 0; i < rowData.length; i++) {
+    var val = rowData[i];
+    if (typeof val === "string" && val.indexOf("0") === 0 && val.length > 1 && /^\d+$/.test(val)) {
+      rowData[i] = "'" + val;
+    }
+  }
+
   sheet.appendRow(rowData);
   var lastRow = sheet.getLastRow();
   var range = sheet.getRange(lastRow, 1, 1, rowData.length);
@@ -856,6 +864,10 @@ function updateCell(sheetName, row, col, value) {
   }
 
   var cell = sheet.getRange(row, col);
+  // Tránh mất số 0 ở đầu đối với chuỗi số điện thoại hoặc mã bắt đầu bằng 0
+  if (typeof value === "string" && value.indexOf("0") === 0 && value.length > 1 && /^\d+$/.test(value)) {
+    value = "'" + value;
+  }
   cell.setValue(value);
   cell.setFontFamily("Times New Roman");
   cell.setFontSize(12);

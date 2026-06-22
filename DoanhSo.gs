@@ -833,6 +833,50 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
     }
   });
 
+  // C. Bảo hành & Sửa chữa
+  var repairs = getAllData(SHEET_NAMES.BAO_HANH);
+  repairs.forEach(function (row) {
+    var ngayNhan = row[COL_BH.NGAY_NHAN - 1];
+    if (!(ngayNhan instanceof Date)) return;
+    var status = String(row[COL_BH.TRANG_THAI - 1]);
+    if (ngayNhan >= startDate && ngayNhan <= endDate && status !== "Huỷ") {
+      var maBH = String(row[COL_BH.MA_BH - 1]);
+      var tenKH = String(row[COL_BH.TEN_KH - 1]);
+      var tenSP = String(row[COL_BH.TEN_SP - 1]);
+      var loaiDV = String(row[COL_BH.LOAI_DICH_VU - 1]);
+      var phiSuaChua = Number(row[COL_BH.PHI_SUA_CHUA - 1]) || 0;
+      var nguoiTiepNhan = String(row[COL_BH.NGUOI_TIEP_NHAN - 1]);
+      var branch = String(row[COL_BH.CHI_NHANH - 1] || "");
+      var ghiChu = String(row[COL_BH.GHI_CHU - 1] || "");
+
+      if (
+        nguoiTiepNhan &&
+        (targetMaNV === "tat_ca" || nguoiTiepNhan === targetMaNV)
+      ) {
+        var nvInfo = nvMap[nguoiTiepNhan] || {
+          tenNV: nguoiTiepNhan,
+          vaiTro: "Kỹ thuật",
+          coQuyenXuatMay: false,
+        };
+        txList.push({
+          time: ngayNhan,
+          maGD: maBH,
+          maNV: nguoiTiepNhan,
+          tenNV: nvInfo.tenNV,
+          vaiTro: "Tiếp nhận",
+          loaiGD: "Dịch vụ: " + (loaiDV || "Sửa chữa"),
+          detail: (loaiDV || "Sửa chữa") + " máy " + tenSP + " (Phí: " + formatCurrency(phiSuaChua) + "đ)",
+          revenue: phiSuaChua,
+          commission: 0,
+          serviceFee: phiSuaChua,
+          branch: branch,
+          customer: tenKH,
+          ghiChu: ghiChu,
+        });
+      }
+    }
+  });
+
   // Sắp xếp tăng dần theo thời gian
   txList.sort(function (a, b) {
     return a.time.getTime() - b.time.getTime();
@@ -1026,6 +1070,21 @@ function _tinhDoanhSoTuNgayDenNgay(startDate, endDate) {
       var phi = Number(row[COL_DV.PHI_DV - 1]) || 0;
       if (maNV && nvDoanhSo[maNV]) {
         nvDoanhSo[maNV].doanhThuDV += phi;
+      }
+    }
+  });
+
+  // Quét bảo hành phân bổ
+  var repairs = getAllData(SHEET_NAMES.BAO_HANH);
+  repairs.forEach(function (row) {
+    var ngayNhan = row[COL_BH.NGAY_NHAN - 1];
+    if (!(ngayNhan instanceof Date)) return;
+    var status = String(row[COL_BH.TRANG_THAI - 1]);
+    if (ngayNhan >= startDate && ngayNhan <= endDate && status !== "Huỷ") {
+      var maNV = String(row[COL_BH.NGUOI_TIEP_NHAN - 1]);
+      var phiSuaChua = Number(row[COL_BH.PHI_SUA_CHUA - 1]) || 0;
+      if (maNV && nvDoanhSo[maNV]) {
+        nvDoanhSo[maNV].doanhThuDV += phiSuaChua;
       }
     }
   });
