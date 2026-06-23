@@ -50,7 +50,8 @@
   var localCache = {
     dienThoai: [],
     phuKien: [],
-    phuKienUnique: []
+    phuKienUnique: [],
+    khachHang: null
   };
 
   function removeAccents(str) {
@@ -81,6 +82,14 @@
       if (!keyword) return true;
       return matchSearchKeyword(item.text, keyword) || matchSearchKeyword(item.value, keyword);
     });
+  }
+
+  function searchKhachHangLocal(keyword) {
+    var items = localCache.khachHang || [];
+    if (!keyword) return items.slice(0, 100);
+    return items.filter(function(item) {
+      return matchSearchKeyword(item.text, keyword) || matchSearchKeyword(item.value, keyword);
+    }).slice(0, 100);
   }
 
   function searchPhuKienLocal(branch, keyword) {
@@ -120,6 +129,12 @@
   // ==================== INIT — LOAD DATA ====================
   function init() {
     preloadInventoryData();
+    // Preload khách hàng trong background sau 1.5 giây để tìm kiếm nhanh
+    setTimeout(function() {
+      google.script.run.withSuccessHandler(function(items) {
+        localCache.khachHang = items || [];
+      }).getKhachHangDropdown();
+    }, 1500);
     // Set default month/year for Doanh số
     var now = new Date();
     var curMonth = now.getMonth() + 1;
@@ -177,15 +192,27 @@
       }
     }
 
-    // Set up dynamic search (>= 4 characters) for large datasets
+    // Set up dynamic search (>= 4 characters, or local search if cached) for large datasets
     setupDatalistSearch('dh-maKH', 'dh-maKH-list', function(query, callback) {
-      google.script.run.withSuccessHandler(callback).getKhachHangDropdownSearch(query);
+      if (localCache.khachHang) {
+        callback(searchKhachHangLocal(query));
+      } else {
+        google.script.run.withSuccessHandler(callback).getKhachHangDropdownSearch(query);
+      }
     });
     setupDatalistSearch('tm-maKH', 'tm-maKH-list', function(query, callback) {
-      google.script.run.withSuccessHandler(callback).getKhachHangDropdownSearch(query);
+      if (localCache.khachHang) {
+        callback(searchKhachHangLocal(query));
+      } else {
+        google.script.run.withSuccessHandler(callback).getKhachHangDropdownSearch(query);
+      }
     });
     setupDatalistSearch('bh-khachHang', 'bh-khachHang-list', function(query, callback) {
-      google.script.run.withSuccessHandler(callback).getKhachHangDropdownSearch(query);
+      if (localCache.khachHang) {
+        callback(searchKhachHangLocal(query));
+      } else {
+        google.script.run.withSuccessHandler(callback).getKhachHangDropdownSearch(query);
+      }
     });
     setupDatalistSearch('dh-maSP', 'dh-maSP-list', function(query, callback) {
       var branch = document.getElementById('dh-chiNhanh').value;
@@ -481,7 +508,8 @@
       var dl = document.getElementById(listId);
       if (!dl) return;
 
-      var isLocal = (inputId === 'dh-maSP' || inputId === 'ck-maSP' || inputId === 'dt-maSP-Nhan' || inputId === 'tm-maSP-Moi' || inputId === 'nk-pkCu-maSP');
+      var isKhachHang = (inputId === 'dh-maKH' || inputId === 'tm-maKH' || inputId === 'bh-khachHang');
+      var isLocal = (inputId === 'dh-maSP' || inputId === 'ck-maSP' || inputId === 'dt-maSP-Nhan' || inputId === 'tm-maSP-Moi' || inputId === 'nk-pkCu-maSP') || (isKhachHang && localCache.khachHang);
       var minLength = isLocal ? 1 : 4;
 
       if (val.length < minLength) {
@@ -507,6 +535,8 @@
           }
         } else if (inputId === 'nk-pkCu-maSP') {
           items = localCache.phuKien || [];
+        } else if (isKhachHang) {
+          items = localCache.khachHang || [];
         }
 
         var exactMatch = items.some(function(item) {
@@ -1470,6 +1500,7 @@
         document.getElementById('kh-diaChi').value = '';
         document.getElementById('kh-ghiChu').value = '';
         google.script.run.withSuccessHandler(function(items) {
+          localCache.khachHang = items || [];
           populateDatalist('dh-maKH', 'dh-maKH-list', items);
           populateDatalist('tm-maKH', 'tm-maKH-list', items);
         }).getKhachHangDropdown();

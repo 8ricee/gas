@@ -47,8 +47,8 @@ function createCustomMenu() {
 function showSidebar() {
   var html = HtmlService.createTemplateFromFile("Sidebar");
   html.mode = "donHang"; // Mặc định mở phần Đơn hàng
-  var output = html.evaluate().setTitle("Bà xã hay hờn");
-  SpreadsheetApp.getUi().showSidebar(output);
+  var output = html.evaluate().setWidth(700).setHeight(500);
+  SpreadsheetApp.getUi().showModelessDialog(output, "Bà xã hay hờn");
 }
 
 // ======================== MENU ACTION FUNCTIONS ========================

@@ -36,6 +36,9 @@ function chuyenKho(data) {
 
       if (data.imei) {
         row = findRow(SHEET_NAMES.DIEN_THOAI, COL_DT.IMEI, data.imei);
+        if (row === -1 && COL_DT.IMEI_2) {
+          row = findRow(SHEET_NAMES.DIEN_THOAI, COL_DT.IMEI_2, data.imei);
+        }
       } else {
         // Tự động tìm máy có mã SP tại chi nhánh nguồn và đang "Còn hàng"
         var dtData = getAllData(SHEET_NAMES.DIEN_THOAI);

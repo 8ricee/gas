@@ -49,6 +49,7 @@ SHEET_HEADERS[SHEET_NAMES.DIEN_THOAI] = [
   "Tên sản phẩm",
   "Thương hiệu",
   "IMEI",
+  "IMEI 2",
   "Màu sắc",
   "Dung lượng",
   "Tình trạng",
@@ -550,6 +551,7 @@ function syncSheetHeaders(ss) {
  * Thiết lập Data Validation cho các sheet
  */
 function _setupDataValidations(ss) {
+  initializeColumnEnums();
   // Đọc danh sách chi nhánh động
   var chSheet = ss.getSheetByName(SHEET_NAMES.CAU_HINH);
   var branches = ["Chi nhánh 1", "Chi nhánh 2", "Chi nhánh 3"];
@@ -620,8 +622,13 @@ function _setupDataValidations(ss) {
   // DienThoai - TinhTrang, TrangThaiKho, ChiNhanh
   var dtSheet = ss.getSheetByName(SHEET_NAMES.DIEN_THOAI);
   if (dtSheet) {
+    var colTinhTrangLetter = columnToLetter(COL_DT.TINH_TRANG);
+    var colTrangThaiLetter = columnToLetter(COL_DT.TRANG_THAI_KHO);
+    var colChiNhanhLetter = columnToLetter(COL_DT.CHI_NHANH);
+    var colThuongHieuLetter = columnToLetter(COL_DT.THUONG_HIEU);
+
     // Xoá dropdown (Data Validation) của Tình trạng máy để người dùng nhập liệu tự do
-    dtSheet.getRange("G2:G").clearDataValidations();
+    dtSheet.getRange(colTinhTrangLetter + "2:" + colTinhTrangLetter).clearDataValidations();
 
     var ttKhoRule = SpreadsheetApp.newDataValidation()
       .requireValueInList(
@@ -630,9 +637,9 @@ function _setupDataValidations(ss) {
       )
       .setAllowInvalid(false)
       .build();
-    dtSheet.getRange("K2:K").setDataValidation(ttKhoRule);
-    dtSheet.getRange("M2:M").setDataValidation(chiNhanhRule);
-    dtSheet.getRange("C2:C").setDataValidation(thuongHieuRule);
+    dtSheet.getRange(colTrangThaiLetter + "2:" + colTrangThaiLetter).setDataValidation(ttKhoRule);
+    dtSheet.getRange(colChiNhanhLetter + "2:" + colChiNhanhLetter).setDataValidation(chiNhanhRule);
+    dtSheet.getRange(colThuongHieuLetter + "2:" + colThuongHieuLetter).setDataValidation(thuongHieuRule);
   }
 
   // PhuKien - TrangThai, ChiNhanh
@@ -1018,6 +1025,7 @@ function isDateHeader(name) {
  * Đổ màu có điều kiện cho tất cả các dropdown trên bảng tính
  */
 function applyConditionalFormatting(ss) {
+  initializeColumnEnums();
   var chSheet = ss.getSheetByName(SHEET_NAMES.CAU_HINH);
   var branches = ["Chi nhánh 1", "Chi nhánh 2", "Chi nhánh 3"];
   var brands = ["Apple", "Samsung", "Xiaomi", "OPPO", "Vivo", "Realme", "Khác"];
@@ -1179,14 +1187,19 @@ function applyConditionalFormatting(ss) {
   ]);
 
   // 2. Điện thoại
+  var colThuongHieuLetter = columnToLetter(COL_DT.THUONG_HIEU);
+  var colTinhTrangLetter = columnToLetter(COL_DT.TINH_TRANG);
+  var colTrangThaiLetter = columnToLetter(COL_DT.TRANG_THAI_KHO);
+  var colChiNhanhLetter = columnToLetter(COL_DT.CHI_NHANH);
+
   _applyRulesForSheet(ss.getSheetByName(SHEET_NAMES.DIEN_THOAI), [
-    { range: "C2:C", values: brands },
-    { range: "G2:G", values: ["Mới 100%", "Like New", "__NOT_EMPTY__"] },
+    { range: colThuongHieuLetter + "2:" + colThuongHieuLetter, values: brands },
+    { range: colTinhTrangLetter + "2:" + colTinhTrangLetter, values: ["Mới 100%", "Like New", "__NOT_EMPTY__"] },
     {
-      range: "K2:K",
+      range: colTrangThaiLetter + "2:" + colTrangThaiLetter,
       values: ["Còn hàng", "Đã bán", "Đang trả góp", "Đã trả lại"],
     },
-    { range: "M2:M", values: branches },
+    { range: colChiNhanhLetter + "2:" + colChiNhanhLetter, values: branches },
   ]);
 
   // 3. Phụ kiện
@@ -1488,25 +1501,26 @@ function _onEditDonHang(sheet, row, col, e) {
   if (col === 5) {
     var maSP = e.value;
     if (maSP) {
+      initializeColumnEnums();
       // Thử tìm trong Điện thoại trước
-      var tenDT = lookupValue(SHEET_NAMES.DIEN_THOAI, 1, maSP, 2);
+      var tenDT = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP, COL_DT.TEN_SP);
       if (tenDT) {
         sheet.getRange(row, 6).setValue(tenDT);
         sheet.getRange(row, 7).setValue("Điện thoại");
-        var thuongHieu = lookupValue(SHEET_NAMES.DIEN_THOAI, 1, maSP, 3);
+        var thuongHieu = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP, COL_DT.THUONG_HIEU);
         sheet.getRange(row, 8).setValue(thuongHieu || "");
-        var giaBan = lookupValue(SHEET_NAMES.DIEN_THOAI, 1, maSP, 9);
+        var giaBan = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP, COL_DT.GIA_BAN);
         sheet.getRange(row, 10).setValue(giaBan || 0);
         sheet.getRange(row, 9).setValue(1); // Điện thoại luôn SL = 1
       } else {
         // Thử tìm trong Phụ kiện
-        var tenPK = lookupValue(SHEET_NAMES.PHU_KIEN, 1, maSP, 2);
+        var tenPK = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, maSP, COL_PK.TEN_SP);
         if (tenPK) {
           sheet.getRange(row, 6).setValue(tenPK);
           sheet.getRange(row, 7).setValue("Phụ kiện");
-          var thuongHieuPK = lookupValue(SHEET_NAMES.PHU_KIEN, 1, maSP, 4);
+          var thuongHieuPK = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, maSP, COL_PK.THUONG_HIEU);
           sheet.getRange(row, 8).setValue(thuongHieuPK || "");
-          var giaBanPK = lookupValue(SHEET_NAMES.PHU_KIEN, 1, maSP, 6);
+          var giaBanPK = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, maSP, COL_PK.GIA_BAN);
           sheet.getRange(row, 10).setValue(giaBanPK || 0);
         }
       }
@@ -1600,11 +1614,12 @@ function _onEditNhapKho(sheet, row, col, e) {
     var maSP = e.value;
     var nguonNhap = sheet.getRange(row, 3).getValue();
     if (maSP) {
+      initializeColumnEnums();
       if (nguonNhap === "Điện thoại") {
-        var tenDT = lookupValue(SHEET_NAMES.DIEN_THOAI, 1, maSP, 2);
+        var tenDT = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP, COL_DT.TEN_SP);
         sheet.getRange(row, 5).setValue(tenDT || "");
       } else {
-        var tenPK = lookupValue(SHEET_NAMES.PHU_KIEN, 1, maSP, 2);
+        var tenPK = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, maSP, COL_PK.TEN_SP);
         sheet.getRange(row, 5).setValue(tenPK || "");
       }
     }
@@ -1618,7 +1633,37 @@ function _onEditNhapKho(sheet, row, col, e) {
  * @param {Spreadsheet} [ss] - Active spreadsheet
  */
 function rebuildTonKhoSheet(ss) {
+  initializeColumnEnums();
   if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  var colThuongHieu = columnToLetter(COL_DT.THUONG_HIEU);
+  var colChiNhanh = columnToLetter(COL_DT.CHI_NHANH);
+  var colTrangThai = columnToLetter(COL_DT.TRANG_THAI_KHO);
+  var colTenSP = columnToLetter(COL_DT.TEN_SP);
+  var colMauSac = columnToLetter(COL_DT.MAU_SAC);
+  var colDungLuong = columnToLetter(COL_DT.DUNG_LUONG);
+  var colMaDT = columnToLetter(COL_DT.MA_DT);
+  var colImei = columnToLetter(COL_DT.IMEI);
+  var colImei2 = columnToLetter(COL_DT.IMEI_2);
+
+  var maxColLetter = columnToLetter(Math.max(
+    COL_DT.MA_DT, COL_DT.TEN_SP, COL_DT.THUONG_HIEU, COL_DT.IMEI, COL_DT.IMEI_2,
+    COL_DT.MAU_SAC, COL_DT.DUNG_LUONG, COL_DT.TRANG_THAI_KHO, COL_DT.CHI_NHANH
+  ));
+
+  var colMaPK = columnToLetter(COL_PK.MA_PK);
+  var colTenPK = columnToLetter(COL_PK.TEN_SP);
+  var colLoaiPK = columnToLetter(COL_PK.LOAI_PK);
+  var colThuongHieuPK = columnToLetter(COL_PK.THUONG_HIEU);
+  var colSoLuongTon = columnToLetter(COL_PK.SO_LUONG_TON);
+  var colTrangThaiPK = columnToLetter(COL_PK.TRANG_THAI);
+  var colChiNhanhPK = columnToLetter(COL_PK.CHI_NHANH);
+
+  var maxColPKLetter = columnToLetter(Math.max(
+    COL_PK.MA_PK, COL_PK.TEN_SP, COL_PK.LOAI_PK, COL_PK.THUONG_HIEU,
+    COL_PK.SO_LUONG_TON, COL_PK.TRANG_THAI, COL_PK.CHI_NHANH
+  ));
+
   var tonKhoSheet = ss.getSheetByName(SHEET_NAMES.TON_KHO);
   if (!tonKhoSheet) return;
 
@@ -1720,11 +1765,11 @@ function rebuildTonKhoSheet(ss) {
       tonKhoSheet
         .getRange(r, c)
         .setFormula(
-          "=COUNTIFS('Điện thoại'!$C:$C, $A" +
+          "=COUNTIFS('Điện thoại'!$" + colThuongHieu + ":$" + colThuongHieu + "; $A" +
             r +
-            ", 'Điện thoại'!$M:$M, " +
+            "; 'Điện thoại'!$" + colChiNhanh + ":$" + colChiNhanh + "; " +
             colLetter +
-            "$5, 'Điện thoại'!$K:$K, \"Còn hàng\")",
+            "$5; 'Điện thoại'!$" + colTrangThai + ":$" + colTrangThai + "; \"Còn hàng\")",
         );
     }
     var lastBranchColLetter = columnToLetter(1 + N);
@@ -1788,12 +1833,26 @@ function rebuildTonKhoSheet(ss) {
     .setBackground("#1a73e8")
     .setHorizontalAlignment("left");
 
-  // Công thức QUERY xoay chiều theo chi nhánh M ở dòng startRowB2B3 + 1 (có lọc theo ô Tìm kiếm B2)
+  var colTenSPCol = "Col" + COL_DT.TEN_SP;
+  var colMauSacCol = "Col" + COL_DT.MAU_SAC;
+  var colDungLuongCol = "Col" + COL_DT.DUNG_LUONG;
+  var colMaDTCol = "Col" + COL_DT.MA_DT;
+  var colTrangThaiCol = "Col" + COL_DT.TRANG_THAI_KHO;
+  var colThuongHieuCol = "Col" + COL_DT.THUONG_HIEU;
+  var colImeiCol = "Col" + COL_DT.IMEI;
+  var colImei2Col = "Col" + COL_DT.IMEI_2;
+  var colChiNhanhCol = "Col" + COL_DT.CHI_NHANH;
+
+  // Công thức QUERY xoay chiều theo chi nhánh (có lọc theo ô Tìm kiếm B2)
+  var queryFormula = 
+    "=QUERY(INDEX(TO_TEXT('Điện thoại'!A:" + maxColLetter + ")); \"select " + colTenSPCol + ", " + colMauSacCol + ", " + colDungLuongCol + ", count(" + colMaDTCol + ") " +
+    "where " + colMaDTCol + " is not null and " + colTrangThaiCol + " = 'Còn hàng' \" & " +
+    "IF(ISBLANK($B$2); \"\"; \"and (lower(" + colTenSPCol + ") contains '\"&LOWER($B$2)&\"' or lower(" + colMauSacCol + ") contains '\"&LOWER($B$2)&\"' or lower(" + colDungLuongCol + ") contains '\"&LOWER($B$2)&\"' or lower(" + colThuongHieuCol + ") contains '\"&LOWER($B$2)&\"' or lower(" + colImeiCol + ") contains '\"&LOWER($B$2)&\"' or lower(" + colImei2Col + ") contains '\"&LOWER($B$2)&\"')\") & " +
+    "\" group by " + colTenSPCol + ", " + colMauSacCol + ", " + colDungLuongCol + " pivot " + colChiNhanhCol + "\"; 1)";
+
   tonKhoSheet
     .getRange(startRowB2B3 + 1, 1)
-    .setFormula(
-      '=QUERY(\'Điện thoại\'!A:M, "select B, E, F, count(A) where A is not null and K = \'Còn hàng\' " & IF(ISBLANK($B$2), "", "and (lower(B) contains \'"&LOWER($B$2)&"\' or lower(E) contains \'"&LOWER($B$2)&"\' or lower(F) contains \'"&LOWER($B$2)&"\' or lower(C) contains \'"&LOWER($B$2)&"\')") & " group by B, E, F pivot M", 1)',
-    );
+    .setFormula(queryFormula);
 
   // Đầu cột Tổng tồn
   var phoneTotalHeaderCell = tonKhoSheet.getRange(
@@ -1815,7 +1874,7 @@ function rebuildTonKhoSheet(ss) {
   phoneTotalFormulaCell.setFormula(
     "=MAP(A" +
       (startRowB2B3 + 2) +
-      ':A, LAMBDA(val, IF(val="", "", SUM(OFFSET(val, 0, 3, 1, ' +
+      ':A; LAMBDA(val; IF(val=""; ""; SUM(OFFSET(val; 0; 3; 1; ' +
       N +
       ")))))",
   );
@@ -1840,13 +1899,17 @@ function rebuildTonKhoSheet(ss) {
     .setBackground("#1a73e8")
     .setHorizontalAlignment("left");
 
-  // Công thức QUERY xoay chiều theo chi nhánh J (có lọc theo ô Tìm kiếm B2)
+  // Công thức QUERY xoay chiều theo chi nhánh (có lọc theo ô Tìm kiếm B2)
   var startAccColLetter = columnToLetter(startAccColIdx);
+  var queryAccFormula =
+    "=QUERY('Phụ kiện'!A:" + maxColPKLetter + "; \"select " + colMaPK + ", " + colTenPK + ", " + colLoaiPK + ", " + colThuongHieuPK + ", sum(" + colSoLuongTon + ") " +
+    "where " + colMaPK + " is not null and " + colTrangThaiPK + " = 'Đang bán' and " + colSoLuongTon + " > 0 \" & " +
+    "IF(ISBLANK($B$2); \"\"; \"and (lower(" + colMaPK + ") contains '\"&LOWER($B$2)&\"' or lower(" + colTenPK + ") contains '\"&LOWER($B$2)&\"' or lower(" + colLoaiPK + ") contains '\"&LOWER($B$2)&\"' or lower(" + colThuongHieuPK + ") contains '\"&LOWER($B$2)&\"')\") & " +
+    "\" group by " + colMaPK + ", " + colTenPK + ", " + colLoaiPK + ", " + colThuongHieuPK + " pivot " + colChiNhanhPK + "\"; 1)";
+
   tonKhoSheet
     .getRange(startRowB2B3 + 1, startAccColIdx)
-    .setFormula(
-      '=QUERY(\'Phụ kiện\'!A:J, "select A, B, C, D, sum(G) where A is not null and I = \'Đang bán\' and G > 0 " & IF(ISBLANK($B$2), "", "and (lower(A) contains \'"&LOWER($B$2)&"\' or lower(B) contains \'"&LOWER($B$2)&"\' or lower(C) contains \'"&LOWER($B$2)&"\' or lower(D) contains \'"&LOWER($B$2)&"\')") & " group by A, B, C, D pivot J", 1)',
-    );
+    .setFormula(queryAccFormula);
 
   // Đầu cột Tổng tồn của Phụ kiện
   var accTotalHeaderCell = tonKhoSheet.getRange(
@@ -1871,7 +1934,7 @@ function rebuildTonKhoSheet(ss) {
       (startRowB2B3 + 2) +
       ":" +
       startAccColLetter +
-      ', LAMBDA(val, IF(val="", "", SUM(OFFSET(val, 0, 4, 1, ' +
+      '; LAMBDA(val; IF(val=""; ""; SUM(OFFSET(val; 0; 4; 1; ' +
       N +
       ")))))",
   );

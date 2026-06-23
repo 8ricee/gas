@@ -252,6 +252,9 @@ function _taoDonHangSingle(data, rollbackActions, ss) {
 
     if (data.imei) {
       phoneRow = findRow(SHEET_NAMES.DIEN_THOAI, COL_DT.IMEI, data.imei);
+      if (phoneRow === -1 && COL_DT.IMEI_2) {
+        phoneRow = findRow(SHEET_NAMES.DIEN_THOAI, COL_DT.IMEI_2, data.imei);
+      }
     } else {
       // Tự động tìm máy có mã SP tại chi nhánh này và đang "Còn hàng"
       var dtData = getAllData(SHEET_NAMES.DIEN_THOAI);

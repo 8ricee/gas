@@ -21,6 +21,7 @@ function getAllDienThoai(filter) {
     tenSP: COL_DT.TEN_SP - 1,
     thuongHieu: COL_DT.THUONG_HIEU - 1,
     imei: COL_DT.IMEI - 1,
+    imei2: COL_DT.IMEI_2 - 1,
     mauSac: COL_DT.MAU_SAC - 1,
     dungLuong: COL_DT.DUNG_LUONG - 1,
     tinhTrang: COL_DT.TINH_TRANG - 1,
@@ -42,6 +43,7 @@ function getAllDienThoai(filter) {
         TenSP: String(row[c.tenSP]),
         ThuongHieu: String(row[c.thuongHieu]),
         IMEI: String(row[c.imei]),
+        IMEI2: (c.imei2 !== undefined && row.length > c.imei2) ? String(row[c.imei2] || "") : "",
         MauSac: String(row[c.mauSac]),
         DungLuong: String(row[c.dungLuong]),
         TinhTrang: String(row[c.tinhTrang]),
@@ -76,6 +78,7 @@ function getDienThoaiDropdown(chiNhanh) {
     tenSP: COL_DT.TEN_SP - 1,
     thuongHieu: COL_DT.THUONG_HIEU - 1,
     imei: COL_DT.IMEI - 1,
+    imei2: COL_DT.IMEI_2 - 1,
     mauSac: COL_DT.MAU_SAC - 1,
     dungLuong: COL_DT.DUNG_LUONG - 1,
     giaBan: COL_DT.GIA_BAN - 1,
@@ -93,6 +96,13 @@ function getDienThoaiDropdown(chiNhanh) {
     ) {
       var rowChiNhanh = String(row[c.chiNhanh] || "");
       if (!chiNhanh || rowChiNhanh === chiNhanh) {
+        var imeiVal = String(row[c.imei] || "");
+        var imei2Val = (c.imei2 !== undefined && row.length > c.imei2) ? String(row[c.imei2] || "") : "";
+        var imeiText = imeiVal;
+        if (imei2Val) {
+          imeiText += " / " + imei2Val;
+        }
+
         result.push({
           value: String(row[c.maDT]),
           text:
@@ -104,7 +114,7 @@ function getDienThoaiDropdown(chiNhanh) {
             ", " +
             row[c.dungLuong] +
             " | IMEI: " +
-            row[c.imei] +
+            imeiText +
             " | " +
             rowChiNhanh +
             ")",
@@ -270,6 +280,9 @@ function updateDienThoai(maDT, data) {
 function updateTrangThaiKhoDT(maDT_or_imei, trangThai) {
   initializeColumnEnums();
   var row = findRow(SHEET_NAMES.DIEN_THOAI, COL_DT.IMEI, maDT_or_imei); // Tìm theo IMEI trước
+  if (row === -1 && COL_DT.IMEI_2) {
+    row = findRow(SHEET_NAMES.DIEN_THOAI, COL_DT.IMEI_2, maDT_or_imei); // Fallback tìm theo IMEI 2
+  }
   if (row === -1) {
     row = findRow(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maDT_or_imei); // Fallback tìm theo Mã điện thoại
   }
@@ -300,36 +313,60 @@ function updateTrangThaiKhoDT(maDT_or_imei, trangThai) {
  * @return {Object[]} Kết quả tìm kiếm
  */
 function searchDienThoai(keyword) {
+  initializeColumnEnums();
   var data = getAllData(SHEET_NAMES.DIEN_THOAI);
   var result = [];
   var kw = String(keyword).trim().toLowerCase();
 
+  var c = {
+    maDT: COL_DT.MA_DT - 1,
+    tenSP: COL_DT.TEN_SP - 1,
+    thuongHieu: COL_DT.THUONG_HIEU - 1,
+    imei: COL_DT.IMEI - 1,
+    imei2: COL_DT.IMEI_2 - 1,
+    mauSac: COL_DT.MAU_SAC - 1,
+    dungLuong: COL_DT.DUNG_LUONG - 1,
+    tinhTrang: COL_DT.TINH_TRANG - 1,
+    giaNhap: COL_DT.GIA_NHAP - 1,
+    giaBan: COL_DT.GIA_BAN - 1,
+    giaTraGop: COL_DT.GIA_TRA_GOP - 1,
+    trangThaiKho: COL_DT.TRANG_THAI_KHO - 1,
+    ghiChu: COL_DT.GHI_CHU - 1,
+    chiNhanh: COL_DT.CHI_NHANH - 1,
+    ngayNhap: COL_DT.NGAY_NHAP - 1,
+    ngayXuat: COL_DT.NGAY_XUAT - 1,
+  };
+
   data.forEach(function (row) {
-    var tenSP = String(row[1]).toLowerCase();
-    var thuongHieu = String(row[2]).toLowerCase();
-    var imei = String(row[3]).toLowerCase();
+    if (row.length <= c.imei) return;
+    var tenSP = String(row[c.tenSP]).toLowerCase();
+    var thuongHieu = String(row[c.thuongHieu]).toLowerCase();
+    var imei = String(row[c.imei]).toLowerCase();
+    var imei2 = (c.imei2 !== undefined && row.length > c.imei2) ? String(row[c.imei2]).toLowerCase() : "";
 
     if (
       tenSP.indexOf(kw) !== -1 ||
       thuongHieu.indexOf(kw) !== -1 ||
-      imei.indexOf(kw) !== -1
+      imei.indexOf(kw) !== -1 ||
+      imei2.indexOf(kw) !== -1
     ) {
       result.push({
-        MaDT: String(row[0]),
-        TenSP: String(row[1]),
-        ThuongHieu: String(row[2]),
-        IMEI: String(row[3]),
-        MauSac: String(row[4]),
-        DungLuong: String(row[5]),
-        TinhTrang: String(row[6]),
-        GiaNhap: Number(row[7]) || 0,
-        GiaBan: Number(row[8]) || 0,
-        GiaTraGop: Number(row[9]) || 0,
-        TrangThaiKho: String(row[10]),
-        GhiChu: String(row[11]),
-        ChiNhanh: String(row[12] || ""),
-        NgayNhap: row[13] ? new Date(row[13]) : null,
-        NgayXuat: row[14] ? new Date(row[14]) : null,
+        MaDT: String(row[c.maDT]),
+        TenSP: String(row[c.tenSP]),
+        ThuongHieu: String(row[c.thuongHieu]),
+        IMEI: String(row[c.imei]),
+        IMEI2: (c.imei2 !== undefined && row.length > c.imei2) ? String(row[c.imei2] || "") : "",
+        MauSac: String(row[c.mauSac]),
+        DungLuong: String(row[c.dungLuong]),
+        TinhTrang: String(row[c.tinhTrang]),
+        GiaNhap: Number(row[c.giaNhap]) || 0,
+        GiaBan: Number(row[c.giaBan]) || 0,
+        GiaTraGop: Number(row[c.giaTraGop]) || 0,
+        TrangThaiKho: String(row[c.trangThaiKho]),
+        GhiChu: String(row[c.ghiChu]),
+        ChiNhanh: String(row[c.chiNhanh] || ""),
+        NgayNhap: row[c.ngayNhap] ? new Date(row[c.ngayNhap]) : null,
+        NgayXuat: row[c.ngayXuat] ? new Date(row[c.ngayXuat]) : null,
       });
     }
   });
@@ -341,32 +378,31 @@ function searchDienThoai(keyword) {
  * Chuẩn hóa và tự động điền Ngày nhập & Ngày xuất cho các dữ liệu điện thoại đã có sẵn
  */
 function backfillDienThoaiDates(silent) {
+  initializeColumnEnums();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var dtSheet = ss.getSheetByName(SHEET_NAMES.DIEN_THOAI);
   if (!dtSheet) return;
 
-  // 1. Đảm bảo sheet Điện thoại có đủ ít nhất 15 cột (đến cột O)
+  // 1. Đảm bảo sheet Điện thoại có đủ các cột Ngày nhập và Ngày xuất
+  var maxColNeeded = Math.max(COL_DT.NGAY_NHAP, COL_DT.NGAY_XUAT);
   var maxCols = dtSheet.getMaxColumns();
-  if (maxCols < 15) {
-    dtSheet.insertColumnsAfter(maxCols, 15 - maxCols);
+  if (maxCols < maxColNeeded) {
+    dtSheet.insertColumnsAfter(maxCols, maxColNeeded - maxCols);
   }
 
-  // 2. Kiểm tra và ghi tiêu đề cột N và O nếu chưa có hoặc sai tiêu đề
-  var headerRange = dtSheet.getRange(1, 14, 1, 2);
-  var headerValues = headerRange.getValues()[0];
+  // 2. Kiểm tra và ghi tiêu đề cột Ngày nhập và Ngày xuất nếu chưa có hoặc sai tiêu đề
   var needsHeaderStyle = false;
-
-  if (String(headerValues[0]).trim() !== "Ngày nhập") {
-    dtSheet.getRange(1, 14).setValue("Ngày nhập");
+  if (String(dtSheet.getRange(1, COL_DT.NGAY_NHAP).getValue()).trim() !== "Ngày nhập") {
+    dtSheet.getRange(1, COL_DT.NGAY_NHAP).setValue("Ngày nhập");
     needsHeaderStyle = true;
   }
-  if (String(headerValues[1]).trim() !== "Ngày xuất") {
-    dtSheet.getRange(1, 15).setValue("Ngày xuất");
+  if (String(dtSheet.getRange(1, COL_DT.NGAY_XUAT).getValue()).trim() !== "Ngày xuất") {
+    dtSheet.getRange(1, COL_DT.NGAY_XUAT).setValue("Ngày xuất");
     needsHeaderStyle = true;
   }
 
   if (needsHeaderStyle) {
-    var newHeadersRange = dtSheet.getRange(1, 14, 1, 2);
+    var newHeadersRange = dtSheet.getRange(1, Math.min(COL_DT.NGAY_NHAP, COL_DT.NGAY_XUAT), 1, 2);
     newHeadersRange.setBackground("#1a73e8");
     newHeadersRange.setFontColor("#ffffff");
     newHeadersRange.setFontWeight("bold");
@@ -374,6 +410,7 @@ function backfillDienThoaiDates(silent) {
   }
 
   var lastRow = dtSheet.getLastRow();
+  var lastCol = dtSheet.getLastColumn();
   if (lastRow <= 1) {
     if (!silent)
       showAlert(
@@ -383,8 +420,8 @@ function backfillDienThoaiDates(silent) {
     return;
   }
 
-  // 3. Đọc dữ liệu 15 cột
-  var dtData = dtSheet.getRange(2, 1, lastRow - 1, 15).getValues();
+  // 3. Đọc dữ liệu động theo số cột thực tế
+  var dtData = dtSheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var orders = getAllData(SHEET_NAMES.DON_HANG);
   var imports = getAllData(SHEET_NAMES.NHAP_KHO);
   var buybacks = getAllData(SHEET_NAMES.THU_MUA);
@@ -392,12 +429,12 @@ function backfillDienThoaiDates(silent) {
   var updatedCount = 0;
 
   for (var i = 0; i < dtData.length; i++) {
-    var maDT = String(dtData[i][0]);
-    var imei = String(dtData[i][3]);
-    var status = String(dtData[i][10]);
+    var maDT = String(dtData[i][COL_DT.MA_DT - 1]);
+    var imei = String(dtData[i][COL_DT.IMEI - 1]);
+    var status = String(dtData[i][COL_DT.TRANG_THAI_KHO - 1]);
 
-    var currentNgayNhap = dtData[i][13];
-    var currentNgayXuat = dtData[i][14];
+    var currentNgayNhap = dtData[i][COL_DT.NGAY_NHAP - 1];
+    var currentNgayXuat = dtData[i][COL_DT.NGAY_XUAT - 1];
     var changed = false;
 
     // A. Tìm Ngày nhập (nếu trống)
@@ -421,9 +458,9 @@ function backfillDienThoaiDates(silent) {
       }
 
       if (ngayNhap) {
-        dtData[i][13] = new Date(ngayNhap);
+        dtData[i][COL_DT.NGAY_NHAP - 1] = new Date(ngayNhap);
       } else {
-        dtData[i][13] = new Date(); // Mặc định là ngày hiện tại nếu không tìm thấy lịch sử
+        dtData[i][COL_DT.NGAY_NHAP - 1] = new Date(); // Mặc định là ngày hiện tại nếu không tìm thấy lịch sử
       }
       changed = true;
     }
@@ -443,14 +480,14 @@ function backfillDienThoaiDates(silent) {
           }
         }
         if (ngayXuat) {
-          dtData[i][14] = new Date(ngayXuat);
+          dtData[i][COL_DT.NGAY_XUAT - 1] = new Date(ngayXuat);
           changed = true;
         }
       }
     } else {
       // Nếu trạng thái khác (Còn hàng, Đã trả lại) mà có ngày xuất, thực hiện xoá ngày xuất
       if (currentNgayXuat) {
-        dtData[i][14] = "";
+        dtData[i][COL_DT.NGAY_XUAT - 1] = "";
         changed = true;
       }
     }
@@ -461,22 +498,25 @@ function backfillDienThoaiDates(silent) {
   }
 
   // 4. Ghi ngược kết quả bằng Batch Write để tối ưu hóa hiệu suất
-  var datesToUpdate = dtData.map(function (row) {
-    return [row[13] ? new Date(row[13]) : "", row[14] ? new Date(row[14]) : ""];
+  var ngayNhapVals = dtData.map(function(row) {
+    return [row[COL_DT.NGAY_NHAP - 1] ? new Date(row[COL_DT.NGAY_NHAP - 1]) : ""];
   });
-
-  var updateRange = dtSheet.getRange(2, 14, lastRow - 1, 2);
-  updateRange.setValues(datesToUpdate);
+  var ngayXuatVals = dtData.map(function(row) {
+    return [row[COL_DT.NGAY_XUAT - 1] ? new Date(row[COL_DT.NGAY_XUAT - 1]) : ""];
+  });
+  
+  dtSheet.getRange(2, COL_DT.NGAY_NHAP, lastRow - 1, 1).setValues(ngayNhapVals);
+  dtSheet.getRange(2, COL_DT.NGAY_XUAT, lastRow - 1, 1).setValues(ngayXuatVals);
 
   // 5. Định dạng lại cột hiển thị
-  updateRange.setNumberFormat("dd/MM/yyyy");
-  updateRange.setFontFamily("Times New Roman");
-  updateRange.setFontSize(12);
-  updateRange.setHorizontalAlignment("left");
+  var rangeNgayNhap = dtSheet.getRange(2, COL_DT.NGAY_NHAP, lastRow - 1, 1);
+  var rangeNgayXuat = dtSheet.getRange(2, COL_DT.NGAY_XUAT, lastRow - 1, 1);
+  rangeNgayNhap.setNumberFormat("dd/MM/yyyy").setFontFamily("Times New Roman").setFontSize(12).setHorizontalAlignment("left");
+  rangeNgayXuat.setNumberFormat("dd/MM/yyyy").setFontFamily("Times New Roman").setFontSize(12).setHorizontalAlignment("left");
 
   // Tự động căn chỉnh lại độ rộng cột N & O
-  dtSheet.autoResizeColumn(14);
-  dtSheet.autoResizeColumn(15);
+  dtSheet.autoResizeColumn(COL_DT.NGAY_NHAP);
+  dtSheet.autoResizeColumn(COL_DT.NGAY_XUAT);
 
   if (!silent) {
     showAlert(
@@ -493,41 +533,66 @@ function backfillDienThoaiDates(silent) {
  * @private
  */
 function _buildDienThoaiDropdownCache() {
+  initializeColumnEnums();
   var data = getAllData(SHEET_NAMES.DIEN_THOAI);
   var result = [];
 
+  var c = {
+    maDT: COL_DT.MA_DT - 1,
+    tenSP: COL_DT.TEN_SP - 1,
+    thuongHieu: COL_DT.THUONG_HIEU - 1,
+    imei: COL_DT.IMEI - 1,
+    imei2: COL_DT.IMEI_2 - 1,
+    mauSac: COL_DT.MAU_SAC - 1,
+    dungLuong: COL_DT.DUNG_LUONG - 1,
+    giaBan: COL_DT.GIA_BAN - 1,
+    giaTraGop: COL_DT.GIA_TRA_GOP - 1,
+    trangThaiKho: COL_DT.TRANG_THAI_KHO - 1,
+    chiNhanh: COL_DT.CHI_NHANH - 1,
+  };
+
   data.forEach(function (row) {
+    if (row.length <= c.trangThaiKho) return;
     if (
-      row[0] &&
-      String(row[0]).trim() !== "" &&
-      String(row[10]) === "Còn hàng"
+      row[c.maDT] &&
+      String(row[c.maDT]).trim() !== "" &&
+      String(row[c.trangThaiKho]) === "Còn hàng"
     ) {
-      var cn = String(row[12] || "");
+      var cn = String(row[c.chiNhanh] || "");
+      var imeiVal = String(row[c.imei] || "");
+      var imei2Val = (c.imei2 !== undefined && row.length > c.imei2) ? String(row[c.imei2] || "") : "";
+      var imeiText = imeiVal;
+      if (imei2Val) {
+        imeiText += " / " + imei2Val;
+      }
+
       result.push({
-        v: String(row[0]),
+        v: String(row[c.maDT]),
         t:
-          row[0] +
+          row[c.maDT] +
           " - " +
-          row[1] +
+          row[c.tenSP] +
           " (" +
-          row[4] +
+          row[c.mauSac] +
           ", " +
-          row[5] +
+          row[c.dungLuong] +
           " | IMEI: " +
-          row[3] +
+          imeiText +
           " | " +
           cn +
           ")",
-        th: String(row[2]),
-        gb: Number(row[8]),
-        gtg: Number(row[9]),
+        th: String(row[c.thuongHieu]),
+        gb: Number(row[c.giaBan]),
+        gtg: Number(row[c.giaTraGop]),
         cn: cn,
         _s: (
-          String(row[0]) +
+          String(row[c.maDT]) +
           " " +
-          String(row[1]) +
+          String(row[c.tenSP]) +
           " " +
-          String(row[3])
+          imeiVal +
+          " " +
+          imei2Val
         ).toLowerCase(),
       });
     }

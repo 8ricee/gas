@@ -35,17 +35,18 @@ var COL_DT = {
   TEN_SP: 2,
   THUONG_HIEU: 3,
   IMEI: 4,
-  MAU_SAC: 5,
-  DUNG_LUONG: 6,
-  TINH_TRANG: 7,
-  GIA_NHAP: 8,
-  GIA_BAN: 9,
-  GIA_TRA_GOP: 10,
-  TRANG_THAI_KHO: 11,
-  GHI_CHU: 12,
-  CHI_NHANH: 13,
-  NGAY_NHAP: 14,
-  NGAY_XUAT: 15,
+  IMEI_2: 5,
+  MAU_SAC: 6,
+  DUNG_LUONG: 7,
+  TINH_TRANG: 8,
+  GIA_NHAP: 9,
+  GIA_BAN: 10,
+  GIA_TRA_GOP: 11,
+  TRANG_THAI_KHO: 12,
+  GHI_CHU: 13,
+  CHI_NHANH: 14,
+  NGAY_NHAP: 15,
+  NGAY_XUAT: 16,
 };
 
 var COL_PK = {
@@ -237,6 +238,7 @@ function initializeColumnEnums() {
     COL_DT.TEN_SP = mapDT["tên sản phẩm"] || COL_DT.TEN_SP;
     COL_DT.THUONG_HIEU = mapDT["thương hiệu"] || COL_DT.THUONG_HIEU;
     COL_DT.IMEI = mapDT["imei"] || COL_DT.IMEI;
+    COL_DT.IMEI_2 = mapDT["imei 2"] || COL_DT.IMEI_2;
     COL_DT.MAU_SAC = mapDT["màu sắc"] || COL_DT.MAU_SAC;
     COL_DT.DUNG_LUONG = mapDT["dung lượng"] || COL_DT.DUNG_LUONG;
     COL_DT.TINH_TRANG = mapDT["tình trạng"] || COL_DT.TINH_TRANG;
