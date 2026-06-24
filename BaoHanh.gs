@@ -14,23 +14,23 @@
 function taoBaoHanh(data) {
   return withDocumentLock(function () {
     initializeColumnEnums();
-    var maBH = generateId("BH", SHEET_NAMES.BAO_HANH);
-    var chiNhanh = data.chiNhanh;
+    const maBH = generateId("BH", SHEET_NAMES.BAO_HANH);
+    const chiNhanh = data.chiNhanh;
 
     if (!chiNhanh) {
       throw new Error("Vui lòng chọn chi nhánh!");
     }
 
-    var tenNguoiTiepNhan = getNhanVienName(data.nguoiTiepNhan);
-    var tenKH = ensureKhachHangExists(data.maKH, data.tenKH);
-    var phiSuaChua = Number(data.phiSuaChua) || 0;
+    const tenNguoiTiepNhan = getNhanVienName(data.nguoiTiepNhan);
+    const tenKH = ensureKhachHangExists(data.maKH, data.tenKH);
+    const phiSuaChua = Number(data.phiSuaChua) || 0;
 
-    var splitResult = calculatePaymentSplit(data, phiSuaChua);
-    var tienMat = splitResult.tienMat;
-    var chuyenKhoan = splitResult.chuyenKhoan;
-    var hinhThucTTDisplay = splitResult.hinhThucTTDisplay;
+    const splitResult = calculatePaymentSplit(data, phiSuaChua);
+    const tienMat = splitResult.tienMat;
+    const chuyenKhoan = splitResult.chuyenKhoan;
+    const hinhThucTTDisplay = splitResult.hinhThucTTDisplay;
 
-    var rowData = [];
+    const rowData = [];
     rowData[COL_BH.MA_BH - 1] = maBH;
     rowData[COL_BH.NGAY_NHAN - 1] = new Date();
     rowData[COL_BH.MA_KH - 1] = data.maKH || "";
@@ -59,7 +59,7 @@ function taoBaoHanh(data) {
  */
 function capNhatTrangThaiBaoHanh(maBH, trangThaiMoi, ghiChuMoi) {
   return withDocumentLock(function () {
-    var row = findRow(SHEET_NAMES.BAO_HANH, COL_BH.MA_BH, maBH);
+    const row = findRow(SHEET_NAMES.BAO_HANH, COL_BH.MA_BH, maBH);
     if (row === -1) {
       throw new Error("Không tìm thấy phiếu " + maBH);
     }
@@ -77,11 +77,11 @@ function capNhatTrangThaiBaoHanh(maBH, trangThaiMoi, ghiChuMoi) {
  */
 function getBaoHanhTheoThang(thang, nam) {
   initializeColumnEnums();
-  var data = getAllData(SHEET_NAMES.BAO_HANH);
-  var result = [];
+  const data = getAllData(SHEET_NAMES.BAO_HANH);
+  const result = [];
 
   data.forEach(function (row) {
-    var ngay = row[COL_BH.NGAY_NHAN - 1];
+    const ngay = row[COL_BH.NGAY_NHAN - 1];
     if (isSameMonthYear(ngay, thang, nam)) {
         result.push({
           MaBH: String(row[COL_BH.MA_BH - 1] || ""),

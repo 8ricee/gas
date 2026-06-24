@@ -21,8 +21,8 @@ function thucHienDoiTra(data) {
     initializeColumnEnums();
 
     // Backend validation for Hỗn hợp payments
-    var expectedPaid = 0;
-    var isHoanTra = (Number(data.tienHoanTra) || 0) > 0;
+    let expectedPaid = 0;
+    const isHoanTra = (Number(data.tienHoanTra) || 0) > 0;
     if (isHoanTra) {
       expectedPaid = Number(data.tienHoanTra) || 0;
     } else {
@@ -30,7 +30,7 @@ function thucHienDoiTra(data) {
     }
 
     if (data.hinhThucThanhToan === "Hỗn hợp") {
-      var tongThanhToan =
+      const tongThanhToan =
         (Number(data.splitChuyenKhoan) || 0) + (Number(data.splitTienMat) || 0);
       if (Math.abs(tongThanhToan - expectedPaid) > 1) {
         throw new Error(
@@ -45,11 +45,11 @@ function thucHienDoiTra(data) {
       }
     }
 
-    var maDT = generateId("DT", SHEET_NAMES.DOI_TRA);
-    var maDH = data.maDH;
-    var loaiGD = data.loaiGiaoDich;
-    var chiNhanh = data.chiNhanh;
-    var doiTuong = data.doiTuong || "Sản phẩm chính";
+    const maDT = generateId("DT", SHEET_NAMES.DOI_TRA);
+    const maDH = data.maDH;
+    const loaiGD = data.loaiGiaoDich;
+    const chiNhanh = data.chiNhanh;
+    const doiTuong = data.doiTuong || "Sản phẩm chính";
 
     if (!maDH || !loaiGD || !chiNhanh) {
       throw new Error(
@@ -58,15 +58,15 @@ function thucHienDoiTra(data) {
     }
 
     // 1. Tìm đơn hàng gốc
-    var dhRow = findRow(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH);
+    const dhRow = findRow(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH);
     if (dhRow === -1) {
       throw new Error("Không tìm thấy đơn hàng gốc: " + maDH);
     }
 
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var dhSheet = ss.getSheetByName(SHEET_NAMES.DON_HANG);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const dhSheet = ss.getSheetByName(SHEET_NAMES.DON_HANG);
 
-    var dhStatus = dhSheet.getRange(dhRow, COL_DH.TRANG_THAI).getValue();
+    const dhStatus = dhSheet.getRange(dhRow, COL_DH.TRANG_THAI).getValue();
     if (dhStatus === "Huỷ" || dhStatus === "Đổi trả") {
       throw new Error(
         "Đơn hàng " +
@@ -77,18 +77,18 @@ function thucHienDoiTra(data) {
       );
     }
 
-    var maKH = dhSheet.getRange(dhRow, COL_DH.MA_KH).getValue();
-    var tenKH = dhSheet.getRange(dhRow, COL_DH.TEN_KH).getValue();
+    const maKH = dhSheet.getRange(dhRow, COL_DH.MA_KH).getValue();
+    const tenKH = dhSheet.getRange(dhRow, COL_DH.TEN_KH).getValue();
 
     // XỬ LÝ THEO ĐỐI TƯỢNG ĐỔI TRẢ
-    var rollbackActions = [];
+    const rollbackActions = [];
     try {
       if (doiTuong === "Quà tặng kèm") {
-        var maQuaCu = dhSheet.getRange(dhRow, COL_DH.MA_QUA_TANG).getValue();
-        var tenQuaCu =
+        const maQuaCu = dhSheet.getRange(dhRow, COL_DH.MA_QUA_TANG).getValue();
+        const tenQuaCu =
           dhSheet.getRange(dhRow, COL_DH.TEN_QUA_TANG).getValue() ||
           "(Không tên)";
-        var coNhanQua = dhSheet.getRange(dhRow, COL_DH.CO_NHAN_QUA).getValue();
+        const coNhanQua = dhSheet.getRange(dhRow, COL_DH.CO_NHAN_QUA).getValue();
 
         if (coNhanQua !== "✓") {
           throw new Error(
@@ -96,7 +96,7 @@ function thucHienDoiTra(data) {
           );
         }
 
-        var maQuaMoi = data.maSP_Nhan;
+        const maQuaMoi = data.maSP_Nhan;
         if (!maQuaMoi) {
           throw new Error("Vui lòng chọn quà tặng mới để đổi!");
         }
@@ -106,28 +106,28 @@ function thucHienDoiTra(data) {
         }
 
         // Kiểm tra tồn kho quà mới
-        var maQuaMoiList = String(maQuaMoi).split(",");
-        var tenQuaMoiList = [];
-        var pkSheet = ss.getSheetByName(SHEET_NAMES.PHU_KIEN);
+        const maQuaMoiList = String(maQuaMoi).split(",");
+        const tenQuaMoiList = [];
+        const pkSheet = ss.getSheetByName(SHEET_NAMES.PHU_KIEN);
 
-        var codeCounts = {};
-        for (var i = 0; i < maQuaMoiList.length; i++) {
-          var code = maQuaMoiList[i].trim();
+        const codeCounts = {};
+        for (let i = 0; i < maQuaMoiList.length; i++) {
+          const code = maQuaMoiList[i].trim();
           if (!code) continue;
           codeCounts[code] = (codeCounts[code] || 0) + 1;
         }
 
-        for (var code in codeCounts) {
-          var newRow = findPhuKienRow(code, chiNhanh);
+        for (const code in codeCounts) {
+          const newRow = findPhuKienRow(code, chiNhanh);
           if (newRow === -1) {
             throw new Error(
               "Quà tặng mới " + code + " không tồn tại ở chi nhánh " + chiNhanh,
             );
           }
-          var tonQuaMoi =
+          const tonQuaMoi =
             Number(pkSheet.getRange(newRow, COL_PK.SO_LUONG_TON).getValue()) ||
             0;
-          var requiredQty = codeCounts[code];
+          const requiredQty = codeCounts[code];
           if (tonQuaMoi < requiredQty) {
             throw new Error(
               "Quà tặng mới " +
@@ -138,20 +138,20 @@ function thucHienDoiTra(data) {
                 requiredQty,
             );
           }
-          var giftName =
+          const giftName =
             pkSheet.getRange(newRow, COL_PK.TEN_SP).getValue() || "";
-          for (var k = 0; k < requiredQty; k++) {
+          for (let k = 0; k < requiredQty; k++) {
             tenQuaMoiList.push(giftName);
           }
         }
-        var tenQuaMoi = tenQuaMoiList.join(", ");
+        const tenQuaMoi = tenQuaMoiList.join(", ");
 
         // Hoàn kho quà cũ tại chi nhánh
-        var returnedGifts = [];
+        const returnedGifts = [];
         if (maQuaCu) {
-          var listCu = String(maQuaCu).split(",");
-          for (var i = 0; i < listCu.length; i++) {
-            var code = listCu[i].trim();
+          const listCu = String(maQuaCu).split(",");
+          for (let i = 0; i < listCu.length; i++) {
+            const code = listCu[i].trim();
             if (code) {
               updateTonKhoPhuKien(code, 1, "nhap", chiNhanh);
               returnedGifts.push(code);
@@ -167,9 +167,9 @@ function thucHienDoiTra(data) {
         }
 
         // Trừ kho quà mới tại chi nhánh
-        var issuedGifts = [];
-        for (var i = 0; i < maQuaMoiList.length; i++) {
-          var code = maQuaMoiList[i].trim();
+        const issuedGifts = [];
+        for (let i = 0; i < maQuaMoiList.length; i++) {
+          const code = maQuaMoiList[i].trim();
           if (code) {
             updateTonKhoPhuKien(code, 1, "xuat", chiNhanh);
             issuedGifts.push(code);
@@ -184,16 +184,16 @@ function thucHienDoiTra(data) {
         });
 
         // Cập nhật thông tin đơn hàng gốc
-        var oldMaQua = dhSheet.getRange(dhRow, COL_DH.MA_QUA_TANG).getValue();
-        var oldTenQua = dhSheet.getRange(dhRow, COL_DH.TEN_QUA_TANG).getValue();
-        var oldNote = dhSheet.getRange(dhRow, COL_DH.GHI_CHU).getValue();
+        const oldMaQua = dhSheet.getRange(dhRow, COL_DH.MA_QUA_TANG).getValue();
+        const oldTenQua = dhSheet.getRange(dhRow, COL_DH.TEN_QUA_TANG).getValue();
+        const oldNote = dhSheet.getRange(dhRow, COL_DH.GHI_CHU).getValue();
 
         updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.MA_QUA_TANG, maQuaMoi);
         updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.TEN_QUA_TANG, tenQuaMoi);
 
         // Ghi nhận vào ghi chú đơn hàng
-        var dateStr = formatDate(new Date());
-        var newNote =
+        const dateStr = formatDate(new Date());
+        const newNote =
           (oldNote || "") +
           " [Đổi quà ngày " +
           dateStr +
@@ -223,7 +223,7 @@ function thucHienDoiTra(data) {
         });
 
         // Ghi nhận giao dịch vào bảng DoiTra
-        var rowData = [];
+        const rowData = [];
         rowData[COL_DT_TRA.MA_DT - 1] = maDT;
         rowData[COL_DT_TRA.NGAY_DT - 1] = new Date();
         rowData[COL_DT_TRA.MA_DH - 1] = maDH;
@@ -245,9 +245,9 @@ function thucHienDoiTra(data) {
         rowData[COL_DT_TRA.TRANG_THAI - 1] = "Hoàn thành";
         rowData[COL_DT_TRA.GHI_CHU - 1] = data.ghiChu || "";
 
-        var tienMat = 0;
-        var chuyenKhoan = 0;
-        var totalPay = Number(data.phiDoiTra) || 0;
+        let tienMat = 0;
+        let chuyenKhoan = 0;
+        const totalPay = Number(data.phiDoiTra) || 0;
         if (data.hinhThucThanhToan === "Hỗn hợp") {
           tienMat = Number(data.splitTienMat) || 0;
           chuyenKhoan = Number(data.splitChuyenKhoan) || 0;
@@ -259,8 +259,8 @@ function thucHienDoiTra(data) {
         rowData[COL_DT_TRA.TIEN_MAT - 1] = tienMat;
         rowData[COL_DT_TRA.CHUYEN_KHOAN - 1] = chuyenKhoan;
 
-        var dtSheet = ss.getSheetByName(SHEET_NAMES.DOI_TRA);
-        var dtRow = appendRow(SHEET_NAMES.DOI_TRA, rowData);
+        const dtSheet = ss.getSheetByName(SHEET_NAMES.DOI_TRA);
+        const dtRow = appendRow(SHEET_NAMES.DOI_TRA, rowData);
         rollbackActions.push(function () {
           try {
             dtSheet.deleteRow(dtRow);
@@ -272,16 +272,16 @@ function thucHienDoiTra(data) {
         return maDT;
       } else {
         // ĐỐI TƯỢNG LÀ SẢN PHẨM CHÍNH
-        var maSP_Tra = dhSheet.getRange(dhRow, COL_DH.MA_SP).getValue();
-        var tenSP_Tra = dhSheet.getRange(dhRow, COL_DH.TEN_SP).getValue();
-        var nguonSP_Tra = dhSheet.getRange(dhRow, COL_DH.NGUON_SP).getValue();
+        const maSP_Tra = dhSheet.getRange(dhRow, COL_DH.MA_SP).getValue();
+        const tenSP_Tra = dhSheet.getRange(dhRow, COL_DH.TEN_SP).getValue();
+        const nguonSP_Tra = dhSheet.getRange(dhRow, COL_DH.NGUON_SP).getValue();
 
         if (nguonSP_Tra === "Phụ kiện") {
-          var soLuong =
+          const soLuong =
             Number(dhSheet.getRange(dhRow, COL_DH.SO_LUONG).getValue()) || 1;
 
           // 1. Chuyển trạng thái đơn hàng gốc sang "Đổi trả"
-          var oldDHStatus = dhSheet
+          const oldDHStatus = dhSheet
             .getRange(dhRow, COL_DH.TRANG_THAI)
             .getValue();
           updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.TRANG_THAI, "Đổi trả");
@@ -297,7 +297,7 @@ function thucHienDoiTra(data) {
           });
 
           // 2. Hoàn trả kho phụ kiện cũ vào chi nhánh của đơn hàng gốc
-          var originalBranch = dhSheet
+          const originalBranch = dhSheet
             .getRange(dhRow, COL_DH.CHI_NHANH)
             .getValue();
           updateTonKhoPhuKien(maSP_Tra, soLuong, "nhap", originalBranch);
@@ -307,8 +307,8 @@ function thucHienDoiTra(data) {
             } catch (err) {}
           });
 
-          var maSP_Nhan = "";
-          var tenSP_Nhan = "";
+          let maSP_Nhan = "";
+          let tenSP_Nhan = "";
 
           // 3. Nếu là Đổi hàng -> Tạo đơn hàng mới cho phụ kiện mới nhận
           if (loaiGD === "Đổi hàng") {
@@ -317,8 +317,8 @@ function thucHienDoiTra(data) {
               throw new Error("Vui lòng chọn phụ kiện mới để đổi!");
             }
 
-            var pkSheet = ss.getSheetByName(SHEET_NAMES.PHU_KIEN);
-            var pkRow = findPhuKienRow(maSP_Nhan, chiNhanh);
+            const pkSheet = ss.getSheetByName(SHEET_NAMES.PHU_KIEN);
+            const pkRow = findPhuKienRow(maSP_Nhan, chiNhanh);
             if (pkRow === -1) {
               throw new Error(
                 "Phụ kiện mới " +
@@ -327,7 +327,7 @@ function thucHienDoiTra(data) {
                   chiNhanh,
               );
             }
-            var tonMoi =
+            const tonMoi =
               Number(pkSheet.getRange(pkRow, COL_PK.SO_LUONG_TON).getValue()) ||
               0;
             if (tonMoi < 1) {
@@ -341,11 +341,11 @@ function thucHienDoiTra(data) {
 
             tenSP_Nhan =
               pkSheet.getRange(pkRow, COL_PK.TEN_SP).getValue() || "";
-            var giaBanMoi =
+            const giaBanMoi =
               Number(pkSheet.getRange(pkRow, COL_PK.GIA_BAN).getValue()) || 0;
 
             // Tạo đơn hàng mới cho phụ kiện nhận
-            var maDHMoi = taoDonHang({
+            const maDHMoi = taoDonHang({
               maKH: maKH,
               maSP: maSP_Nhan,
               nguonSP: "Phụ kiện",
@@ -361,8 +361,8 @@ function thucHienDoiTra(data) {
             rollbackActions.push(function () {
               try {
                 huyDonHang(maDHMoi);
-                var oSheet = ss.getSheetByName(SHEET_NAMES.DON_HANG);
-                var oRow = findRow(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDHMoi);
+                const oSheet = ss.getSheetByName(SHEET_NAMES.DON_HANG);
+                const oRow = findRow(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDHMoi);
                 if (oRow !== -1) {
                   oSheet.deleteRow(oRow);
                   clearSheetCache(SHEET_NAMES.DON_HANG);
@@ -375,10 +375,10 @@ function thucHienDoiTra(data) {
           }
 
           // 4. Ghi nhận giao dịch vào bảng DoiTra
-          var tienHoanTra = Number(data.tienHoanTra) || 0;
-          var phiDoiTra = Number(data.phiDoiTra) || 0;
+          const tienHoanTra = Number(data.tienHoanTra) || 0;
+          const phiDoiTra = Number(data.phiDoiTra) || 0;
 
-          var rowData = [];
+          const rowData = [];
           rowData[COL_DT_TRA.MA_DT - 1] = maDT;
           rowData[COL_DT_TRA.NGAY_DT - 1] = new Date();
           rowData[COL_DT_TRA.MA_DH - 1] = maDH;
@@ -400,9 +400,9 @@ function thucHienDoiTra(data) {
           rowData[COL_DT_TRA.TRANG_THAI - 1] = "Hoàn thành";
           rowData[COL_DT_TRA.GHI_CHU - 1] = data.ghiChu || "";
 
-          var tienMat = 0;
-          var chuyenKhoan = 0;
-          var totalPay = tienHoanTra > 0 ? tienHoanTra : phiDoiTra;
+          let tienMat = 0;
+          let chuyenKhoan = 0;
+          const totalPay = tienHoanTra > 0 ? tienHoanTra : phiDoiTra;
           if (data.hinhThucThanhToan === "Hỗn hợp") {
             tienMat = Number(data.splitTienMat) || 0;
             chuyenKhoan = Number(data.splitChuyenKhoan) || 0;
@@ -414,8 +414,8 @@ function thucHienDoiTra(data) {
           rowData[COL_DT_TRA.TIEN_MAT - 1] = tienMat;
           rowData[COL_DT_TRA.CHUYEN_KHOAN - 1] = chuyenKhoan;
 
-          var dtSheet = ss.getSheetByName(SHEET_NAMES.DOI_TRA);
-          var dtRow = appendRow(SHEET_NAMES.DOI_TRA, rowData);
+          const dtSheet = ss.getSheetByName(SHEET_NAMES.DOI_TRA);
+          const dtRow = appendRow(SHEET_NAMES.DOI_TRA, rowData);
           rollbackActions.push(function () {
             try {
               dtSheet.deleteRow(dtRow);
@@ -427,10 +427,10 @@ function thucHienDoiTra(data) {
           return maDT;
         } else {
           // ĐỐI TƯỢNG LÀ ĐIỆN THOẠI (logic cũ)
-          var ghiChuDH =
+          const ghiChuDH =
             dhSheet.getRange(dhRow, COL_DH.GHI_CHU).getValue() || "";
-          var imeiMatch = ghiChuDH.match(/\[IMEI:\s*([^\s\]]+)\]/);
-          var imei_Tra = imeiMatch
+          const imeiMatch = ghiChuDH.match(/\[IMEI:\s*([^\s\]]+)\]/);
+          const imei_Tra = imeiMatch
             ? imeiMatch[1]
             : lookupValue(
                 SHEET_NAMES.DIEN_THOAI,
@@ -440,7 +440,7 @@ function thucHienDoiTra(data) {
               ) || "";
 
           // 1. Đổi trạng thái đơn hàng gốc sang "Đổi trả" để trừ doanh thu/hoa hồng
-          var oldDHStatus = dhSheet
+          const oldDHStatus = dhSheet
             .getRange(dhRow, COL_DH.TRANG_THAI)
             .getValue();
           updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.TRANG_THAI, "Đổi trả");
@@ -456,7 +456,7 @@ function thucHienDoiTra(data) {
           });
 
           // 2. Hoàn trả kho máy trả về trạng thái "Còn hàng"
-          var oldPhoneStatus = lookupValue(
+          let oldPhoneStatus = lookupValue(
             SHEET_NAMES.DIEN_THOAI,
             COL_DT.IMEI,
             imei_Tra,
@@ -477,23 +477,23 @@ function thucHienDoiTra(data) {
           });
 
           // 3. Huỷ hợp đồng trả góp gốc nếu có
-          var maTG = lookupValue(SHEET_NAMES.TRA_GOP, 2, maDH, 1);
-          var oldTGStatus = "";
-          var oldLSTGStates = [];
+          const maTG = lookupValue(SHEET_NAMES.TRA_GOP, 2, maDH, 1);
+          let oldTGStatus = "";
+          const oldLSTGStates = [];
           if (maTG) {
-            var tgRow = findRow(SHEET_NAMES.TRA_GOP, 1, maTG);
+            const tgRow = findRow(SHEET_NAMES.TRA_GOP, 1, maTG);
             if (tgRow !== -1) {
               oldTGStatus = ss
                 .getSheetByName(SHEET_NAMES.TRA_GOP)
                 .getRange(tgRow, 16)
                 .getValue();
-              var lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
-              var lastRow = lstgSheet.getLastRow();
+              const lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
+              const lastRow = lstgSheet.getLastRow();
               if (lastRow > 1) {
-                var lstgData = lstgSheet
+                const lstgData = lstgSheet
                   .getRange(2, 2, lastRow - 1, 8)
                   .getValues();
-                for (var i = 0; i < lstgData.length; i++) {
+                for (let i = 0; i < lstgData.length; i++) {
                   if (String(lstgData[i][0]) === maTG) {
                     oldLSTGStates.push({
                       row: i + 2,
@@ -510,11 +510,11 @@ function thucHienDoiTra(data) {
           rollbackActions.push(function () {
             try {
               if (maTG) {
-                var tgRow = findRow(SHEET_NAMES.TRA_GOP, 1, maTG);
+                const tgRow = findRow(SHEET_NAMES.TRA_GOP, 1, maTG);
                 if (tgRow !== -1) {
                   updateCell(SHEET_NAMES.TRA_GOP, tgRow, 16, oldTGStatus);
                 }
-                var lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
+                const lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
                 oldLSTGStates.forEach(function (item) {
                   lstgSheet.getRange(item.row, 9).setValue(item.status);
                 });
@@ -523,9 +523,9 @@ function thucHienDoiTra(data) {
             } catch (err) {}
           });
 
-          var maSP_Nhan = "";
-          var tenSP_Nhan = "";
-          var imei_Nhan = "";
+          let maSP_Nhan = "";
+          let tenSP_Nhan = "";
+          let imei_Nhan = "";
 
           // 4. Nếu là Đổi máy -> Tạo đơn hàng mới cho máy nhận
           if (loaiGD === "Đổi máy") {
@@ -545,14 +545,14 @@ function thucHienDoiTra(data) {
             imei_Nhan = data.imei_Nhan;
             if (!imei_Nhan) {
               // Tự động tìm máy có mã SP_Nhan tại chi nhánh này và đang "Còn hàng"
-              var dtSheet = ss.getSheetByName(SHEET_NAMES.DIEN_THOAI);
-              var dtData = getAllData(SHEET_NAMES.DIEN_THOAI);
-              var maDTIdx = COL_DT.MA_DT - 1;
-              var chiNhanhIdx = COL_DT.CHI_NHANH - 1;
-              var trangThaiKhoIdx = COL_DT.TRANG_THAI_KHO - 1;
-              var imeiIdx = COL_DT.IMEI - 1;
+              const dtSheet = ss.getSheetByName(SHEET_NAMES.DIEN_THOAI);
+              const dtData = getAllData(SHEET_NAMES.DIEN_THOAI);
+              const maDTIdx = COL_DT.MA_DT - 1;
+              const chiNhanhIdx = COL_DT.CHI_NHANH - 1;
+              const trangThaiKhoIdx = COL_DT.TRANG_THAI_KHO - 1;
+              const imeiIdx = COL_DT.IMEI - 1;
 
-              for (var i = 0; i < dtData.length; i++) {
+              for (let i = 0; i < dtData.length; i++) {
                 if (
                   String(dtData[i][maDTIdx]) === maSP_Nhan &&
                   String(dtData[i][chiNhanhIdx]) === chiNhanh &&
@@ -573,7 +573,7 @@ function thucHienDoiTra(data) {
                 ) || "";
             }
 
-            var giaBanMoi =
+            const giaBanMoi =
               Number(
                 lookupValue(
                   SHEET_NAMES.DIEN_THOAI,
@@ -584,7 +584,7 @@ function thucHienDoiTra(data) {
               ) || 0;
 
             // Tạo đơn hàng mới cho máy nhận
-            var maDHMoi = taoDonHang({
+            const maDHMoi = taoDonHang({
               maKH: maKH,
               maSP: maSP_Nhan,
               imei: imei_Nhan,
@@ -601,8 +601,8 @@ function thucHienDoiTra(data) {
             rollbackActions.push(function () {
               try {
                 huyDonHang(maDHMoi);
-                var oSheet = ss.getSheetByName(SHEET_NAMES.DON_HANG);
-                var oRow = findRow(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDHMoi);
+                const oSheet = ss.getSheetByName(SHEET_NAMES.DON_HANG);
+                const oRow = findRow(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDHMoi);
                 if (oRow !== -1) {
                   oSheet.deleteRow(oRow);
                   clearSheetCache(SHEET_NAMES.DON_HANG);
@@ -615,10 +615,10 @@ function thucHienDoiTra(data) {
           }
 
           // 5. Ghi nhận giao dịch vào bảng DoiTra
-          var tienHoanTra = Number(data.tienHoanTra) || 0;
-          var phiDoiTra = Number(data.phiDoiTra) || 0;
+          const tienHoanTra = Number(data.tienHoanTra) || 0;
+          const phiDoiTra = Number(data.phiDoiTra) || 0;
 
-          var rowData = [];
+          const rowData = [];
           rowData[COL_DT_TRA.MA_DT - 1] = maDT;
           rowData[COL_DT_TRA.NGAY_DT - 1] = new Date();
           rowData[COL_DT_TRA.MA_DH - 1] = maDH;
@@ -640,9 +640,9 @@ function thucHienDoiTra(data) {
           rowData[COL_DT_TRA.TRANG_THAI - 1] = "Hoàn thành";
           rowData[COL_DT_TRA.GHI_CHU - 1] = data.ghiChu || "";
 
-          var tienMat = 0;
-          var chuyenKhoan = 0;
-          var totalPay = tienHoanTra > 0 ? tienHoanTra : phiDoiTra;
+          let tienMat = 0;
+          let chuyenKhoan = 0;
+          const totalPay = tienHoanTra > 0 ? tienHoanTra : phiDoiTra;
           if (data.hinhThucThanhToan === "Hỗn hợp") {
             tienMat = Number(data.splitTienMat) || 0;
             chuyenKhoan = Number(data.splitChuyenKhoan) || 0;
@@ -654,8 +654,8 @@ function thucHienDoiTra(data) {
           rowData[COL_DT_TRA.TIEN_MAT - 1] = tienMat;
           rowData[COL_DT_TRA.CHUYEN_KHOAN - 1] = chuyenKhoan;
 
-          var dtSheet = ss.getSheetByName(SHEET_NAMES.DOI_TRA);
-          var dtRow = appendRow(SHEET_NAMES.DOI_TRA, rowData);
+          const dtSheet = ss.getSheetByName(SHEET_NAMES.DOI_TRA);
+          const dtRow = appendRow(SHEET_NAMES.DOI_TRA, rowData);
           rollbackActions.push(function () {
             try {
               dtSheet.deleteRow(dtRow);
@@ -668,7 +668,7 @@ function thucHienDoiTra(data) {
         }
       }
     } catch (e) {
-      for (var rIdx = rollbackActions.length - 1; rIdx >= 0; rIdx--) {
+      for (let rIdx = rollbackActions.length - 1; rIdx >= 0; rIdx--) {
         try {
           rollbackActions[rIdx]();
         } catch (err) {}

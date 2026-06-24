@@ -38,9 +38,9 @@ function _getDienThoaiIndices() {
  * @return {Object[]} Mảng objects điện thoại
  */
 function getAllDienThoai(filter) {
-  var data = getAllData(SHEET_NAMES.DIEN_THOAI);
-  var result = [];
-  var c = _getDienThoaiIndices();
+  const data = getAllData(SHEET_NAMES.DIEN_THOAI);
+  const result = [];
+  const c = _getDienThoaiIndices();
 
   data.forEach(function (row) {
     if (row.length <= c.trangThaiKho) return;
@@ -79,9 +79,9 @@ function getAllDienThoai(filter) {
  * @return {Object[]} [{value: 'DT001', text: 'DT001 - iPhone 15 (IMEI: xxx)'}, ...]
  */
 function getDienThoaiDropdown(chiNhanh) {
-  var data = getAllData(SHEET_NAMES.DIEN_THOAI);
-  var result = [];
-  var c = _getDienThoaiIndices();
+  const data = getAllData(SHEET_NAMES.DIEN_THOAI);
+  const result = [];
+  const c = _getDienThoaiIndices();
 
   data.forEach(function (row) {
     if (row.length <= c.trangThaiKho) return;
@@ -90,14 +90,14 @@ function getDienThoaiDropdown(chiNhanh) {
       String(row[c.maDT]).trim() !== "" &&
       String(row[c.trangThaiKho]) === "Còn hàng"
     ) {
-      var rowChiNhanh = String(row[c.chiNhanh] || "");
+      const rowChiNhanh = String(row[c.chiNhanh] || "");
       if (!chiNhanh || rowChiNhanh === chiNhanh) {
-        var imeiVal = String(row[c.imei] || "");
-        var imei2Val =
+        const imeiVal = String(row[c.imei] || "");
+        const imei2Val =
           c.imei2 !== undefined && row.length > c.imei2
             ? String(row[c.imei2] || "")
             : "";
-        var imeiText = imeiVal;
+        let imeiText = imeiVal;
         if (imei2Val) {
           imeiText += " / " + imei2Val;
         }
@@ -139,7 +139,7 @@ function addDienThoai(data) {
   initializeColumnEnums();
   // Kiểm tra IMEI trùng
   if (data.imei) {
-    var existing = lookupValue(
+    const existing = lookupValue(
       SHEET_NAMES.DIEN_THOAI,
       COL_DT.IMEI,
       data.imei,
@@ -156,10 +156,10 @@ function addDienThoai(data) {
     }
   }
 
-  var maDT = generateId("DT", SHEET_NAMES.DIEN_THOAI);
+  const maDT = generateId("DT", SHEET_NAMES.DIEN_THOAI);
 
   // Tạo mảng dữ liệu với độ dài lớn nhất là 15
-  var rowData = [];
+  const rowData = [];
   rowData[COL_DT.MA_DT - 1] = maDT;
   rowData[COL_DT.TEN_SP - 1] = data.tenSP || "";
   rowData[COL_DT.THUONG_HIEU - 1] = data.thuongHieu || "";
@@ -190,18 +190,18 @@ function addDienThoai(data) {
  */
 function updateDienThoai(maDT, data) {
   initializeColumnEnums();
-  var row = findRow(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maDT);
+  const row = findRow(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maDT);
   if (row === -1) {
     showAlert("Lỗi", "Không tìm thấy điện thoại: " + maDT);
     return false;
   }
 
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(SHEET_NAMES.DIEN_THOAI);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAMES.DIEN_THOAI);
   invalidateDropdownCache(SHEET_NAMES.DIEN_THOAI);
 
   // Đảm bảo đủ số cột
-  var maxColNeeded = Math.max(
+  const maxColNeeded = Math.max(
     COL_DT.MA_DT,
     COL_DT.TEN_SP,
     COL_DT.THUONG_HIEU,
@@ -218,13 +218,13 @@ function updateDienThoai(maDT, data) {
     COL_DT.NGAY_NHAP,
     COL_DT.NGAY_XUAT,
   );
-  var maxCols = sheet.getMaxColumns();
+  const maxCols = sheet.getMaxColumns();
   if (maxCols < maxColNeeded) {
     sheet.insertColumnsAfter(maxCols, maxColNeeded - maxCols);
   }
 
-  var range = sheet.getRange(row, 1, 1, maxColNeeded);
-  var rowValues = range.getValues()[0];
+  const range = sheet.getRange(row, 1, 1, maxColNeeded);
+  const rowValues = range.getValues()[0];
 
   if (data.tenSP !== undefined)
     rowValues[COL_DT.TEN_SP - 1] = data.tenSP;
@@ -279,7 +279,7 @@ function updateDienThoai(maDT, data) {
  */
 function updateTrangThaiKhoDT(maDT_or_imei, trangThai) {
   initializeColumnEnums();
-  var row = findRow(SHEET_NAMES.DIEN_THOAI, COL_DT.IMEI, maDT_or_imei); // Tìm theo IMEI trước
+  let row = findRow(SHEET_NAMES.DIEN_THOAI, COL_DT.IMEI, maDT_or_imei); // Tìm theo IMEI trước
   if (row === -1 && COL_DT.IMEI_2) {
     row = findRow(SHEET_NAMES.DIEN_THOAI, COL_DT.IMEI_2, maDT_or_imei); // Fallback tìm theo IMEI 2
   }
@@ -291,10 +291,10 @@ function updateTrangThaiKhoDT(maDT_or_imei, trangThai) {
   updateCell(SHEET_NAMES.DIEN_THOAI, row, COL_DT.TRANG_THAI_KHO, trangThai);
 
   // Cập nhật Ngày xuất tương ứng
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(SHEET_NAMES.DIEN_THOAI);
-  var maxColNeeded = Math.max(COL_DT.TRANG_THAI_KHO, COL_DT.NGAY_XUAT);
-  var maxCols = sheet.getMaxColumns();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAMES.DIEN_THOAI);
+  const maxColNeeded = Math.max(COL_DT.TRANG_THAI_KHO, COL_DT.NGAY_XUAT);
+  const maxCols = sheet.getMaxColumns();
   if (maxCols < maxColNeeded) {
     sheet.insertColumnsAfter(maxCols, maxColNeeded - maxCols);
   }
@@ -313,17 +313,17 @@ function updateTrangThaiKhoDT(maDT_or_imei, trangThai) {
  * @return {Object[]} Kết quả tìm kiếm
  */
 function searchDienThoai(keyword) {
-  var data = getAllData(SHEET_NAMES.DIEN_THOAI);
-  var result = [];
-  var kw = String(keyword).trim().toLowerCase();
-  var c = _getDienThoaiIndices();
+  const data = getAllData(SHEET_NAMES.DIEN_THOAI);
+  const result = [];
+  const kw = String(keyword).trim().toLowerCase();
+  const c = _getDienThoaiIndices();
 
   data.forEach(function (row) {
     if (row.length <= c.imei) return;
-    var tenSP = String(row[c.tenSP]).toLowerCase();
-    var thuongHieu = String(row[c.thuongHieu]).toLowerCase();
-    var imei = String(row[c.imei]).toLowerCase();
-    var imei2 =
+    const tenSP = String(row[c.tenSP]).toLowerCase();
+    const thuongHieu = String(row[c.thuongHieu]).toLowerCase();
+    const imei = String(row[c.imei]).toLowerCase();
+    const imei2 =
       c.imei2 !== undefined && row.length > c.imei2
         ? String(row[c.imei2]).toLowerCase()
         : "";
@@ -366,19 +366,19 @@ function searchDienThoai(keyword) {
  */
 function backfillDienThoaiDates(silent) {
   initializeColumnEnums();
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var dtSheet = ss.getSheetByName(SHEET_NAMES.DIEN_THOAI);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const dtSheet = ss.getSheetByName(SHEET_NAMES.DIEN_THOAI);
   if (!dtSheet) return;
 
   // 1. Đảm bảo sheet Điện thoại có đủ các cột Ngày nhập và Ngày xuất
-  var maxColNeeded = Math.max(COL_DT.NGAY_NHAP, COL_DT.NGAY_XUAT);
-  var maxCols = dtSheet.getMaxColumns();
+  const maxColNeeded = Math.max(COL_DT.NGAY_NHAP, COL_DT.NGAY_XUAT);
+  let maxCols = dtSheet.getMaxColumns();
   if (maxCols < maxColNeeded) {
     dtSheet.insertColumnsAfter(maxCols, maxColNeeded - maxCols);
   }
 
   // 2. Kiểm tra và ghi tiêu đề cột Ngày nhập và Ngày xuất nếu chưa có hoặc sai tiêu đề
-  var needsHeaderStyle = false;
+  let needsHeaderStyle = false;
   if (
     String(dtSheet.getRange(1, COL_DT.NGAY_NHAP).getValue()).trim() !==
     "Ngày nhập"
@@ -395,7 +395,7 @@ function backfillDienThoaiDates(silent) {
   }
 
   if (needsHeaderStyle) {
-    var newHeadersRange = dtSheet.getRange(
+    const newHeadersRange = dtSheet.getRange(
       1,
       Math.min(COL_DT.NGAY_NHAP, COL_DT.NGAY_XUAT),
       1,
@@ -407,8 +407,8 @@ function backfillDienThoaiDates(silent) {
     newHeadersRange.setHorizontalAlignment("left");
   }
 
-  var lastRow = dtSheet.getLastRow();
-  var lastCol = dtSheet.getLastColumn();
+  const lastRow = dtSheet.getLastRow();
+  const lastCol = dtSheet.getLastColumn();
   if (lastRow <= 1) {
     if (!silent)
       showAlert(
@@ -419,27 +419,27 @@ function backfillDienThoaiDates(silent) {
   }
 
   // 3. Đọc dữ liệu động theo số cột thực tế
-  var dtData = dtSheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
-  var orders = getAllData(SHEET_NAMES.DON_HANG);
-  var imports = getAllData(SHEET_NAMES.NHAP_KHO);
-  var buybacks = getAllData(SHEET_NAMES.THU_MUA);
+  const dtData = dtSheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  const orders = getAllData(SHEET_NAMES.DON_HANG);
+  const imports = getAllData(SHEET_NAMES.NHAP_KHO);
+  const buybacks = getAllData(SHEET_NAMES.THU_MUA);
 
-  var updatedCount = 0;
+  let updatedCount = 0;
 
-  for (var i = 0; i < dtData.length; i++) {
-    var maDT = String(dtData[i][COL_DT.MA_DT - 1]);
-    var imei = String(dtData[i][COL_DT.IMEI - 1]);
-    var status = String(dtData[i][COL_DT.TRANG_THAI_KHO - 1]);
+  for (let i = 0; i < dtData.length; i++) {
+    const maDT = String(dtData[i][COL_DT.MA_DT - 1]);
+    const imei = String(dtData[i][COL_DT.IMEI - 1]);
+    const status = String(dtData[i][COL_DT.TRANG_THAI_KHO - 1]);
 
-    var currentNgayNhap = dtData[i][COL_DT.NGAY_NHAP - 1];
-    var currentNgayXuat = dtData[i][COL_DT.NGAY_XUAT - 1];
-    var changed = false;
+    const currentNgayNhap = dtData[i][COL_DT.NGAY_NHAP - 1];
+    const currentNgayXuat = dtData[i][COL_DT.NGAY_XUAT - 1];
+    let changed = false;
 
     // A. Tìm Ngày nhập (nếu trống)
     if (!currentNgayNhap) {
-      var ngayNhap = null;
+      let ngayNhap = null;
       // Thử tìm trong Nhập kho theo Mã điện thoại (cột 4, index 3)
-      for (var j = 0; j < imports.length; j++) {
+      for (let j = 0; j < imports.length; j++) {
         if (String(imports[j][3]) === maDT) {
           ngayNhap = imports[j][1]; // Ngày nhập (cột 2, index 1)
           break;
@@ -447,7 +447,7 @@ function backfillDienThoaiDates(silent) {
       }
       // Nếu không thấy, tìm trong Thu mua theo IMEI (cột 8, index 7)
       if (!ngayNhap && imei) {
-        for (var k = 0; k < buybacks.length; k++) {
+        for (let k = 0; k < buybacks.length; k++) {
           if (String(buybacks[k][7]) === imei) {
             ngayNhap = buybacks[k][1]; // Ngày thu mua (cột 2, index 1)
             break;
@@ -466,11 +466,11 @@ function backfillDienThoaiDates(silent) {
     // B. Tìm/Xóa Ngày xuất
     if (status === "Đã bán" || status === "Đang trả góp") {
       if (!currentNgayXuat) {
-        var ngayXuat = null;
+        let ngayXuat = null;
         // Tìm trong Đơn hàng theo Mã điện thoại (cột 5, index 4)
-        for (var j = 0; j < orders.length; j++) {
+        for (let j = 0; j < orders.length; j++) {
           if (String(orders[j][4]) === maDT) {
-            var orderStatus = String(orders[j][18]);
+            const orderStatus = String(orders[j][18]);
             if (orderStatus !== "Huỷ" && orderStatus !== "Đổi trả") {
               ngayXuat = orders[j][1]; // Ngày bán (cột 2, index 1)
               break;
@@ -496,12 +496,12 @@ function backfillDienThoaiDates(silent) {
   }
 
   // 4. Ghi ngược kết quả bằng Batch Write để tối ưu hóa hiệu suất
-  var ngayNhapVals = dtData.map(function (row) {
+  const ngayNhapVals = dtData.map(function (row) {
     return [
       row[COL_DT.NGAY_NHAP - 1] ? new Date(row[COL_DT.NGAY_NHAP - 1]) : "",
     ];
   });
-  var ngayXuatVals = dtData.map(function (row) {
+  const ngayXuatVals = dtData.map(function (row) {
     return [
       row[COL_DT.NGAY_XUAT - 1] ? new Date(row[COL_DT.NGAY_XUAT - 1]) : "",
     ];
@@ -511,8 +511,8 @@ function backfillDienThoaiDates(silent) {
   dtSheet.getRange(2, COL_DT.NGAY_XUAT, lastRow - 1, 1).setValues(ngayXuatVals);
 
   // 5. Định dạng lại cột hiển thị
-  var rangeNgayNhap = dtSheet.getRange(2, COL_DT.NGAY_NHAP, lastRow - 1, 1);
-  var rangeNgayXuat = dtSheet.getRange(2, COL_DT.NGAY_XUAT, lastRow - 1, 1);
+  const rangeNgayNhap = dtSheet.getRange(2, COL_DT.NGAY_NHAP, lastRow - 1, 1);
+  const rangeNgayXuat = dtSheet.getRange(2, COL_DT.NGAY_XUAT, lastRow - 1, 1);
   rangeNgayNhap
     .setNumberFormat("dd/MM/yyyy")
     .setFontFamily("Times New Roman")
@@ -543,9 +543,9 @@ function backfillDienThoaiDates(silent) {
  * @private
  */
 function _buildDienThoaiDropdownCache() {
-  var data = getAllData(SHEET_NAMES.DIEN_THOAI);
-  var result = [];
-  var c = _getDienThoaiIndices();
+  const data = getAllData(SHEET_NAMES.DIEN_THOAI);
+  const result = [];
+  const c = _getDienThoaiIndices();
 
   data.forEach(function (row) {
     if (row.length <= c.trangThaiKho) return;
@@ -554,13 +554,13 @@ function _buildDienThoaiDropdownCache() {
       String(row[c.maDT]).trim() !== "" &&
       String(row[c.trangThaiKho]) === "Còn hàng"
     ) {
-      var cn = String(row[c.chiNhanh] || "");
-      var imeiVal = String(row[c.imei] || "");
-      var imei2Val =
+      const cn = String(row[c.chiNhanh] || "");
+      const imeiVal = String(row[c.imei] || "");
+      const imei2Val =
         c.imei2 !== undefined && row.length > c.imei2
           ? String(row[c.imei2] || "")
           : "";
-      var imeiText = imeiVal;
+      let imeiText = imeiVal;
       if (imei2Val) {
         imeiText += " / " + imei2Val;
       }
@@ -609,17 +609,17 @@ function _buildDienThoaiDropdownCache() {
  * @return {Object[]}
  */
 function getDienThoaiDropdownSearch(chiNhanh, keyword) {
-  var kw = String(keyword).trim().toLowerCase();
+  const kw = String(keyword).trim().toLowerCase();
 
-  var allItems = getChunkedCache("dd_dt");
+  let allItems = getChunkedCache("dd_dt");
   if (!allItems) {
     allItems = _buildDienThoaiDropdownCache();
     setChunkedCache("dd_dt", allItems);
   }
 
-  var result = [];
-  for (var i = 0; i < allItems.length; i++) {
-    var item = allItems[i];
+  const result = [];
+  for (let i = 0; i < allItems.length; i++) {
+    const item = allItems[i];
     if (chiNhanh && item.cn !== chiNhanh) continue;
     if (item._s.indexOf(kw) !== -1) {
       result.push({

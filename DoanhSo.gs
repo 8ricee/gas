@@ -13,15 +13,15 @@
  * @return {boolean}
  */
 function chotDoanhSoThang(thang, nam) {
-  var thangNam = ("0" + thang).slice(-2) + "/" + nam;
+  const thangNam = ("0" + thang).slice(-2) + "/" + nam;
 
   // Kiểm tra đã chốt chưa
-  var daChot = lookupValue(SHEET_NAMES.DOANH_SO, 1, thangNam, 16);
+  const daChot = lookupValue(SHEET_NAMES.DOANH_SO, 1, thangNam, 16);
   if (daChot === "Đã chốt") {
     try {
-      var ui = SpreadsheetApp.getUi();
+      const ui = SpreadsheetApp.getUi();
       if (ui) {
-        var result = ui.alert(
+        const result = ui.alert(
           "Cảnh báo",
           "Doanh số tháng " +
             thangNam +
@@ -43,11 +43,11 @@ function chotDoanhSoThang(thang, nam) {
   }
 
   // Lấy danh sách NV đang làm
-  var allNV = getAllData(SHEET_NAMES.NHAN_VIEN);
+  const allNV = getAllData(SHEET_NAMES.NHAN_VIEN);
 
   // Lấy đơn hàng trong tháng (chỉ điện thoại, hoàn thành)
-  var donHangs = getDonHangTheoThang(thang, nam);
-  var dtDonHangs = donHangs.filter(function (dh) {
+  const donHangs = getDonHangTheoThang(thang, nam);
+  const dtDonHangs = donHangs.filter(function (dh) {
     return (
       dh.NguonSP === "Điện thoại" &&
       dh.TrangThai !== "Huỷ" &&
@@ -56,21 +56,21 @@ function chotDoanhSoThang(thang, nam) {
   });
 
   // Lấy bảo hành trong tháng
-  var baoHanhs = typeof getBaoHanhTheoThang === 'function' ? getBaoHanhTheoThang(thang, nam) : [];
+  const baoHanhs = typeof getBaoHanhTheoThang === 'function' ? getBaoHanhTheoThang(thang, nam) : [];
 
   // Lấy cấu hình hoa hồng
-  var hhBanApple = getConfigNumber("HH Bán máy - Apple");
-  var hhHTApple = getConfigNumber("HH Hỗ trợ - Apple");
-  var hhBanKhac = getConfigNumber("HH Bán máy - Khác");
-  var hhHTKhac = getConfigNumber("HH Hỗ trợ - Khác");
+  const hhBanApple = getConfigNumber("HH Bán máy - Apple");
+  const hhHTApple = getConfigNumber("HH Hỗ trợ - Apple");
+  const hhBanKhac = getConfigNumber("HH Bán máy - Khác");
+  const hhHTKhac = getConfigNumber("HH Hỗ trợ - Khác");
 
   // Tổng hợp doanh số theo từng NV
-  var nvDoanhSo = {};
+  const nvDoanhSo = {};
 
   allNV.forEach(function (nv) {
     if (String(nv[7]) === "Nghỉ việc") return;
 
-    var maNV = String(nv[0]);
+    const maNV = String(nv[0]);
     nvDoanhSo[maNV] = {
       tenNV: nv[1],
       vaiTro: String(nv[4]),
@@ -84,9 +84,9 @@ function chotDoanhSoThang(thang, nam) {
 
   // Quét đơn hàng và phân bổ
   dtDonHangs.forEach(function (dh) {
-    var nguoiBan = String(dh.NguoiBan);
-    var nguoiHoTro = String(dh.NguoiHoTro);
-    var laApple = isApple(dh.ThuongHieu);
+    const nguoiBan = String(dh.NguoiBan);
+    const nguoiHoTro = String(dh.NguoiHoTro);
+    const laApple = isApple(dh.ThuongHieu);
 
     // Tính cho người bán
     if (nguoiBan && nvDoanhSo[nguoiBan]) {
@@ -108,25 +108,25 @@ function chotDoanhSoThang(thang, nam) {
   });
 
   // Ghi vào sheet DoanhSo
-  var rows = [];
+  const rows = [];
 
   Object.keys(nvDoanhSo).forEach(function (maNV) {
-    var nv = nvDoanhSo[maNV];
+    const nv = nvDoanhSo[maNV];
 
     // Tính hoa hồng bán (chỉ khi có quyền xuất máy)
-    var hhBan = 0;
+    let hhBan = 0;
     if (nv.coQuyenXuatMay) {
       hhBan = nv.soMayBan_Apple * hhBanApple + nv.soMayBan_Khac * hhBanKhac;
     }
 
     // Hoa hồng hỗ trợ (luôn được tính)
-    var hhHoTro =
+    const hhHoTro =
       nv.soMayHoTro_Apple * hhHTApple + nv.soMayHoTro_Khac * hhHTKhac;
 
-    var tongHoaHong = hhBan + hhHoTro;
+    const tongHoaHong = hhBan + hhHoTro;
 
     // Doanh thu dịch vụ
-    var doanhThuDV = getTongPhiDichVu(maNV, thang, nam);
+    let doanhThuDV = getTongPhiDichVu(maNV, thang, nam);
     baoHanhs.forEach(function(bh) {
       if (String(bh.NguoiSua) === maNV && bh.TrangThai !== "Huỷ") {
         doanhThuDV += Number(bh.PhiSuaChua) || 0;
@@ -165,9 +165,9 @@ function chotDoanhSoThang(thang, nam) {
 
   // Ghi dữ liệu
   if (rows.length > 0) {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName(SHEET_NAMES.DOANH_SO);
-    var startRow = sheet.getLastRow() + 1;
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SHEET_NAMES.DOANH_SO);
+    const startRow = sheet.getLastRow() + 1;
     sheet.getRange(startRow, 1, rows.length, rows[0].length).setValues(rows);
 
     // Format tiền (Tối ưu: gọi setNumberFormat 1 lần duy nhất cho toàn bộ vùng cột tiền tệ liên tiếp)
@@ -193,14 +193,14 @@ function chotDoanhSoThang(thang, nam) {
  * @private
  */
 function _xoaDoanhSoThang(thangNam) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(SHEET_NAMES.DOANH_SO);
-  var lastRow = sheet.getLastRow();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAMES.DOANH_SO);
+  const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return;
 
-  var data = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  const data = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
   // Xóa từ dưới lên để tránh lệch index
-  for (var i = data.length - 1; i >= 0; i--) {
+  for (let i = data.length - 1; i >= 0; i--) {
     if (formatMonthYear(data[i][0]) === thangNam) {
       sheet.deleteRow(i + 2);
     }
@@ -215,9 +215,9 @@ function _xoaDoanhSoThang(thangNam) {
  * @return {Object}
  */
 function getBaoCaoDoanhSo(thang, nam) {
-  var thangNam = ("0" + thang).slice(-2) + "/" + nam;
-  var data = getAllData(SHEET_NAMES.DOANH_SO);
-  var result = {
+  const thangNam = ("0" + thang).slice(-2) + "/" + nam;
+  const data = getAllData(SHEET_NAMES.DOANH_SO);
+  const result = {
     thangNam: thangNam,
     nhanVien: [],
     tongSoMayBan: 0,
@@ -228,7 +228,7 @@ function getBaoCaoDoanhSo(thang, nam) {
 
   data.forEach(function (row) {
     if (formatMonthYear(row[0]) === thangNam) {
-      var nv = {
+      const nv = {
         maNV: String(row[1]),
         tenNV: String(row[2]),
         vaiTro: String(row[3]),
@@ -261,13 +261,13 @@ function getBaoCaoDoanhSo(thang, nam) {
  */
 function menuChotDoanhSo() {
   try {
-    var ui = SpreadsheetApp.getUi();
+    const ui = SpreadsheetApp.getUi();
     if (!ui) return;
-    var now = new Date();
-    var defaultThang = now.getMonth() + 1;
-    var defaultNam = now.getFullYear();
+    const now = new Date();
+    const defaultThang = now.getMonth() + 1;
+    const defaultNam = now.getFullYear();
 
-    var response = ui.prompt(
+    const response = ui.prompt(
       "Chốt doanh số tháng",
       "Nhập tháng/năm cần chốt (VD: " + defaultThang + "/" + defaultNam + "):",
       ui.ButtonSet.OK_CANCEL,
@@ -275,8 +275,8 @@ function menuChotDoanhSo() {
 
     if (response.getSelectedButton() !== ui.Button.OK) return;
 
-    var input = response.getResponseText().trim();
-    var parts = input.split("/");
+    const input = response.getResponseText().trim();
+    const parts = input.split("/");
 
     if (parts.length !== 2) {
       showAlert(
@@ -286,8 +286,8 @@ function menuChotDoanhSo() {
       return;
     }
 
-    var thang = parseInt(parts[0], 10);
-    var nam = parseInt(parts[1], 10);
+    const thang = parseInt(parts[0], 10);
+    const nam = parseInt(parts[1], 10);
 
     if (isNaN(thang) || thang < 1 || thang > 12 || isNaN(nam)) {
       showAlert("❌ Lỗi", "Tháng hoặc năm không hợp lệ!");
@@ -305,13 +305,13 @@ function menuChotDoanhSo() {
  */
 function menuXemBaoCao() {
   try {
-    var ui = SpreadsheetApp.getUi();
+    const ui = SpreadsheetApp.getUi();
     if (!ui) return;
-    var now = new Date();
-    var defaultThang = now.getMonth() + 1;
-    var defaultNam = now.getFullYear();
+    const now = new Date();
+    const defaultThang = now.getMonth() + 1;
+    const defaultNam = now.getFullYear();
 
-    var response = ui.prompt(
+    const response = ui.prompt(
       "Xem báo cáo doanh số",
       "Nhập tháng/năm cần xem (VD: " + defaultThang + "/" + defaultNam + "):",
       ui.ButtonSet.OK_CANCEL,
@@ -319,17 +319,17 @@ function menuXemBaoCao() {
 
     if (response.getSelectedButton() !== ui.Button.OK) return;
 
-    var input = response.getResponseText().trim();
-    var parts = input.split("/");
+    const input = response.getResponseText().trim();
+    const parts = input.split("/");
 
     if (parts.length !== 2) {
       showAlert("❌ Lỗi", "Định dạng không đúng!");
       return;
     }
 
-    var thang = parseInt(parts[0], 10);
-    var nam = parseInt(parts[1], 10);
-    var baoCao = getBaoCaoDoanhSo(thang, nam);
+    const thang = parseInt(parts[0], 10);
+    const nam = parseInt(parts[1], 10);
+    const baoCao = getBaoCaoDoanhSo(thang, nam);
 
     if (baoCao.nhanVien.length === 0) {
       showAlert(
@@ -339,7 +339,7 @@ function menuXemBaoCao() {
       return;
     }
 
-    var msg = "═══ BÁO CÁO DOANH SỐ THÁNG " + baoCao.thangNam + " ═══\n\n";
+    let msg = "═══ BÁO CÁO DOANH SỐ THÁNG " + baoCao.thangNam + " ═══\n\n";
     msg += "Tổng máy bán: " + baoCao.tongSoMayBan + "\n";
     msg += "Tổng hoa hồng: " + formatCurrency(baoCao.tongHoaHong) + "đ\n";
     msg +=
@@ -372,17 +372,17 @@ function menuXemBaoCao() {
  * Cập nhật báo cáo doanh số từ các bộ lọc trên sheet Báo cáo doanh số
  */
 function updateSalesReportFromSheet() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(SHEET_NAMES.BAO_CAO_DOANH_SO);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAMES.BAO_CAO_DOANH_SO);
   if (!sheet) return;
 
-  var startDateVal = sheet.getRange(3, 2).getValue(); // B3
-  var endDateVal = sheet.getRange(3, 4).getValue(); // D3
-  var staffVal = sheet.getRange(3, 6).getValue(); // F3
-  var gdFilterVal = sheet.getRange(3, 8).getValue(); // H3
+  const startDateVal = sheet.getRange(3, 2).getValue(); // B3
+  const endDateVal = sheet.getRange(3, 4).getValue(); // D3
+  const staffVal = sheet.getRange(3, 6).getValue(); // F3
+  const gdFilterVal = sheet.getRange(3, 8).getValue(); // H3
 
-  var startDate = _parseDate(startDateVal);
-  var endDate = _parseDate(endDateVal);
+  const startDate = _parseDate(startDateVal);
+  const endDate = _parseDate(endDateVal);
 
   if (!startDate || !endDate) {
     sheet
@@ -403,7 +403,7 @@ function updateSalesReportFromSheet() {
 
   try {
     generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal);
-    var nowStr = Utilities.formatDate(
+    const nowStr = Utilities.formatDate(
       new Date(),
       "Asia/Ho_Chi_Minh",
       "HH:mm:ss dd/MM/yyyy",
@@ -424,15 +424,15 @@ function updateSalesReportFromSheet() {
  */
 function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
   initializeColumnEnums();
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(SHEET_NAMES.BAO_CAO_DOANH_SO);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_NAMES.BAO_CAO_DOANH_SO);
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_NAMES.BAO_CAO_DOANH_SO);
   }
 
   // 1. Dọn dẹp dữ liệu cũ (từ dòng 6 trở đi)
-  var lastRow = sheet.getLastRow();
-  var lastCol = sheet.getLastColumn();
+  const lastRow = sheet.getLastRow();
+  const lastCol = sheet.getLastColumn();
   if (lastRow >= 6) {
     sheet
       .getRange(6, 1, lastRow - 5, Math.max(lastCol, 12))
@@ -441,18 +441,18 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
   }
 
   // 2. Tính toán doanh số live
-  var listNV = _tinhDoanhSoTuNgayDenNgay(startDate, endDate);
+  const listNV = _tinhDoanhSoTuNgayDenNgay(startDate, endDate);
 
   // Lọc theo nhân viên nếu cần
-  var targetMaNV = "tat_ca";
+  let targetMaNV = "tat_ca";
   if (staffVal && staffVal !== "Tất cả") {
-    var parts = staffVal.split(" - ");
+    const parts = staffVal.split(" - ");
     if (parts.length > 0) {
       targetMaNV = parts[0].trim();
     }
   }
 
-  var filteredListNV = listNV;
+  let filteredListNV = listNV;
   if (targetMaNV !== "tat_ca") {
     filteredListNV = listNV.filter(function (nv) {
       return nv.maNV === targetMaNV;
@@ -460,10 +460,10 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
   }
 
   // 3. Tính toán tổng hợp
-  var tongSoMayBan = 0;
-  var tongHoaHong = 0;
-  var tongDoanhThuDV = 0;
-  var tongThuNhap = 0;
+  let tongSoMayBan = 0;
+  let tongHoaHong = 0;
+  let tongDoanhThuDV = 0;
+  let tongThuNhap = 0;
 
   filteredListNV.forEach(function (nv) {
     tongSoMayBan += nv.soMayBan_Apple + nv.soMayBan_Khac;
@@ -473,7 +473,7 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
   });
 
   // 4. Ghi bảng tổng hợp chỉ tiêu tài chính (dòng 6 -> 10)
-  var summaryTitleRange = sheet.getRange(6, 1, 1, 2);
+  const summaryTitleRange = sheet.getRange(6, 1, 1, 2);
   summaryTitleRange.merge();
   summaryTitleRange
     .setValue("TỔNG HỢP CHỈ TIÊU DOANH SỐ & COMMISSION")
@@ -482,7 +482,7 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
     .setFontWeight("bold")
     .setHorizontalAlignment("left");
 
-  var summaryData = [
+  const summaryData = [
     ["Chỉ tiêu", "Giá trị"],
     ["1. Tổng máy bán", tongSoMayBan],
     ["2. Tổng hoa hồng nhân viên", tongHoaHong],
@@ -512,10 +512,10 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
     );
 
   // 5. Ghi bảng chi tiết nhân viên (bắt đầu từ dòng 13)
-  var startRow = 13;
-  var detailTitleRange = sheet.getRange(startRow, 1, 1, 12);
+  const startRow = 13;
+  const detailTitleRange = sheet.getRange(startRow, 1, 1, 12);
   detailTitleRange.merge();
-  var periodStr = formatDate(startDate) + " - " + formatDate(endDate);
+  const periodStr = formatDate(startDate) + " - " + formatDate(endDate);
   detailTitleRange
     .setValue("CHI TIẾT DOANH SỐ NHÂN VIÊN (" + periodStr + ")")
     .setBackground("#1a73e8")
@@ -523,7 +523,7 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
     .setFontWeight("bold")
     .setHorizontalAlignment("left");
 
-  var detailHeaders = [
+  const detailHeaders = [
     "Mã nhân viên",
     "Tên nhân viên",
     "Vai trò",
@@ -544,15 +544,15 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
     .setBackground("#e8f0fe")
     .setHorizontalAlignment("left");
 
-  var totalRowIdx = startRow + 2;
+  let totalRowIdx = startRow + 2;
 
   if (filteredListNV.length > 0) {
-    var detailRows = [];
-    var sumBanAP = 0,
+    const detailRows = [];
+    let sumBanAP = 0,
       sumBanKhac = 0,
       sumHTAP = 0,
       sumHTKhac = 0;
-    var sumHHBan = 0,
+    let sumHHBan = 0,
       sumHHHT = 0,
       sumDV = 0,
       sumTongTN = 0;
@@ -628,7 +628,7 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
         SpreadsheetApp.BorderStyle.SOLID,
       );
   } else {
-    var emptyRange = sheet.getRange(startRow + 2, 1, 1, 12);
+    const emptyRange = sheet.getRange(startRow + 2, 1, 1, 12);
     emptyRange.merge();
     emptyRange
       .setValue(
@@ -653,8 +653,8 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
   }
 
   // 6. Giao dịch chi tiết (bắt đầu từ dòng totalRowIdx + 3)
-  var txStartRow = totalRowIdx + 3;
-  var txTitleRange = sheet.getRange(txStartRow, 1, 1, 12);
+  const txStartRow = totalRowIdx + 3;
+  const txTitleRange = sheet.getRange(txStartRow, 1, 1, 12);
   txTitleRange.merge();
   txTitleRange
     .setValue("DANH SÁCH GIAO DỊCH CHI TIẾT")
@@ -663,7 +663,7 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
     .setFontWeight("bold")
     .setHorizontalAlignment("left");
 
-  var txHeaders = [
+  const txHeaders = [
     "Thời gian",
     "Mã giao dịch",
     "Nhân viên",
@@ -685,11 +685,11 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
     .setHorizontalAlignment("left");
 
   // Thu thập giao dịch chi tiết
-  var allNV = getAllData(SHEET_NAMES.NHAN_VIEN);
-  var orders = getAllData(SHEET_NAMES.DON_HANG);
-  var services = getAllData(SHEET_NAMES.DICH_VU);
+  const allNV = getAllData(SHEET_NAMES.NHAN_VIEN);
+  const orders = getAllData(SHEET_NAMES.DON_HANG);
+  const services = getAllData(SHEET_NAMES.DICH_VU);
 
-  var nvMap = {};
+  const nvMap = {};
   allNV.forEach(function (nv) {
     nvMap[String(nv[0])] = {
       tenNV: String(nv[1]),
@@ -698,18 +698,18 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
     };
   });
 
-  var hhBanApple = getConfigNumber("HH Bán máy - Apple");
-  var hhHTApple = getConfigNumber("HH Hỗ trợ - Apple");
-  var hhBanKhac = getConfigNumber("HH Bán máy - Khác");
-  var hhHTKhac = getConfigNumber("HH Hỗ trợ - Khác");
+  const hhBanApple = getConfigNumber("HH Bán máy - Apple");
+  const hhHTApple = getConfigNumber("HH Hỗ trợ - Apple");
+  const hhBanKhac = getConfigNumber("HH Bán máy - Khác");
+  const hhHTKhac = getConfigNumber("HH Hỗ trợ - Khác");
 
-  var txList = [];
+  let txList = [];
 
   // A. Đơn hàng
   orders.forEach(function (row) {
-    var ngayBan = row[COL_DH.NGAY_BAN - 1];
+    const ngayBan = row[COL_DH.NGAY_BAN - 1];
     if (!(ngayBan instanceof Date)) return;
-    var status = String(row[COL_DH.TRANG_THAI - 1]);
+    const status = String(row[COL_DH.TRANG_THAI - 1]);
     if (
       ngayBan >= startDate &&
       ngayBan <= endDate &&
@@ -717,26 +717,26 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
       status !== "Huỷ" &&
       status !== "Đổi trả"
     ) {
-      var maDH = String(row[COL_DH.MA_DH - 1]);
-      var tenKH = String(row[COL_DH.TEN_KH - 1]);
-      var tenSP = String(row[COL_DH.TEN_SP - 1]);
-      var sl = Number(row[COL_DH.SO_LUONG - 1]) || 0;
-      var donGia = Number(row[COL_DH.DON_GIA - 1]) || 0;
-      var thanhTien = Number(row[COL_DH.THANH_TIEN - 1]) || 0;
-      var nguoiBan = String(row[COL_DH.NGUOI_BAN - 1]);
-      var nguoiHoTro = String(row[COL_DH.NGUOI_HO_TRO - 1]);
-      var laApple = isApple(String(row[COL_DH.THUONG_HIEU - 1]));
-      var branch = String(row[COL_DH.CHI_NHANH - 1] || "");
-      var ghiChu = String(row[COL_DH.GHI_CHU - 1] || "");
+      const maDH = String(row[COL_DH.MA_DH - 1]);
+      const tenKH = String(row[COL_DH.TEN_KH - 1]);
+      const tenSP = String(row[COL_DH.TEN_SP - 1]);
+      const sl = Number(row[COL_DH.SO_LUONG - 1]) || 0;
+      const donGia = Number(row[COL_DH.DON_GIA - 1]) || 0;
+      const thanhTien = Number(row[COL_DH.THANH_TIEN - 1]) || 0;
+      const nguoiBan = String(row[COL_DH.NGUOI_BAN - 1]);
+      const nguoiHoTro = String(row[COL_DH.NGUOI_HO_TRO - 1]);
+      const laApple = isApple(String(row[COL_DH.THUONG_HIEU - 1]));
+      const branch = String(row[COL_DH.CHI_NHANH - 1] || "");
+      const ghiChu = String(row[COL_DH.GHI_CHU - 1] || "");
 
       // Bán chính
       if (nguoiBan && (targetMaNV === "tat_ca" || nguoiBan === targetMaNV)) {
-        var nvInfo = nvMap[nguoiBan] || {
+        const nvInfo = nvMap[nguoiBan] || {
           tenNV: nguoiBan,
           vaiTro: "Bán hàng",
           coQuyenXuatMay: false,
         };
-        var hh = 0;
+        let hh = 0;
         if (nvInfo.coQuyenXuatMay) {
           hh = laApple ? hhBanApple : hhBanKhac;
         }
@@ -762,12 +762,12 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
         nguoiHoTro &&
         (targetMaNV === "tat_ca" || nguoiHoTro === targetMaNV)
       ) {
-        var nvInfo = nvMap[nguoiHoTro] || {
+        const nvInfo = nvMap[nguoiHoTro] || {
           tenNV: nguoiHoTro,
           vaiTro: "Bán hàng",
           coQuyenXuatMay: false,
         };
-        var hh = laApple ? hhHTApple : hhHTKhac;
+        const hh = laApple ? hhHTApple : hhHTKhac;
         txList.push({
           time: ngayBan,
           maGD: maDH,
@@ -789,24 +789,24 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
 
   // B. Dịch vụ
   services.forEach(function (row) {
-    var ngayGD = row[COL_DV.NGAY_GD - 1];
+    const ngayGD = row[COL_DV.NGAY_GD - 1];
     if (!(ngayGD instanceof Date)) return;
-    var status = String(row[COL_DV.TRANG_THAI - 1]);
+    const status = String(row[COL_DV.TRANG_THAI - 1]);
     if (ngayGD >= startDate && ngayGD <= endDate && status !== "Huỷ") {
-      var maDV = String(row[COL_DV.MA_DV - 1]);
-      var loaiDV = String(row[COL_DV.LOAI_DV - 1]);
-      var tenKH = String(row[COL_DV.TEN_KH - 1]);
-      var soTien = Number(row[COL_DV.SO_TIEN_GD - 1]) || 0;
-      var phi = Number(row[COL_DV.PHI_DV - 1]) || 0;
-      var nguoiThucHien = String(row[COL_DV.NGUOI_THUC_HIEN - 1]);
-      var branch = String(row[COL_DV.CHI_NHANH - 1] || "");
-      var ghiChu = String(row[COL_DV.GHI_CHU - 1] || "");
+      const maDV = String(row[COL_DV.MA_DV - 1]);
+      const loaiDV = String(row[COL_DV.LOAI_DV - 1]);
+      const tenKH = String(row[COL_DV.TEN_KH - 1]);
+      const soTien = Number(row[COL_DV.SO_TIEN_GD - 1]) || 0;
+      const phi = Number(row[COL_DV.PHI_DV - 1]) || 0;
+      const nguoiThucHien = String(row[COL_DV.NGUOI_THUC_HIEN - 1]);
+      const branch = String(row[COL_DV.CHI_NHANH - 1] || "");
+      const ghiChu = String(row[COL_DV.GHI_CHU - 1] || "");
 
       if (
         nguoiThucHien &&
         (targetMaNV === "tat_ca" || nguoiThucHien === targetMaNV)
       ) {
-        var nvInfo = nvMap[nguoiThucHien] || {
+        const nvInfo = nvMap[nguoiThucHien] || {
           tenNV: nguoiThucHien,
           vaiTro: "Dịch vụ",
           coQuyenXuatMay: false,
@@ -831,26 +831,26 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
   });
 
   // C. Bảo hành & Sửa chữa
-  var repairs = getAllData(SHEET_NAMES.BAO_HANH);
+  const repairs = getAllData(SHEET_NAMES.BAO_HANH);
   repairs.forEach(function (row) {
-    var ngayNhan = row[COL_BH.NGAY_NHAN - 1];
+    const ngayNhan = row[COL_BH.NGAY_NHAN - 1];
     if (!(ngayNhan instanceof Date)) return;
-    var status = String(row[COL_BH.TRANG_THAI - 1]);
+    const status = String(row[COL_BH.TRANG_THAI - 1]);
     if (ngayNhan >= startDate && ngayNhan <= endDate && status !== "Huỷ") {
-      var maBH = String(row[COL_BH.MA_BH - 1]);
-      var tenKH = String(row[COL_BH.TEN_KH - 1]);
-      var tenSP = String(row[COL_BH.TEN_SP - 1]);
-      var loaiDV = String(row[COL_BH.LOAI_DICH_VU - 1]);
-      var phiSuaChua = Number(row[COL_BH.PHI_SUA_CHUA - 1]) || 0;
-      var nguoiSua = String(row[COL_BH.NGUOI_SUA - 1] || "").trim();
-      var branch = String(row[COL_BH.CHI_NHANH - 1] || "");
-      var ghiChu = String(row[COL_BH.GHI_CHU - 1] || "");
+      const maBH = String(row[COL_BH.MA_BH - 1]);
+      const tenKH = String(row[COL_BH.TEN_KH - 1]);
+      const tenSP = String(row[COL_BH.TEN_SP - 1]);
+      const loaiDV = String(row[COL_BH.LOAI_DICH_VU - 1]);
+      const phiSuaChua = Number(row[COL_BH.PHI_SUA_CHUA - 1]) || 0;
+      const nguoiSua = String(row[COL_BH.NGUOI_SUA - 1] || "").trim();
+      const branch = String(row[COL_BH.CHI_NHANH - 1] || "");
+      const ghiChu = String(row[COL_BH.GHI_CHU - 1] || "");
 
       if (
         nguoiSua &&
         (targetMaNV === "tat_ca" || nguoiSua === targetMaNV)
       ) {
-        var nvInfo = nvMap[nguoiSua] || {
+        const nvInfo = nvMap[nguoiSua] || {
           tenNV: nguoiSua,
           vaiTro: "Kỹ thuật",
           coQuyenXuatMay: false,
@@ -887,8 +887,8 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
   }
 
   if (txList.length > 0) {
-    var txRows = [];
-    var sumRev = 0,
+    const txRows = [];
+    let sumRev = 0,
       sumComm = 0,
       sumFee = 0;
 
@@ -922,7 +922,7 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
       .setNumberFormat("#,##0");
 
     // Dòng tổng cộng giao dịch
-    var txTotalRowIdx = txStartRow + 2 + txRows.length;
+    const txTotalRowIdx = txStartRow + 2 + txRows.length;
     sheet
       .getRange(txTotalRowIdx, 1)
       .setValue("Tổng cộng")
@@ -952,7 +952,7 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
         SpreadsheetApp.BorderStyle.SOLID,
       );
   } else {
-    var emptyRange = sheet.getRange(txStartRow + 2, 1, 1, 12);
+    const emptyRange = sheet.getRange(txStartRow + 2, 1, 1, 12);
     emptyRange.merge();
     emptyRange
       .setValue("Không có giao dịch chi tiết nào phù hợp với bộ lọc.")
@@ -974,15 +974,15 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
   }
 
   // Format font Times New Roman size 12
-  var maxRows = sheet.getMaxRows();
-  var maxCols = sheet.getMaxColumns();
+  const maxRows = sheet.getMaxRows();
+  const maxCols = sheet.getMaxColumns();
   sheet
     .getRange(1, 1, maxRows, maxCols)
     .setFontFamily("Times New Roman")
     .setFontSize(12);
 
   // Auto resize columns
-  for (var col = 1; col <= 12; col++) {
+  for (let col = 1; col <= 12; col++) {
     sheet.autoResizeColumn(col);
   }
 }
@@ -992,15 +992,15 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
  * @private
  */
 function _tinhDoanhSoTuNgayDenNgay(startDate, endDate) {
-  var allNV = getAllData(SHEET_NAMES.NHAN_VIEN);
-  var orders = getAllData(SHEET_NAMES.DON_HANG);
-  var services = getAllData(SHEET_NAMES.DICH_VU);
+  const allNV = getAllData(SHEET_NAMES.NHAN_VIEN);
+  const orders = getAllData(SHEET_NAMES.DON_HANG);
+  const services = getAllData(SHEET_NAMES.DICH_VU);
 
   // Lọc đơn hàng thỏa mãn
-  var dtDonHangs = orders.filter(function (row) {
-    var ngayBan = row[COL_DH.NGAY_BAN - 1];
+  const dtDonHangs = orders.filter(function (row) {
+    const ngayBan = row[COL_DH.NGAY_BAN - 1];
     if (!(ngayBan instanceof Date)) return false;
-    var status = String(row[COL_DH.TRANG_THAI - 1]);
+    const status = String(row[COL_DH.TRANG_THAI - 1]);
     return (
       ngayBan >= startDate &&
       ngayBan <= endDate &&
@@ -1011,17 +1011,17 @@ function _tinhDoanhSoTuNgayDenNgay(startDate, endDate) {
   });
 
   // Lấy cấu hình hoa hồng
-  var hhBanApple = getConfigNumber("HH Bán máy - Apple");
-  var hhHTApple = getConfigNumber("HH Hỗ trợ - Apple");
-  var hhBanKhac = getConfigNumber("HH Bán máy - Khác");
-  var hhHTKhac = getConfigNumber("HH Hỗ trợ - Khác");
+  const hhBanApple = getConfigNumber("HH Bán máy - Apple");
+  const hhHTApple = getConfigNumber("HH Hỗ trợ - Apple");
+  const hhBanKhac = getConfigNumber("HH Bán máy - Khác");
+  const hhHTKhac = getConfigNumber("HH Hỗ trợ - Khác");
 
-  var nvDoanhSo = {};
+  const nvDoanhSo = {};
 
   allNV.forEach(function (nv) {
     if (String(nv[7]) === "Nghỉ việc") return;
 
-    var maNV = String(nv[0]);
+    const maNV = String(nv[0]);
     nvDoanhSo[maNV] = {
       maNV: maNV,
       tenNV: nv[1],
@@ -1042,9 +1042,9 @@ function _tinhDoanhSoTuNgayDenNgay(startDate, endDate) {
 
   // Quét đơn hàng phân bổ
   dtDonHangs.forEach(function (row) {
-    var nguoiBan = String(row[COL_DH.NGUOI_BAN - 1]);
-    var nguoiHoTro = String(row[COL_DH.NGUOI_HO_TRO - 1]);
-    var laApple = isApple(String(row[COL_DH.THUONG_HIEU - 1]));
+    const nguoiBan = String(row[COL_DH.NGUOI_BAN - 1]);
+    const nguoiHoTro = String(row[COL_DH.NGUOI_HO_TRO - 1]);
+    const laApple = isApple(String(row[COL_DH.THUONG_HIEU - 1]));
 
     if (nguoiBan && nvDoanhSo[nguoiBan]) {
       if (laApple) nvDoanhSo[nguoiBan].soMayBan_Apple++;
@@ -1059,12 +1059,12 @@ function _tinhDoanhSoTuNgayDenNgay(startDate, endDate) {
 
   // Quét dịch vụ phân bổ
   services.forEach(function (row) {
-    var ngayGD = row[COL_DV.NGAY_GD - 1];
+    const ngayGD = row[COL_DV.NGAY_GD - 1];
     if (!(ngayGD instanceof Date)) return;
-    var status = String(row[COL_DV.TRANG_THAI - 1]);
+    const status = String(row[COL_DV.TRANG_THAI - 1]);
     if (ngayGD >= startDate && ngayGD <= endDate && status !== "Huỷ") {
-      var maNV = String(row[COL_DV.NGUOI_THUC_HIEN - 1]);
-      var phi = Number(row[COL_DV.PHI_DV - 1]) || 0;
+      const maNV = String(row[COL_DV.NGUOI_THUC_HIEN - 1]);
+      const phi = Number(row[COL_DV.PHI_DV - 1]) || 0;
       if (maNV && nvDoanhSo[maNV]) {
         nvDoanhSo[maNV].doanhThuDV += phi;
       }
@@ -1072,23 +1072,23 @@ function _tinhDoanhSoTuNgayDenNgay(startDate, endDate) {
   });
 
   // Quét bảo hành phân bổ
-  var repairs = getAllData(SHEET_NAMES.BAO_HANH);
+  const repairs = getAllData(SHEET_NAMES.BAO_HANH);
   repairs.forEach(function (row) {
-    var ngayNhan = row[COL_BH.NGAY_NHAN - 1];
+    const ngayNhan = row[COL_BH.NGAY_NHAN - 1];
     if (!(ngayNhan instanceof Date)) return;
-    var status = String(row[COL_BH.TRANG_THAI - 1]);
+    const status = String(row[COL_BH.TRANG_THAI - 1]);
     if (ngayNhan >= startDate && ngayNhan <= endDate && status !== "Huỷ") {
-      var maNV = String(row[COL_BH.NGUOI_SUA - 1] || "").trim();
-      var phiSuaChua = Number(row[COL_BH.PHI_SUA_CHUA - 1]) || 0;
+      const maNV = String(row[COL_BH.NGUOI_SUA - 1] || "").trim();
+      const phiSuaChua = Number(row[COL_BH.PHI_SUA_CHUA - 1]) || 0;
       if (maNV && nvDoanhSo[maNV]) {
         nvDoanhSo[maNV].doanhThuDV += phiSuaChua;
       }
     }
   });
 
-  var listNV = [];
+  const listNV = [];
   Object.keys(nvDoanhSo).forEach(function (maNV) {
-    var nv = nvDoanhSo[maNV];
+    const nv = nvDoanhSo[maNV];
     if (nv.coQuyenXuatMay) {
       nv.hhBan = nv.soMayBan_Apple * hhBanApple + nv.soMayBan_Khac * hhBanKhac;
     }
@@ -1121,9 +1121,9 @@ function _tinhDoanhSoTuNgayDenNgay(startDate, endDate) {
  */
 function getBaoCaoDoanhSoDong(params) {
   initializeColumnEnums();
-  var loaiTG = params.loaiThoiGian || "thang";
-  var targetMaNV = params.maNV || "tat_ca";
-  var result = {
+  const loaiTG = params.loaiThoiGian || "thang";
+  const targetMaNV = params.maNV || "tat_ca";
+  const result = {
     thangNam: "",
     nhanVien: [],
     tongSoMayBan: 0,
@@ -1132,15 +1132,15 @@ function getBaoCaoDoanhSoDong(params) {
     tongThuNhap: 0,
   };
 
-  var listNV = [];
+  let listNV = [];
 
   if (loaiTG === "thang") {
-    var thangNam = ("0" + params.thang).slice(-2) + "/" + params.nam;
+    const thangNam = ("0" + params.thang).slice(-2) + "/" + params.nam;
     result.thangNam = thangNam;
 
     // Xem báo cáo từ dữ liệu đã chốt
-    var dataDS = getAllData(SHEET_NAMES.DOANH_SO);
-    var records = [];
+    const dataDS = getAllData(SHEET_NAMES.DOANH_SO);
+    const records = [];
     dataDS.forEach(function (row) {
       if (formatMonthYear(row[0]) === thangNam) {
         records.push({
@@ -1165,13 +1165,13 @@ function getBaoCaoDoanhSoDong(params) {
     if (records.length > 0) {
       listNV = records;
     } else {
-      var ngayDau = new Date(params.nam, params.thang - 1, 1, 0, 0, 0);
-      var ngayCuoi = new Date(params.nam, params.thang, 0, 23, 59, 59);
+      const ngayDau = new Date(params.nam, params.thang - 1, 1, 0, 0, 0);
+      const ngayCuoi = new Date(params.nam, params.thang, 0, 23, 59, 59);
       listNV = _tinhDoanhSoTuNgayDenNgay(ngayDau, ngayCuoi);
     }
   } else {
-    var tuNgay = new Date(params.tuNgay + "T00:00:00");
-    var denNgay = new Date(params.denNgay + "T23:59:59");
+    const tuNgay = new Date(params.tuNgay + "T00:00:00");
+    const denNgay = new Date(params.denNgay + "T23:59:59");
     result.thangNam = formatDate(tuNgay) + " - " + formatDate(denNgay);
     listNV = _tinhDoanhSoTuNgayDenNgay(tuNgay, denNgay);
   }

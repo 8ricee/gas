@@ -9,12 +9,12 @@
  * Tạo/Cập nhật báo cáo ngày dựa trên ngày được chọn ở ô B3
  */
 function updateDailyReportFromSheet() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(SHEET_NAMES.BAO_CAO_NGAY);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAMES.BAO_CAO_NGAY);
   if (!sheet) return;
 
-  var dateVal = sheet.getRange(3, 2).getValue(); // Cell B3
-  var date = _parseDate(dateVal);
+  const dateVal = sheet.getRange(3, 2).getValue(); // Cell B3
+  const date = _parseDate(dateVal);
   if (!date) {
     sheet
       .getRange(4, 2)
@@ -27,7 +27,7 @@ function updateDailyReportFromSheet() {
 
   try {
     generateDailyReport(date);
-    var nowStr = Utilities.formatDate(
+    const nowStr = Utilities.formatDate(
       new Date(),
       "Asia/Ho_Chi_Minh",
       "HH:mm:ss dd/MM/yyyy",
@@ -45,19 +45,19 @@ function updateDailyReportFromSheet() {
  */
 function generateDailyReport(targetDate) {
   initializeColumnEnums();
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var reportSheet = ss.getSheetByName(SHEET_NAMES.BAO_CAO_NGAY);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let reportSheet = ss.getSheetByName(SHEET_NAMES.BAO_CAO_NGAY);
   if (!reportSheet) {
     reportSheet = ss.insertSheet(SHEET_NAMES.BAO_CAO_NGAY);
   }
 
   // Đọc danh sách chi nhánh động
-  var branches = getBranchesList();
-  var fallbackBranch = "Khác/Hệ thống";
+  const branches = getBranchesList();
+  const fallbackBranch = "Khác/Hệ thống";
 
   // Khởi tạo accumulator tài chính theo từng chi nhánh
-  var branchMetrics = _initBranchMetrics(branches, fallbackBranch);
-  var transactions = [];
+  const branchMetrics = _initBranchMetrics(branches, fallbackBranch);
+  const transactions = [];
 
   // Thu thập giao dịch theo ngày
   _collectDonHang(targetDate, branchMetrics, fallbackBranch, transactions, ss);
@@ -86,7 +86,7 @@ function generateDailyReport(targetDate) {
 
   reportSheet.getRange(3, 1).setValue("Ngày báo cáo:").setFontWeight("bold");
 
-  var dateCell = reportSheet.getRange(3, 2);
+  const dateCell = reportSheet.getRange(3, 2);
   dateCell
     .setValue(targetDate)
     .setNumberFormat("dd/MM/yyyy")
@@ -109,8 +109,8 @@ function generateDailyReport(targetDate) {
     .setFontWeight("bold");
 
   // Chuẩn bị danh sách các chi nhánh hiển thị ở bảng tổng hợp
-  var activeBranches = branches.slice();
-  var fb = branchMetrics[fallbackBranch];
+  const activeBranches = branches.slice();
+  const fb = branchMetrics[fallbackBranch];
   if (
     fb.doanhSo !== 0 ||
     fb.loiNhuan !== 0 ||
@@ -121,8 +121,8 @@ function generateDailyReport(targetDate) {
   ) {
     activeBranches.push(fallbackBranch);
   }
-  var numActiveBranches = activeBranches.length;
-  var totalSummaryColIdx = numActiveBranches + 2;
+  const numActiveBranches = activeBranches.length;
+  const totalSummaryColIdx = numActiveBranches + 2;
 
   // Ghi bảng tổng hợp chỉ tiêu tài chính
   _writeSummaryTableToSheet(reportSheet, branchMetrics, activeBranches, totalSummaryColIdx);
@@ -131,16 +131,16 @@ function generateDailyReport(targetDate) {
   _writeDetailedTablesToSheet(reportSheet, transactions, activeBranches, fallbackBranch);
 
   // Áp dụng font Times New Roman 12 cho toàn sheet
-  var maxRows = reportSheet.getMaxRows();
-  var maxCols = reportSheet.getMaxColumns();
+  const maxRows = reportSheet.getMaxRows();
+  const maxCols = reportSheet.getMaxColumns();
   reportSheet
     .getRange(1, 1, maxRows, maxCols)
     .setFontFamily("Times New Roman")
     .setFontSize(12);
 
   // Auto resize các cột hiển thị
-  var colsToResize = Math.max(10, totalSummaryColIdx);
-  for (var col = 1; col <= colsToResize; col++) {
+  const colsToResize = Math.max(10, totalSummaryColIdx);
+  for (let col = 1; col <= colsToResize; col++) {
     reportSheet.autoResizeColumn(col);
   }
 }
@@ -150,7 +150,7 @@ function generateDailyReport(targetDate) {
  * @private
  */
 function _initBranchMetrics(branches, fallbackBranch) {
-  var branchMetrics = {};
+  const branchMetrics = {};
   branches.forEach(function (b) {
     branchMetrics[b] = {
       doanhSo: 0,
@@ -177,29 +177,29 @@ function _initBranchMetrics(branches, fallbackBranch) {
  * @private
  */
 function _collectDonHang(targetDate, branchMetrics, fallbackBranch, transactions, ss) {
-  var orders = getAllData(SHEET_NAMES.DON_HANG);
+  const orders = getAllData(SHEET_NAMES.DON_HANG);
   orders.forEach(function (row) {
-    var ngayBan = row[COL_DH.NGAY_BAN - 1];
+    const ngayBan = row[COL_DH.NGAY_BAN - 1];
     if (ngayBan instanceof Date && _isSameDay(ngayBan, targetDate)) {
-      var status = String(row[COL_DH.TRANG_THAI - 1]);
+      const status = String(row[COL_DH.TRANG_THAI - 1]);
       if (status === "Huỷ" || status === "Đổi trả") return;
 
-      var maDH = String(row[COL_DH.MA_DH - 1]);
-      var tenKH = String(row[COL_DH.TEN_KH - 1]);
-      var maSP = String(row[COL_DH.MA_SP - 1]);
-      var tenSP = String(row[COL_DH.TEN_SP - 1]);
-      var nguonSP = String(row[COL_DH.NGUON_SP - 1]);
-      var sl = Number(row[COL_DH.SO_LUONG - 1]) || 0;
-      var donGia = Number(row[COL_DH.DON_GIA - 1]) || 0;
-      var thanhTien = parseAmountVal(row[COL_DH.THANH_TIEN - 1]);
-      var hinhThucBan = String(row[COL_DH.HINH_THUC_BAN - 1]);
-      var hinhThucTT = String(row[COL_DH.HINH_THUC_TT - 1]);
-      var branch = String(row[COL_DH.CHI_NHANH - 1] || "").trim();
-      var maQua = String(row[COL_DH.MA_QUA_TANG - 1] || "");
-      var coNhanQua = String(row[COL_DH.CO_NHAN_QUA - 1] || "✗");
+      const maDH = String(row[COL_DH.MA_DH - 1]);
+      const tenKH = String(row[COL_DH.TEN_KH - 1]);
+      const maSP = String(row[COL_DH.MA_SP - 1]);
+      const tenSP = String(row[COL_DH.TEN_SP - 1]);
+      const nguonSP = String(row[COL_DH.NGUON_SP - 1]);
+      const sl = Number(row[COL_DH.SO_LUONG - 1]) || 0;
+      const donGia = Number(row[COL_DH.DON_GIA - 1]) || 0;
+      const thanhTien = parseAmountVal(row[COL_DH.THANH_TIEN - 1]);
+      const hinhThucBan = String(row[COL_DH.HINH_THUC_BAN - 1]);
+      const hinhThucTT = String(row[COL_DH.HINH_THUC_TT - 1]);
+      const branch = String(row[COL_DH.CHI_NHANH - 1] || "").trim();
+      const maQua = String(row[COL_DH.MA_QUA_TANG - 1] || "");
+      const coNhanQua = String(row[COL_DH.CO_NHAN_QUA - 1] || "✗");
 
       // Tra cứu giá nhập sản phẩm chính
-      var giaNhapSP = 0;
+      let giaNhapSP = 0;
       if (nguonSP === "Điện thoại") {
         giaNhapSP =
           Number(
@@ -220,7 +220,7 @@ function _collectDonHang(targetDate, branchMetrics, fallbackBranch, transactions
           ) ||
           0;
       } else {
-        var pkRow = findPhuKienRow(maSP, branch);
+        const pkRow = findPhuKienRow(maSP, branch);
         if (pkRow !== -1) {
           giaNhapSP =
             Number(
@@ -231,16 +231,16 @@ function _collectDonHang(targetDate, branchMetrics, fallbackBranch, transactions
             ) || 0;
         }
       }
-      var costSP = giaNhapSP * sl;
+      const costSP = giaNhapSP * sl;
 
       // Tra cứu giá nhập quà tặng (nếu nhận quà)
-      var costQua = 0;
+      let costQua = 0;
       if (coNhanQua === "✓" && maQua) {
-        var maQuaList = String(maQua).split(",");
-        for (var i = 0; i < maQuaList.length; i++) {
-          var code = maQuaList[i].trim();
+        const maQuaList = String(maQua).split(",");
+        for (let i = 0; i < maQuaList.length; i++) {
+          const code = maQuaList[i].trim();
           if (!code) continue;
-          var quaRow = findPhuKienRow(code, branch);
+          const quaRow = findPhuKienRow(code, branch);
           if (quaRow !== -1) {
             costQua +=
               Number(
@@ -253,17 +253,17 @@ function _collectDonHang(targetDate, branchMetrics, fallbackBranch, transactions
         }
       }
 
-      var loiNhuan = thanhTien - costSP - costQua;
+      const loiNhuan = thanhTien - costSP - costQua;
 
       // Tính dòng tiền
-      var thuTM = 0;
-      var thuCK = 0;
+      let thuTM = 0;
+      let thuCK = 0;
 
-      var cellTM = row[COL_DH.TIEN_MAT - 1];
-      var cellCK = row[COL_DH.CHUYEN_KHOAN - 1];
+      const cellTM = row[COL_DH.TIEN_MAT - 1];
+      const cellCK = row[COL_DH.CHUYEN_KHOAN - 1];
 
       // Check if we have new columns populated with non-zero values (new flow)
-      var hasNewColumns =
+      const hasNewColumns =
         (cellTM !== undefined && cellTM !== "" && Number(cellTM) !== 0) ||
         (cellCK !== undefined && cellCK !== "" && Number(cellCK) !== 0);
 
@@ -273,14 +273,14 @@ function _collectDonHang(targetDate, branchMetrics, fallbackBranch, transactions
 
         // Với trả góp CTTC, công ty tài chính giải ngân phần còn lại qua CK
         if (hinhThucBan === "Trả góp") {
-          var traTruocRaw = lookupValue(
+          const traTruocRaw = lookupValue(
             SHEET_NAMES.TRA_GOP,
             COL_TG.MA_DH,
             maDH,
             COL_TG.TRA_TRUOC,
           );
-          var traTruoc = Number(traTruocRaw) || 0;
-          var loaiTG = String(
+          const traTruoc = Number(traTruocRaw) || 0;
+          const loaiTG = String(
             lookupValue(
               SHEET_NAMES.TRA_GOP,
               COL_TG.MA_DH,
@@ -288,25 +288,25 @@ function _collectDonHang(targetDate, branchMetrics, fallbackBranch, transactions
               COL_TG.LOAI_TRA_GOP,
             ),
           );
-          var conLai = thanhTien - traTruoc;
+          const conLai = thanhTien - traTruoc;
           if (loaiTG === "Công ty tài chính") {
             thuCK += conLai;
           }
         }
       } else {
         // Fallback cho dữ liệu cũ (chưa chia cột)
-        var amountCollected = thanhTien;
-        var rawAmount = row[COL_DH.THANH_TIEN - 1];
+        let amountCollected = thanhTien;
+        let rawAmount = row[COL_DH.THANH_TIEN - 1];
 
         if (hinhThucBan === "Trả góp") {
-          var traTruocRaw = lookupValue(
+          const traTruocRaw = lookupValue(
             SHEET_NAMES.TRA_GOP,
             COL_TG.MA_DH,
             maDH,
             COL_TG.TRA_TRUOC,
           );
-          var traTruoc = parseAmountVal(traTruocRaw);
-          var loaiTG = String(
+          const traTruoc = parseAmountVal(traTruocRaw);
+          const loaiTG = String(
             lookupValue(
               SHEET_NAMES.TRA_GOP,
               COL_TG.MA_DH,
@@ -314,7 +314,7 @@ function _collectDonHang(targetDate, branchMetrics, fallbackBranch, transactions
               COL_TG.LOAI_TRA_GOP,
             ),
           );
-          var conLai = thanhTien - traTruoc;
+          const conLai = thanhTien - traTruoc;
 
           if (loaiTG === "Công ty tài chính") {
             // Công ty tài chính giải ngân qua chuyển khoản
@@ -324,20 +324,20 @@ function _collectDonHang(targetDate, branchMetrics, fallbackBranch, transactions
           rawAmount = traTruocRaw;
         }
 
-        var hybrid = parseHybridAmount(
+        const hybrid = parseHybridAmount(
           hinhThucTT === "Hỗn hợp" ? rawAmount : "",
         );
         if (hybrid) {
           thuTM += hybrid.tm;
           thuCK += hybrid.ck;
         } else {
-          var payment = parseMixedPayment(hinhThucTT, amountCollected);
+          const payment = parseMixedPayment(hinhThucTT, amountCollected);
           thuTM += payment.tm;
           thuCK += payment.ck;
         }
       }
 
-      var brKey = branch || fallbackBranch;
+      const brKey = branch || fallbackBranch;
       if (!branchMetrics[brKey]) {
         branchMetrics[brKey] = {
           doanhSo: 0,
@@ -376,32 +376,32 @@ function _collectDonHang(targetDate, branchMetrics, fallbackBranch, transactions
  * @private
  */
 function _collectDichVu(targetDate, branchMetrics, fallbackBranch, transactions) {
-  var services = getAllData(SHEET_NAMES.DICH_VU);
+  const services = getAllData(SHEET_NAMES.DICH_VU);
   services.forEach(function (row) {
-    var ngayGD = row[COL_DV.NGAY_GD - 1];
+    const ngayGD = row[COL_DV.NGAY_GD - 1];
     if (ngayGD instanceof Date && _isSameDay(ngayGD, targetDate)) {
-      var status = String(row[COL_DV.TRANG_THAI - 1]);
+      const status = String(row[COL_DV.TRANG_THAI - 1]);
       if (status === "Huỷ") return;
 
-      var maDV = String(row[COL_DV.MA_DV - 1]);
-      var loaiDV = String(row[COL_DV.LOAI_DV - 1]);
-      var tenKH = String(row[COL_DV.TEN_KH - 1]);
-      var rawSoTien = row[COL_DV.SO_TIEN_GD - 1];
-      var soTien = parseAmountVal(rawSoTien);
-      var phi = Number(row[COL_DV.PHI_DV - 1]) || 0;
-      var hinhThucTT = String(row[COL_DV.HINH_THUC_TT - 1]);
-      var branch = String(row[COL_DV.CHI_NHANH - 1] || "").trim();
+      const maDV = String(row[COL_DV.MA_DV - 1]);
+      const loaiDV = String(row[COL_DV.LOAI_DV - 1]);
+      const tenKH = String(row[COL_DV.TEN_KH - 1]);
+      const rawSoTien = row[COL_DV.SO_TIEN_GD - 1];
+      const soTien = parseAmountVal(rawSoTien);
+      const phi = Number(row[COL_DV.PHI_DV - 1]) || 0;
+      const hinhThucTT = String(row[COL_DV.HINH_THUC_TT - 1]);
+      const branch = String(row[COL_DV.CHI_NHANH - 1] || "").trim();
 
-      var thuTM = 0;
-      var chiTM = 0;
-      var thuCK = 0;
-      var chiCK = 0;
-      var loiNhuan = phi;
+      let thuTM = 0;
+      let chiTM = 0;
+      let thuCK = 0;
+      let chiCK = 0;
+      const loiNhuan = phi;
 
-      var cellTM = row[COL_DV.TIEN_MAT - 1];
-      var cellCK = row[COL_DV.CHUYEN_KHOAN - 1];
+      const cellTM = row[COL_DV.TIEN_MAT - 1];
+      const cellCK = row[COL_DV.CHUYEN_KHOAN - 1];
 
-      var hasNewColumns =
+      const hasNewColumns =
         (cellTM !== undefined && cellTM !== "" && Number(cellTM) !== 0) ||
         (cellCK !== undefined && cellCK !== "" && Number(cellCK) !== 0);
 
@@ -416,7 +416,7 @@ function _collectDichVu(targetDate, branchMetrics, fallbackBranch, transactions)
         }
       } else {
         // Fallback cho dữ liệu cũ (chưa chia cột)
-        var hybrid = parseHybridAmount(
+        const hybrid = parseHybridAmount(
           hinhThucTT === "Hỗn hợp" ? rawSoTien : "",
         );
         if (loaiDV === "Chuyển khoản hộ") {
@@ -425,7 +425,7 @@ function _collectDichVu(targetDate, branchMetrics, fallbackBranch, transactions)
             thuCK = hybrid.ck;
             chiCK = soTien - phi;
           } else {
-            var payment = parseMixedPayment(hinhThucTT, soTien + phi);
+            const payment = parseMixedPayment(hinhThucTT, soTien + phi);
             thuTM = payment.tm;
             thuCK = payment.ck;
             chiCK = soTien;
@@ -439,7 +439,7 @@ function _collectDichVu(targetDate, branchMetrics, fallbackBranch, transactions)
             thuCK = hybrid.ck;
             chiCK = soTien - phi;
           } else {
-            var payment = parseMixedPayment(hinhThucTT, soTien + phi);
+            const payment = parseMixedPayment(hinhThucTT, soTien + phi);
             thuTM = payment.tm;
             thuCK = payment.ck;
             chiCK = soTien;
@@ -447,7 +447,7 @@ function _collectDichVu(targetDate, branchMetrics, fallbackBranch, transactions)
         }
       }
 
-      var brKey = branch || fallbackBranch;
+      const brKey = branch || fallbackBranch;
       if (!branchMetrics[brKey]) {
         branchMetrics[brKey] = {
           doanhSo: 0,
@@ -492,29 +492,29 @@ function _collectDichVu(targetDate, branchMetrics, fallbackBranch, transactions)
  * @private
  */
 function _collectRepayments(targetDate, branchMetrics, fallbackBranch, transactions) {
-  var repayments = getAllData(SHEET_NAMES.LICH_SU_TRA_GOP);
+  const repayments = getAllData(SHEET_NAMES.LICH_SU_TRA_GOP);
   repayments.forEach(function (row) {
-    var ngayTra = row[COL_LSTG.NGAY_THUC_TRA - 1];
-    var status = String(row[COL_LSTG.TRANG_THAI - 1]);
+    const ngayTra = row[COL_LSTG.NGAY_THUC_TRA - 1];
+    const status = String(row[COL_LSTG.TRANG_THAI - 1]);
     if (
       ngayTra instanceof Date &&
       _isSameDay(ngayTra, targetDate) &&
       status === "Đã trả"
     ) {
-      var maLS = String(row[COL_LSTG.MA_LS - 1]);
-      var maTG = String(row[COL_LSTG.MA_TG - 1]);
-      var kySo = String(row[COL_LSTG.KY_SO - 1]);
-      var rawSoTienDaTra = row[COL_LSTG.SO_TIEN_DA_TRA - 1];
-      var soTienDaTra = parseAmountVal(rawSoTienDaTra);
-      var hinhThucTT = String(row[COL_LSTG.HINH_THUC_TT - 1]);
+      const maLS = String(row[COL_LSTG.MA_LS - 1]);
+      const maTG = String(row[COL_LSTG.MA_TG - 1]);
+      const kySo = String(row[COL_LSTG.KY_SO - 1]);
+      const rawSoTienDaTra = row[COL_LSTG.SO_TIEN_DA_TRA - 1];
+      const soTienDaTra = parseAmountVal(rawSoTienDaTra);
+      const hinhThucTT = String(row[COL_LSTG.HINH_THUC_TT - 1]);
 
-      var maKH = String(
+      const maKH = String(
         lookupValue(SHEET_NAMES.TRA_GOP, COL_TG.MA_TG, maTG, COL_TG.MA_KH),
       );
-      var tenKH =
+      const tenKH =
         String(lookupValue(SHEET_NAMES.KHACH_HANG, 1, maKH, 2)) ||
         "Khách trả góp";
-      var branch = String(
+      const branch = String(
         lookupValue(
           SHEET_NAMES.TRA_GOP,
           COL_TG.MA_TG,
@@ -523,13 +523,13 @@ function _collectRepayments(targetDate, branchMetrics, fallbackBranch, transacti
         ) || "",
       ).trim();
 
-      var thuTM = 0;
-      var thuCK = 0;
+      let thuTM = 0;
+      let thuCK = 0;
 
-      var cellTM = row[COL_LSTG.TIEN_MAT - 1];
-      var cellCK = row[COL_LSTG.CHUYEN_KHOAN - 1];
+      const cellTM = row[COL_LSTG.TIEN_MAT - 1];
+      const cellCK = row[COL_LSTG.CHUYEN_KHOAN - 1];
 
-      var hasNewColumns =
+      const hasNewColumns =
         (cellTM !== undefined && cellTM !== "" && Number(cellTM) !== 0) ||
         (cellCK !== undefined && cellCK !== "" && Number(cellCK) !== 0);
 
@@ -538,20 +538,20 @@ function _collectRepayments(targetDate, branchMetrics, fallbackBranch, transacti
         thuCK = Number(cellCK) || 0;
       } else {
         // Fallback cho dữ liệu cũ (chưa chia cột)
-        var hybrid = parseHybridAmount(
+        const hybrid = parseHybridAmount(
           hinhThucTT === "Hỗn hợp" ? rawSoTienDaTra : "",
         );
         if (hybrid) {
           thuTM = hybrid.tm;
           thuCK = hybrid.ck;
         } else {
-          var payment = parseMixedPayment(hinhThucTT, soTienDaTra);
+          const payment = parseMixedPayment(hinhThucTT, soTienDaTra);
           thuTM = payment.tm;
           thuCK = payment.ck;
         }
       }
 
-      var brKey = branch || fallbackBranch;
+      const brKey = branch || fallbackBranch;
       if (!branchMetrics[brKey]) {
         branchMetrics[brKey] = {
           doanhSo: 0,
@@ -587,21 +587,21 @@ function _collectRepayments(targetDate, branchMetrics, fallbackBranch, transacti
  * @private
  */
 function _collectNhapKho(targetDate, branchMetrics, fallbackBranch, transactions) {
-  var imports = getAllData(SHEET_NAMES.NHAP_KHO);
+  const imports = getAllData(SHEET_NAMES.NHAP_KHO);
   imports.forEach(function (row) {
-    var ngayNhap = row[1];
+    const ngayNhap = row[1];
     if (ngayNhap instanceof Date && _isSameDay(ngayNhap, targetDate)) {
-      var maNK = String(row[0]);
-      var nguonNhap = String(row[2]);
-      var tenSP = String(row[4]);
-      var sl = Number(row[5]) || 0;
-      var thanhTien = Number(row[7]) || 0;
-      var nhaCC = String(row[8] || "");
-      var branch = String(row[10] || "").trim();
+      const maNK = String(row[0]);
+      const nguonNhap = String(row[2]);
+      const tenSP = String(row[4]);
+      const sl = Number(row[5]) || 0;
+      const thanhTien = Number(row[7]) || 0;
+      const nhaCC = String(row[8] || "");
+      const branch = String(row[10] || "").trim();
 
-      var chiCK = thanhTien;
+      const chiCK = thanhTien;
 
-      var brKey = branch || fallbackBranch;
+      const brKey = branch || fallbackBranch;
       if (!branchMetrics[brKey]) {
         branchMetrics[brKey] = {
           doanhSo: 0,
@@ -636,36 +636,36 @@ function _collectNhapKho(targetDate, branchMetrics, fallbackBranch, transactions
  * @private
  */
 function _collectDoiTra(targetDate, branchMetrics, fallbackBranch, transactions, ss) {
-  var returns = getAllData(SHEET_NAMES.DOI_TRA);
+  const returns = getAllData(SHEET_NAMES.DOI_TRA);
   returns.forEach(function (row) {
-    var ngayDT = row[COL_DT_TRA.NGAY_DT - 1];
+    const ngayDT = row[COL_DT_TRA.NGAY_DT - 1];
     if (ngayDT instanceof Date && _isSameDay(ngayDT, targetDate)) {
-      var status = String(row[COL_DT_TRA.TRANG_THAI - 1]);
+      const status = String(row[COL_DT_TRA.TRANG_THAI - 1]);
       if (status === "Huỷ") return;
 
-      var maDT = String(row[COL_DT_TRA.MA_DT - 1]);
-      var maDH = String(row[COL_DT_TRA.MA_DH - 1]);
-      var tenKH = String(row[COL_DT_TRA.TEN_KH - 1]);
-      var loaiGD = String(row[COL_DT_TRA.LOAI_GD - 1]);
-      var tenSPTra = String(row[COL_DT_TRA.TEN_SP_TRA - 1]);
-      var tenSPNhan = String(row[COL_DT_TRA.TEN_SP_NHAN - 1]);
-      var rawHoanTien = row[COL_DT_TRA.TIEN_HOAN_TRA - 1];
-      var hoanTien = parseAmountVal(rawHoanTien);
-      var phi = Number(row[COL_DT_TRA.PHI_DOI_TRA - 1]) || 0;
-      var hinhThucTT = String(row[COL_DT_TRA.HINH_THUC_TT - 1]);
-      var branch = String(row[COL_DT_TRA.CHI_NHANH - 1] || "").trim();
+      const maDT = String(row[COL_DT_TRA.MA_DT - 1]);
+      const maDH = String(row[COL_DT_TRA.MA_DH - 1]);
+      const tenKH = String(row[COL_DT_TRA.TEN_KH - 1]);
+      const loaiGD = String(row[COL_DT_TRA.LOAI_GD - 1]);
+      const tenSPTra = String(row[COL_DT_TRA.TEN_SP_TRA - 1]);
+      const tenSPNhan = String(row[COL_DT_TRA.TEN_SP_NHAN - 1]);
+      const rawHoanTien = row[COL_DT_TRA.TIEN_HOAN_TRA - 1];
+      const hoanTien = parseAmountVal(rawHoanTien);
+      const phi = Number(row[COL_DT_TRA.PHI_DOI_TRA - 1]) || 0;
+      const hinhThucTT = String(row[COL_DT_TRA.HINH_THUC_TT - 1]);
+      const branch = String(row[COL_DT_TRA.CHI_NHANH - 1] || "").trim();
 
-      var thuTM = 0;
-      var chiTM = 0;
-      var thuCK = 0;
-      var chiCK = 0;
+      let thuTM = 0;
+      let chiTM = 0;
+      let thuCK = 0;
+      let chiCK = 0;
 
-      var originalOrder = getDonHangDetails(maDH);
-      var costOriginal = 0;
-      var priceOriginal = 0;
+      const originalOrder = getDonHangDetails(maDH);
+      let costOriginal = 0;
+      let priceOriginal = 0;
       if (originalOrder) {
         priceOriginal = parseAmountVal(originalOrder.thanhTien);
-        var costSP = 0;
+        let costSP = 0;
         if (originalOrder.nguonSP === "Điện thoại") {
           costSP =
             Number(
@@ -686,7 +686,7 @@ function _collectDoiTra(targetDate, branchMetrics, fallbackBranch, transactions,
             ) ||
             0;
         } else {
-          var pkRow = findPhuKienRow(
+          const pkRow = findPhuKienRow(
             originalOrder.maSP,
             originalOrder.chiNhanh,
           );
@@ -703,11 +703,11 @@ function _collectDoiTra(targetDate, branchMetrics, fallbackBranch, transactions,
         costOriginal = costSP * originalOrder.soLuong;
 
         if (originalOrder.coNhanQua === "✓" && originalOrder.maQuaTang) {
-          var maQuaOriginalList = String(originalOrder.maQuaTang).split(",");
-          for (var i = 0; i < maQuaOriginalList.length; i++) {
-            var code = maQuaOriginalList[i].trim();
+          const maQuaOriginalList = String(originalOrder.maQuaTang).split(",");
+          for (let i = 0; i < maQuaOriginalList.length; i++) {
+            const code = maQuaOriginalList[i].trim();
             if (!code) continue;
-            var quaRow = findPhuKienRow(code, originalOrder.chiNhanh);
+            const quaRow = findPhuKienRow(code, originalOrder.chiNhanh);
             if (quaRow !== -1) {
               costOriginal +=
                 Number(
@@ -721,19 +721,19 @@ function _collectDoiTra(targetDate, branchMetrics, fallbackBranch, transactions,
         }
       }
 
-      var lossDoanhSo = 0;
-      var lossLoiNhuan = 0;
+      let lossDoanhSo = 0;
+      let lossLoiNhuan = 0;
 
-      var cellTM = row[COL_DT_TRA.TIEN_MAT - 1];
-      var cellCK = row[COL_DT_TRA.CHUYEN_KHOAN - 1];
+      const cellTM = row[COL_DT_TRA.TIEN_MAT - 1];
+      const cellCK = row[COL_DT_TRA.CHUYEN_KHOAN - 1];
 
-      var hasNewColumns =
+      const hasNewColumns =
         (cellTM !== undefined && cellTM !== "" && Number(cellTM) !== 0) ||
         (cellCK !== undefined && cellCK !== "" && Number(cellCK) !== 0);
 
       if (hasNewColumns) {
-        var valTM = Number(cellTM) || 0;
-        var valCK = Number(cellCK) || 0;
+        const valTM = Number(cellTM) || 0;
+        const valCK = Number(cellCK) || 0;
 
         if (hoanTien >= 0) {
           chiTM = valTM;
@@ -744,7 +744,7 @@ function _collectDoiTra(targetDate, branchMetrics, fallbackBranch, transactions,
         }
       } else {
         // Fallback cho dữ liệu cũ (chưa chia cột)
-        var hybrid = parseHybridAmount(
+        const hybrid = parseHybridAmount(
           hinhThucTT === "Hỗn hợp" ? rawHoanTien : "",
         );
         if (loaiGD === "Trả máy") {
@@ -752,7 +752,7 @@ function _collectDoiTra(targetDate, branchMetrics, fallbackBranch, transactions,
             chiTM = hybrid.tm;
             chiCK = hybrid.ck;
           } else {
-            var payment = parseMixedPayment(hinhThucTT, hoanTien);
+            const payment = parseMixedPayment(hinhThucTT, hoanTien);
             chiTM = payment.tm;
             chiCK = payment.ck;
           }
@@ -762,7 +762,7 @@ function _collectDoiTra(targetDate, branchMetrics, fallbackBranch, transactions,
               chiTM = hybrid.tm;
               chiCK = hybrid.ck;
             } else {
-              var payment = parseMixedPayment(hinhThucTT, hoanTien);
+              const payment = parseMixedPayment(hinhThucTT, hoanTien);
               chiTM = payment.tm;
               chiCK = payment.ck;
             }
@@ -771,7 +771,7 @@ function _collectDoiTra(targetDate, branchMetrics, fallbackBranch, transactions,
               thuTM = hybrid.tm;
               thuCK = hybrid.ck;
             } else {
-              var payment = parseMixedPayment(hinhThucTT, Math.abs(hoanTien));
+              const payment = parseMixedPayment(hinhThucTT, Math.abs(hoanTien));
               thuTM = payment.tm;
               thuCK = payment.ck;
             }
@@ -783,7 +783,7 @@ function _collectDoiTra(targetDate, branchMetrics, fallbackBranch, transactions,
       lossLoiNhuan = -(priceOriginal - costOriginal);
       lossLoiNhuan += phi;
 
-      var brKey = branch || fallbackBranch;
+      const brKey = branch || fallbackBranch;
       if (!branchMetrics[brKey]) {
         branchMetrics[brKey] = {
           doanhSo: 0,
@@ -830,25 +830,25 @@ function _collectDoiTra(targetDate, branchMetrics, fallbackBranch, transactions,
  * @private
  */
 function _collectThuMua(targetDate, branchMetrics, fallbackBranch, transactions) {
-  var buybacks = getAllData(SHEET_NAMES.THU_MUA);
+  const buybacks = getAllData(SHEET_NAMES.THU_MUA);
   buybacks.forEach(function (row) {
-    var ngayTM = row[COL_TM.NGAY_TM - 1];
+    const ngayTM = row[COL_TM.NGAY_TM - 1];
     if (ngayTM instanceof Date && _isSameDay(ngayTM, targetDate)) {
-      var maTM = String(row[COL_TM.MA_TM - 1]);
-      var tenKH = String(row[COL_TM.TEN_KH - 1]);
-      var tenSPThu = String(row[COL_TM.TEN_SP_THU - 1]);
-      var rawTongTienTra = row[COL_TM.TONG_TIEN_TRA - 1];
-      var tongTienTra = parseAmountVal(rawTongTienTra);
-      var hinhThucTT = String(row[COL_TM.HINH_THUC_TT - 1]);
-      var branch = String(row[COL_TM.CHI_NHANH - 1] || "").trim();
+      const maTM = String(row[COL_TM.MA_TM - 1]);
+      const tenKH = String(row[COL_TM.TEN_KH - 1]);
+      const tenSPThu = String(row[COL_TM.TEN_SP_THU - 1]);
+      const rawTongTienTra = row[COL_TM.TONG_TIEN_TRA - 1];
+      const tongTienTra = parseAmountVal(rawTongTienTra);
+      const hinhThucTT = String(row[COL_TM.HINH_THUC_TT - 1]);
+      const branch = String(row[COL_TM.CHI_NHANH - 1] || "").trim();
 
-      var chiTM = 0;
-      var chiCK = 0;
+      let chiTM = 0;
+      let chiCK = 0;
 
-      var cellTM = row[COL_TM.TIEN_MAT - 1];
-      var cellCK = row[COL_TM.CHUYEN_KHOAN - 1];
+      const cellTM = row[COL_TM.TIEN_MAT - 1];
+      const cellCK = row[COL_TM.CHUYEN_KHOAN - 1];
 
-      var hasNewColumns =
+      const hasNewColumns =
         (cellTM !== undefined && cellTM !== "" && Number(cellTM) !== 0) ||
         (cellCK !== undefined && cellCK !== "" && Number(cellCK) !== 0);
 
@@ -857,20 +857,20 @@ function _collectThuMua(targetDate, branchMetrics, fallbackBranch, transactions)
         chiCK = Number(cellCK) || 0;
       } else {
         // Fallback cho dữ liệu cũ (chưa chia cột)
-        var hybrid = parseHybridAmount(
+        const hybrid = parseHybridAmount(
           hinhThucTT === "Hỗn hợp" ? rawTongTienTra : "",
         );
         if (hybrid) {
           chiTM = hybrid.tm;
           chiCK = hybrid.ck;
         } else {
-          var payment = parseMixedPayment(hinhThucTT, tongTienTra);
+          const payment = parseMixedPayment(hinhThucTT, tongTienTra);
           chiTM = payment.tm;
           chiCK = payment.ck;
         }
       }
 
-      var brKey = branch || fallbackBranch;
+      const brKey = branch || fallbackBranch;
       if (!branchMetrics[brKey]) {
         branchMetrics[brKey] = {
           doanhSo: 0,
@@ -911,30 +911,30 @@ function _collectThuMua(targetDate, branchMetrics, fallbackBranch, transactions)
  * @private
  */
 function _collectBaoHanh(targetDate, branchMetrics, fallbackBranch, transactions) {
-  var repairs = getAllData(SHEET_NAMES.BAO_HANH);
+  const repairs = getAllData(SHEET_NAMES.BAO_HANH);
   repairs.forEach(function (row) {
-    var ngayNhan = row[COL_BH.NGAY_NHAN - 1];
+    const ngayNhan = row[COL_BH.NGAY_NHAN - 1];
     if (ngayNhan instanceof Date && _isSameDay(ngayNhan, targetDate)) {
-      var status = String(row[COL_BH.TRANG_THAI - 1]);
+      const status = String(row[COL_BH.TRANG_THAI - 1]);
       if (status === "Huỷ") return;
 
-      var maBH = String(row[COL_BH.MA_BH - 1]);
-      var tenKH = String(row[COL_BH.TEN_KH - 1]);
-      var tenSP = String(row[COL_BH.TEN_SP - 1]);
-      var loaiDichVu = String(row[COL_BH.LOAI_DICH_VU - 1]);
-      var rawPhiSuaChua = row[COL_BH.PHI_SUA_CHUA - 1];
-      var phiSuaChua = parseAmountVal(rawPhiSuaChua);
-      var branch = String(row[COL_BH.CHI_NHANH - 1] || "").trim();
+      const maBH = String(row[COL_BH.MA_BH - 1]);
+      const tenKH = String(row[COL_BH.TEN_KH - 1]);
+      const tenSP = String(row[COL_BH.TEN_SP - 1]);
+      const loaiDichVu = String(row[COL_BH.LOAI_DICH_VU - 1]);
+      const rawPhiSuaChua = row[COL_BH.PHI_SUA_CHUA - 1];
+      const phiSuaChua = parseAmountVal(rawPhiSuaChua);
+      const branch = String(row[COL_BH.CHI_NHANH - 1] || "").trim();
 
-      var thuTM = 0;
-      var chiTM = 0;
-      var thuCK = 0;
-      var chiCK = 0;
+      let thuTM = 0;
+      let chiTM = 0;
+      let thuCK = 0;
+      let chiCK = 0;
 
-      var cellTM = row[COL_BH.TIEN_MAT - 1];
-      var cellCK = row[COL_BH.CHUYEN_KHOAN - 1];
+      const cellTM = row[COL_BH.TIEN_MAT - 1];
+      const cellCK = row[COL_BH.CHUYEN_KHOAN - 1];
 
-      var hasNewColumns =
+      const hasNewColumns =
         (cellTM !== undefined && cellTM !== "" && Number(cellTM) !== 0) ||
         (cellCK !== undefined && cellCK !== "" && Number(cellCK) !== 0);
 
@@ -942,23 +942,23 @@ function _collectBaoHanh(targetDate, branchMetrics, fallbackBranch, transactions
         thuTM = Number(cellTM) || 0;
         thuCK = Number(cellCK) || 0;
       } else {
-        var hinhThucTT = String(row[COL_BH.HINH_THUC_TT - 1]);
-        var hybrid = parseHybridAmount(
+        const hinhThucTT = String(row[COL_BH.HINH_THUC_TT - 1]);
+        const hybrid = parseHybridAmount(
           hinhThucTT === "Hỗn hợp" ? rawPhiSuaChua : "",
         );
         if (hybrid) {
           thuTM = hybrid.tm;
           thuCK = hybrid.ck;
         } else {
-          var payment = parseMixedPayment(hinhThucTT, phiSuaChua);
+          const payment = parseMixedPayment(hinhThucTT, phiSuaChua);
           thuTM = payment.tm;
           thuCK = payment.ck;
         }
       }
 
-      var loiNhuan = phiSuaChua;
+      const loiNhuan = phiSuaChua;
 
-      var brKey = branch || fallbackBranch;
+      const brKey = branch || fallbackBranch;
       if (!branchMetrics[brKey]) {
         branchMetrics[brKey] = {
           doanhSo: 0,
@@ -1002,7 +1002,7 @@ function _collectBaoHanh(targetDate, branchMetrics, fallbackBranch, transactions
  * @private
  */
 function _writeSummaryTableToSheet(reportSheet, branchMetrics, activeBranches, totalSummaryColIdx) {
-  var summaryTitleRange = reportSheet.getRange(6, 1, 1, totalSummaryColIdx);
+  const summaryTitleRange = reportSheet.getRange(6, 1, 1, totalSummaryColIdx);
   summaryTitleRange.merge();
   summaryTitleRange
     .setValue("TỔNG HỢP CHỈ TIÊU TÀI CHÍNH")
@@ -1012,7 +1012,7 @@ function _writeSummaryTableToSheet(reportSheet, branchMetrics, activeBranches, t
     .setHorizontalAlignment("left");
 
   // Tiêu đề cột bảng tổng hợp
-  var summaryHeaders = ["Chỉ tiêu"];
+  const summaryHeaders = ["Chỉ tiêu"];
   activeBranches.forEach(function (b) {
     summaryHeaders.push(b);
   });
@@ -1025,7 +1025,7 @@ function _writeSummaryTableToSheet(reportSheet, branchMetrics, activeBranches, t
     .setHorizontalAlignment("left");
 
   // Ghi dữ liệu bảng tổng hợp
-  var metricsList = [
+  const metricsList = [
     { name: "1. Doanh số bán lẻ", key: "doanhSo" },
     { name: "2. Lợi nhuận gộp", key: "loiNhuan" },
     { name: "3. Tiền mặt Thu", key: "thuTM" },
@@ -1035,12 +1035,12 @@ function _writeSummaryTableToSheet(reportSheet, branchMetrics, activeBranches, t
     { name: "7. Dòng tiền ròng trong ngày", key: "netCash" },
   ];
 
-  var summaryData = [];
+  const summaryData = [];
   metricsList.forEach(function (m) {
-    var row = [m.name];
-    var totalVal = 0;
+    const row = [m.name];
+    let totalVal = 0;
     activeBranches.forEach(function (b) {
-      var val = 0;
+      let val = 0;
       if (m.key === "netCash") {
         val =
           branchMetrics[b].thuTM +
@@ -1092,10 +1092,10 @@ function _writeSummaryTableToSheet(reportSheet, branchMetrics, activeBranches, t
  * @private
  */
 function _writeDetailedTablesToSheet(reportSheet, transactions, activeBranches, fallbackBranch) {
-  var startRow = 17;
+  let startRow = 17;
 
   activeBranches.forEach(function (branchName) {
-    var branchTxs = transactions.filter(function (tx) {
+    const branchTxs = transactions.filter(function (tx) {
       return (
         tx.branch === branchName ||
         (branchName === fallbackBranch && !tx.branch)
@@ -1103,7 +1103,7 @@ function _writeDetailedTablesToSheet(reportSheet, transactions, activeBranches, 
     });
 
     // 1. Tiêu đề bảng chi tiết chi nhánh
-    var titleRange = reportSheet.getRange(startRow, 1, 1, 10);
+    const titleRange = reportSheet.getRange(startRow, 1, 1, 10);
     titleRange.merge();
     titleRange
       .setValue("CHI TIẾT GIAO DỊCH - " + branchName.toUpperCase())
@@ -1113,7 +1113,7 @@ function _writeDetailedTablesToSheet(reportSheet, transactions, activeBranches, 
       .setHorizontalAlignment("left");
 
     // 2. Headers cột giao dịch (lược bỏ cột Chi nhánh)
-    var detailHeaders = [
+    const detailHeaders = [
       "Mã giao dịch",
       "Thời gian",
       "Loại giao dịch",
@@ -1134,8 +1134,8 @@ function _writeDetailedTablesToSheet(reportSheet, transactions, activeBranches, 
 
     // 3. Ghi dữ liệu giao dịch chi tiết
     if (branchTxs.length > 0) {
-      var detailRows = [];
-      var sumThuTM = 0,
+      const detailRows = [];
+      let sumThuTM = 0,
         sumChiTM = 0,
         sumThuCK = 0,
         sumChiCK = 0,
@@ -1171,7 +1171,7 @@ function _writeDetailedTablesToSheet(reportSheet, transactions, activeBranches, 
         .setNumberFormat("#,##0");
 
       // Dòng tổng cộng của riêng chi nhánh
-      var totalRowIdx = startRow + 2 + detailRows.length;
+      const totalRowIdx = startRow + 2 + detailRows.length;
       reportSheet
         .getRange(totalRowIdx, 1)
         .setValue("Tổng cộng chi nhánh")
@@ -1206,7 +1206,7 @@ function _writeDetailedTablesToSheet(reportSheet, transactions, activeBranches, 
       startRow = totalRowIdx + 3;
     } else {
       // Báo không có giao dịch
-      var emptyRange = reportSheet.getRange(startRow + 2, 1, 1, 10);
+      const emptyRange = reportSheet.getRange(startRow + 2, 1, 1, 10);
       emptyRange.merge();
       emptyRange
         .setValue(
@@ -1246,12 +1246,12 @@ function _parseDate(val) {
     return isNaN(val.getTime()) ? null : val;
   }
   if (typeof val === "string") {
-    var match = val.trim().match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    const match = val.trim().match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
     if (match) {
-      var d = parseInt(match[1], 10);
-      var m = parseInt(match[2], 10) - 1;
-      var y = parseInt(match[3], 10);
-      var date = new Date(y, m, d);
+      const d = parseInt(match[1], 10);
+      const m = parseInt(match[2], 10) - 1;
+      const y = parseInt(match[3], 10);
+      const date = new Date(y, m, d);
       if (
         date.getDate() === d &&
         date.getMonth() === m &&
@@ -1262,7 +1262,7 @@ function _parseDate(val) {
     }
   }
   if (typeof val === "number") {
-    var baseDate = new Date(1899, 11, 30);
+    const baseDate = new Date(1899, 11, 30);
     return new Date(baseDate.getTime() + val * 24 * 60 * 60 * 1000);
   }
   return null;

@@ -7,7 +7,7 @@
 
 // ======================== CONSTANTS ========================
 
-var SHEET_NAMES = {
+const SHEET_NAMES = {
   CAU_HINH: "Cấu hình",
   NHAN_VIEN: "Nhân viên",
   DIEN_THOAI: "Điện thoại",
@@ -27,7 +27,7 @@ var SHEET_NAMES = {
   BAO_HANH: "Bảo hành",
 };
 
-var SHEET_ORDER = [
+const SHEET_ORDER = [
   SHEET_NAMES.CAU_HINH,
   SHEET_NAMES.NHAN_VIEN,
   SHEET_NAMES.DIEN_THOAI,
@@ -49,7 +49,7 @@ var SHEET_ORDER = [
 
 // ======================== SHEET HEADERS (VIETNAMESE) ========================
 
-var SHEET_HEADERS = {};
+const SHEET_HEADERS = {};
 
 SHEET_HEADERS[SHEET_NAMES.CAU_HINH] = ["Tên cấu hình", "Giá trị", "Ghi chú"];
 
@@ -292,7 +292,7 @@ SHEET_HEADERS[SHEET_NAMES.BAO_HANH] = [
 
 // ======================== DEFAULT CONFIG ========================
 
-var DEFAULT_CONFIG = [
+const DEFAULT_CONFIG = [
   ["Tên cửa hàng", "VanTran Mobile", "Tên hiển thị cửa hàng"],
   ["Địa chỉ", "", "Địa chỉ cửa hàng"],
   ["Số điện thoại", "", "SĐT liên hệ cửa hàng"],
@@ -331,7 +331,7 @@ var DEFAULT_CONFIG = [
 ];
 
 // ======================== CONDITIONAL FORMATTING COLORS ========================
-var CONDITIONAL_COLOR_MAP = {
+const CONDITIONAL_COLOR_MAP = {
   // 1. Trạng thái tốt, hoàn thành, đang làm, có, mới
   "Đang làm": { bg: "#e6f4ea", fg: "#137333" },
   "Còn hàng": { bg: "#e6f4ea", fg: "#137333" },
@@ -410,7 +410,7 @@ function onOpen() {
  * Serves the HTML interface (Sidebar.html) when accessed as a Web App
  */
 function doGet(e) {
-  var html = HtmlService.createTemplateFromFile("Sidebar");
+  const html = HtmlService.createTemplateFromFile("Sidebar");
   return html
     .evaluate()
     .setTitle("VanTran Mobile — Hệ thống Dịch vụ & Buôn bán Trả góp")
@@ -420,7 +420,7 @@ function doGet(e) {
 
 // ======================== EDIT TRIGGER REGISTER ========================
 
-var EDIT_HANDLERS = {};
+const EDIT_HANDLERS = {};
 EDIT_HANDLERS[SHEET_NAMES.CAU_HINH] = function (sheet, row, col, e) {
   _setupDataValidations(e.source);
 };
@@ -436,10 +436,10 @@ EDIT_HANDLERS[SHEET_NAMES.TRA_GOP] = _onEditTraGop;
  */
 function onEdit(e) {
   if (!e || e.range.getRow() <= 1) return;
-  var sheet = e.source.getActiveSheet();
-  var sheetName = sheet.getName();
-  var row = e.range.getRow();
-  var col = e.range.getColumn();
+  const sheet = e.source.getActiveSheet();
+  const sheetName = sheet.getName();
+  const row = e.range.getRow();
+  const col = e.range.getColumn();
 
   try {
     clearSheetCache(sheetName);
@@ -480,23 +480,23 @@ function _onEditLichSuTraGop(sheet, row, col, e) {
   // Lắng nghe thay đổi Số tiền đã trả hoặc Trạng thái
   if (col !== COL_LSTG.SO_TIEN_DA_TRA && col !== COL_LSTG.TRANG_THAI) return;
 
-  var maTG = sheet.getRange(row, COL_LSTG.MA_TG).getValue();
+  const maTG = sheet.getRange(row, COL_LSTG.MA_TG).getValue();
   if (!maTG) return;
 
   // Nếu sửa cột trạng thái
   if (col === COL_LSTG.TRANG_THAI) {
     // Tận dụng e.value nếu có (nhanh hơn), nếu không có mới lấy từ sheet (trường hợp xoá/paste nhiều ô)
-    var status = e.value !== undefined ? String(e.value).trim() : String(sheet.getRange(row, COL_LSTG.TRANG_THAI).getValue()).trim();
+    const status = e.value !== undefined ? String(e.value).trim() : String(sheet.getRange(row, COL_LSTG.TRANG_THAI).getValue()).trim();
 
     if (status === "Đã trả") {
-      var ngayThucTraRange = sheet.getRange(row, COL_LSTG.NGAY_THUC_TRA);
+      const ngayThucTraRange = sheet.getRange(row, COL_LSTG.NGAY_THUC_TRA);
       if (!ngayThucTraRange.getValue()) ngayThucTraRange.setValue(new Date());
 
-      var htttRange = sheet.getRange(row, COL_LSTG.HINH_THUC_TT);
+      const htttRange = sheet.getRange(row, COL_LSTG.HINH_THUC_TT);
       if (!htttRange.getValue()) htttRange.setValue("Tiền mặt");
 
-      var soTienCanTra = Number(sheet.getRange(row, COL_LSTG.SO_TIEN_CAN_TRA).getValue()) || 0;
-      var soTienDaTraRange = sheet.getRange(row, COL_LSTG.SO_TIEN_DA_TRA);
+      const soTienCanTra = Number(sheet.getRange(row, COL_LSTG.SO_TIEN_CAN_TRA).getValue()) || 0;
+      const soTienDaTraRange = sheet.getRange(row, COL_LSTG.SO_TIEN_DA_TRA);
       if (!soTienDaTraRange.getValue()) soTienDaTraRange.setValue(soTienCanTra);
 
     } else if (status === "Chưa trả" || status === "Đã huỷ") {
@@ -518,42 +518,47 @@ function _onEditTraGop(sheet, row, col, e) {
   initializeColumnEnums();
   // Lắng nghe thay đổi Trạng thái hợp đồng
   if (col === COL_TG.TRANG_THAI) {
-    var statusVal = String(e.value).trim();
+    const statusVal = String(e.value).trim();
     if (
       statusVal === "Đã huỷ" ||
       statusVal.toLowerCase() === "huy" ||
       statusVal.toLowerCase() === "huỷ"
     ) {
-      var maTG = sheet.getRange(row, COL_TG.MA_TG).getValue();
-      var maDH = sheet.getRange(row, COL_TG.MA_DH).getValue();
+      const maTG = sheet.getRange(row, COL_TG.MA_TG).getValue();
+      const maDH = sheet.getRange(row, COL_TG.MA_DH).getValue();
 
       if (maTG && maDH) {
         // 1. Hoàn trả kho máy sang "Còn hàng" nếu là điện thoại
-        var maSP = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.MA_SP);
-        var nguonSP = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.NGUON_SP);
+        const maSP = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.MA_SP);
+        const nguonSP = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.NGUON_SP);
         if (nguonSP === "Điện thoại" && maSP) {
-          var ghiChuDH = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.GHI_CHU) || "";
-          var imeiMatch = ghiChuDH.match(/\[IMEI:\s*([^\s\]]+)\]/);
-          var imei = imeiMatch ? imeiMatch[1] : "";
+          const ghiChuDH = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.GHI_CHU) || "";
+          const imeiMatch = ghiChuDH.match(/\[IMEI:\s*([^\s\]]+)\]/);
+          const imei = imeiMatch ? imeiMatch[1] : "";
           updateTrangThaiKhoDT(imei || maSP, "Còn hàng");
         }
 
         // 2. Chuyển các kỳ chưa trả của HĐ này sang "Đã huỷ"
-        var ss = SpreadsheetApp.getActiveSpreadsheet();
-        var lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
+        const ss = SpreadsheetApp.getActiveSpreadsheet();
+        const lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
         if (lstgSheet) {
-          var lastRow = lstgSheet.getLastRow();
+          const lastRow = lstgSheet.getLastRow();
           if (lastRow > 1) {
-            var allLichSu = lstgSheet
-              .getRange(2, COL_LSTG.MA_TG, lastRow - 1, COL_LSTG.TRANG_THAI - COL_LSTG.MA_TG + 1)
-              .getValues();
-            for (var i = 0; i < allLichSu.length; i++) {
-              if (String(allLichSu[i][0]) === maTG) {
-                var status = String(allLichSu[i][COL_LSTG.TRANG_THAI - COL_LSTG.MA_TG]);
-                if (status !== "Đã trả") {
-                  lstgSheet.getRange(i + 2, COL_LSTG.TRANG_THAI).setValue("Đã huỷ");
-                }
+            const lastCol = lstgSheet.getLastColumn();
+            const range = lstgSheet.getRange(2, 1, lastRow - 1, lastCol);
+            const allData = range.getValues();
+            let changed = false;
+            for (let i = 0; i < allData.length; i++) {
+              if (
+                String(allData[i][COL_LSTG.MA_TG - 1]) === maTG &&
+                String(allData[i][COL_LSTG.TRANG_THAI - 1]) !== "Đã trả"
+              ) {
+                allData[i][COL_LSTG.TRANG_THAI - 1] = "Đã huỷ";
+                changed = true;
               }
+            }
+            if (changed) {
+              range.setValues(allData);
             }
           }
         }
@@ -576,44 +581,44 @@ function _onEditDonHang(sheet, row, col, e) {
 
   // Auto tính ThanhTien khi SoLuong hoặc DonGia hoặc TienGiamGia thay đổi
   if (col === COL_DH.SO_LUONG || col === COL_DH.DON_GIA || col === COL_DH.TIEN_GIAM_GIA) {
-    var soLuong = sheet.getRange(row, COL_DH.SO_LUONG).getValue() || 0;
-    var donGia = sheet.getRange(row, COL_DH.DON_GIA).getValue() || 0;
-    var giamGia = sheet.getRange(row, COL_DH.TIEN_GIAM_GIA).getValue() || 0;
+    const soLuong = sheet.getRange(row, COL_DH.SO_LUONG).getValue() || 0;
+    const donGia = sheet.getRange(row, COL_DH.DON_GIA).getValue() || 0;
+    const giamGia = sheet.getRange(row, COL_DH.TIEN_GIAM_GIA).getValue() || 0;
     sheet.getRange(row, COL_DH.THANH_TIEN).setValue(soLuong * donGia - giamGia);
   }
 
   // Auto lookup TenKH khi nhập MaKH
   if (col === COL_DH.MA_KH) {
-    var maKH = e.value;
+    const maKH = e.value;
     if (maKH) {
-      var tenKH = lookupValue(SHEET_NAMES.KHACH_HANG, COL_KH.MA_KH, maKH, COL_KH.HO_TEN);
+      const tenKH = lookupValue(SHEET_NAMES.KHACH_HANG, COL_KH.MA_KH, maKH, COL_KH.HO_TEN);
       sheet.getRange(row, COL_DH.TEN_KH).setValue(tenKH || "");
     }
   }
 
   // Auto lookup TenSP, NguonSP, ThuongHieu khi nhập MaSP
   if (col === COL_DH.MA_SP) {
-    var maSP = e.value;
+    const maSP = e.value;
     if (maSP) {
       // Thử tìm trong Điện thoại trước
-      var tenDT = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP, COL_DT.TEN_SP);
+      const tenDT = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP, COL_DT.TEN_SP);
       if (tenDT) {
         sheet.getRange(row, COL_DH.TEN_SP).setValue(tenDT);
         sheet.getRange(row, COL_DH.NGUON_SP).setValue("Điện thoại");
-        var thuongHieu = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP, COL_DT.THUONG_HIEU);
+        const thuongHieu = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP, COL_DT.THUONG_HIEU);
         sheet.getRange(row, COL_DH.THUONG_HIEU).setValue(thuongHieu || "");
-        var giaBan = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP, COL_DT.GIA_BAN);
+        const giaBan = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP, COL_DT.GIA_BAN);
         sheet.getRange(row, COL_DH.DON_GIA).setValue(giaBan || 0);
         sheet.getRange(row, COL_DH.SO_LUONG).setValue(1); // Điện thoại luôn SL = 1
       } else {
         // Thử tìm trong Phụ kiện
-        var tenPK = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, maSP, COL_PK.TEN_SP);
+        const tenPK = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, maSP, COL_PK.TEN_SP);
         if (tenPK) {
           sheet.getRange(row, COL_DH.TEN_SP).setValue(tenPK);
           sheet.getRange(row, COL_DH.NGUON_SP).setValue("Phụ kiện");
-          var thuongHieuPK = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, maSP, COL_PK.THUONG_HIEU);
+          const thuongHieuPK = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, maSP, COL_PK.THUONG_HIEU);
           sheet.getRange(row, COL_DH.THUONG_HIEU).setValue(thuongHieuPK || "");
-          var giaBanPK = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, maSP, COL_PK.GIA_BAN);
+          const giaBanPK = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, maSP, COL_PK.GIA_BAN);
           sheet.getRange(row, COL_DH.DON_GIA).setValue(giaBanPK || 0);
         }
       }
@@ -622,46 +627,46 @@ function _onEditDonHang(sheet, row, col, e) {
 
   // Auto lookup TenNguoiBan + QuyenXuatMay khi nhập NguoiBan (Sử dụng dynamic enum COL_NV)
   if (col === COL_DH.NGUOI_BAN) {
-    var maNVBan = e.value;
+    const maNVBan = e.value;
     if (maNVBan) {
-      var tenNVBan = lookupValue(SHEET_NAMES.NHAN_VIEN, COL_NV.MA_NV, maNVBan, COL_NV.HO_TEN);
+      const tenNVBan = lookupValue(SHEET_NAMES.NHAN_VIEN, COL_NV.MA_NV, maNVBan, COL_NV.HO_TEN);
       sheet.getRange(row, COL_DH.TEN_NGUOI_BAN).setValue(tenNVBan || "");
-      var quyenXM = lookupValue(SHEET_NAMES.NHAN_VIEN, COL_NV.MA_NV, maNVBan, COL_NV.QUYEN_XUAT);
+      const quyenXM = lookupValue(SHEET_NAMES.NHAN_VIEN, COL_NV.MA_NV, maNVBan, COL_NV.QUYEN_XUAT);
       sheet.getRange(row, COL_DH.QUYEN_XUAT).setValue(quyenXM || "✗");
     }
   }
 
   // Auto lookup TenNguoiHoTro khi nhập NguoiHoTro (Sử dụng dynamic enum COL_NV)
   if (col === COL_DH.NGUOI_HO_TRO) {
-    var maNVHT = e.value;
+    const maNVHT = e.value;
     if (maNVHT) {
-      var tenNVHT = lookupValue(SHEET_NAMES.NHAN_VIEN, COL_NV.MA_NV, maNVHT, COL_NV.HO_TEN);
+      const tenNVHT = lookupValue(SHEET_NAMES.NHAN_VIEN, COL_NV.MA_NV, maNVHT, COL_NV.HO_TEN);
       sheet.getRange(row, COL_DH.TEN_NGUOI_HO_TRO).setValue(tenNVHT || "");
     }
   }
 
   // Lắng nghe thay đổi trạng thái đơn hàng để tự động xử lý kho và trả góp khi đơn bị Huỷ trực tiếp trên sheet
   if (col === COL_DH.TRANG_THAI) {
-    var statusVal = String(e.value).trim();
+    const statusVal = String(e.value).trim();
     if (
       statusVal === "Huỷ" ||
       statusVal.toLowerCase() === "huy" ||
       statusVal.toLowerCase() === "huỷ"
     ) {
-      var maDH = sheet.getRange(row, COL_DH.MA_DH).getValue();
-      var maSP = sheet.getRange(row, COL_DH.MA_SP).getValue();
-      var nguonSP = sheet.getRange(row, COL_DH.NGUON_SP).getValue();
-      var hinhThucBan = sheet.getRange(row, COL_DH.HINH_THUC_BAN).getValue();
-      var soLuong = Number(sheet.getRange(row, COL_DH.SO_LUONG).getValue()) || 1;
-      var branch = sheet.getRange(row, COL_DH.CHI_NHANH).getValue();
-      var coNhanQua = sheet.getRange(row, COL_DH.CO_NHAN_QUA).getValue();
-      var maQua = sheet.getRange(row, COL_DH.MA_QUA_TANG).getValue();
+      const maDH = sheet.getRange(row, COL_DH.MA_DH).getValue();
+      const maSP = sheet.getRange(row, COL_DH.MA_SP).getValue();
+      const nguonSP = sheet.getRange(row, COL_DH.NGUON_SP).getValue();
+      const hinhThucBan = sheet.getRange(row, COL_DH.HINH_THUC_BAN).getValue();
+      const soLuong = Number(sheet.getRange(row, COL_DH.SO_LUONG).getValue()) || 1;
+      const branch = sheet.getRange(row, COL_DH.CHI_NHANH).getValue();
+      const coNhanQua = sheet.getRange(row, COL_DH.CO_NHAN_QUA).getValue();
+      const maQua = sheet.getRange(row, COL_DH.MA_QUA_TANG).getValue();
 
       // 1. Hoàn trả kho sản phẩm chính
       if (nguonSP === "Điện thoại") {
-        var ghiChuDH = sheet.getRange(row, COL_DH.GHI_CHU).getValue() || "";
-        var imeiMatch = ghiChuDH.match(/\[IMEI:\s*([^\s\]]+)\]/);
-        var imei = imeiMatch ? imeiMatch[1] : "";
+        const ghiChuDH = sheet.getRange(row, COL_DH.GHI_CHU).getValue() || "";
+        const imeiMatch = ghiChuDH.match(/\[IMEI:\s*([^\s\]]+)\]/);
+        const imei = imeiMatch ? imeiMatch[1] : "";
         updateTrangThaiKhoDT(imei || maSP, "Còn hàng");
         // Huỷ hợp đồng trả góp nếu bán trả góp
         if (hinhThucBan === "Trả góp") {
@@ -673,9 +678,9 @@ function _onEditDonHang(sheet, row, col, e) {
 
       // 2. Hoàn trả kho quà tặng nếu có
       if (coNhanQua === "✓" && maQua) {
-        var maQuaList = String(maQua).split(",");
-        for (var i = 0; i < maQuaList.length; i++) {
-          var code = maQuaList[i].trim();
+        const maQuaList = String(maQua).split(",");
+        for (let i = 0; i < maQuaList.length; i++) {
+          const code = maQuaList[i].trim();
           if (code) {
             updateTonKhoPhuKien(code, 1, "nhap", branch);
           }
@@ -699,21 +704,21 @@ function _onEditNhapKho(sheet, row, col, e) {
 
   // Auto tính ThanhTien khi SoLuong hoặc GiaNhap thay đổi
   if (col === COL_NK.SO_LUONG || col === COL_NK.GIA_NHAP) {
-    var soLuong = sheet.getRange(row, COL_NK.SO_LUONG).getValue() || 0;
-    var giaNhap = sheet.getRange(row, COL_NK.GIA_NHAP).getValue() || 0;
+    const soLuong = sheet.getRange(row, COL_NK.SO_LUONG).getValue() || 0;
+    const giaNhap = sheet.getRange(row, COL_NK.GIA_NHAP).getValue() || 0;
     sheet.getRange(row, COL_NK.THANH_TIEN).setValue(soLuong * giaNhap);
   }
 
   // Auto lookup TenSP khi nhập MaSP
   if (col === COL_NK.MA_SP) {
-    var maSP = e.value;
-    var nguonNhap = sheet.getRange(row, COL_NK.NGUON_NHAP).getValue();
+    const maSP = e.value;
+    const nguonNhap = sheet.getRange(row, COL_NK.NGUON_NHAP).getValue();
     if (maSP) {
       if (nguonNhap === "Điện thoại") {
-        var tenDT = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP, COL_DT.TEN_SP);
+        const tenDT = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP, COL_DT.TEN_SP);
         sheet.getRange(row, COL_NK.TEN_SP).setValue(tenDT || "");
       } else {
-        var tenPK = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, maSP, COL_PK.TEN_SP);
+        const tenPK = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, maSP, COL_PK.TEN_SP);
         sheet.getRange(row, COL_NK.TEN_SP).setValue(tenPK || "");
       }
     }
@@ -732,41 +737,41 @@ function rebuildTonKhoSheet(ss) {
   initializeColumnEnums();
   if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  var tonKhoSheet = ss.getSheetByName(SHEET_NAMES.TON_KHO);
+  const tonKhoSheet = ss.getSheetByName(SHEET_NAMES.TON_KHO);
   if (!tonKhoSheet) return;
 
-  var branches = getBranchesList();
-  var brands = getBrandsList();
+  const branches = getBranchesList();
+  const brands = getBrandsList();
 
-  var N = branches.length || 1;
-  var totalSummaryColIdx = 2 + N;
+  const N = branches.length || 1;
+  const totalSummaryColIdx = 2 + N;
 
   // 1. Chuẩn bị sheet và ô tìm kiếm
   _prepareTonKhoSheet(tonKhoSheet, totalSummaryColIdx);
 
   // 2. Xây dựng Bảng 1: Tổng số máy điện thoại của mỗi chi nhánh
-  var startRowB2B3 = _buildSummaryTable(tonKhoSheet, branches, brands);
+  const startRowB2B3 = _buildSummaryTable(tonKhoSheet, branches, brands);
 
   // 3. Xây dựng Bảng 2: Tồn kho điện thoại theo chi nhánh
-  var totalPhoneColIdx = _buildPhoneInventoryTable(tonKhoSheet, startRowB2B3, branches);
+  const totalPhoneColIdx = _buildPhoneInventoryTable(tonKhoSheet, startRowB2B3, branches);
 
   // 4. Xây dựng Bảng 3: Tồn kho phụ kiện theo chi nhánh
-  var accInfo = _buildAccessoryInventoryTable(tonKhoSheet, startRowB2B3, branches, totalPhoneColIdx);
+  const accInfo = _buildAccessoryInventoryTable(tonKhoSheet, startRowB2B3, branches, totalPhoneColIdx);
 
   // 5. Đảm bảo số cột trong sheet đủ lớn và định dạng font toàn bảng
-  var lastRow = tonKhoSheet.getMaxRows();
-  var lastCol = tonKhoSheet.getMaxColumns();
-  var neededCols = Math.max(accInfo.totalAccColIdx, totalSummaryColIdx);
+  const lastRow = tonKhoSheet.getMaxRows();
+  let lastCol = tonKhoSheet.getMaxColumns();
+  const neededCols = Math.max(accInfo.totalAccColIdx, totalSummaryColIdx);
   if (lastCol < neededCols) {
     tonKhoSheet.insertColumnsAfter(lastCol, neededCols - lastCol);
     lastCol = neededCols;
   }
 
-  var fullRange = tonKhoSheet.getRange(1, 1, lastRow, lastCol);
+  const fullRange = tonKhoSheet.getRange(1, 1, lastRow, lastCol);
   fullRange.setFontFamily("Times New Roman").setFontSize(12);
 
   // Điều chỉnh độ rộng cột
-  for (var c = 1; c <= lastCol; c++) {
+  for (let c = 1; c <= lastCol; c++) {
     if (c === accInfo.spacerColIdx) {
       tonKhoSheet.setColumnWidth(c, 40);
     } else {
@@ -784,7 +789,7 @@ function _prepareTonKhoSheet(sheet, totalSummaryColIdx) {
   sheet.clearFormats();
 
   // Dòng 1: Tiêu đề trang tính
-  var sheetTitleRange = sheet.getRange(1, 1, 1, totalSummaryColIdx);
+  const sheetTitleRange = sheet.getRange(1, 1, 1, totalSummaryColIdx);
   sheetTitleRange.merge();
   sheetTitleRange.setValue("BÁO CÁO TỒN KHO HỆ THỐNG & TÌM KIẾM");
   sheetTitleRange
@@ -795,14 +800,14 @@ function _prepareTonKhoSheet(sheet, totalSummaryColIdx) {
     .setHorizontalAlignment("left");
 
   // Dòng 2: Ô tìm kiếm nhanh
-  var searchLabelCell = sheet.getRange(2, 1);
+  const searchLabelCell = sheet.getRange(2, 1);
   searchLabelCell
     .setValue("Tìm kiếm:")
     .setFontWeight("bold")
     .setHorizontalAlignment("right")
     .setBackground("#f1f3f4");
 
-  var searchInputCell = sheet.getRange(2, 2);
+  const searchInputCell = sheet.getRange(2, 2);
   searchInputCell
     .setBackground("#ffffff")
     .setBorder(
@@ -817,7 +822,7 @@ function _prepareTonKhoSheet(sheet, totalSummaryColIdx) {
     )
     .setHorizontalAlignment("left");
 
-  var searchTipRange = sheet.getRange(
+  const searchTipRange = sheet.getRange(
     2,
     3,
     1,
@@ -841,16 +846,16 @@ function _prepareTonKhoSheet(sheet, totalSummaryColIdx) {
  * @return {number} Chỉ số dòng tiếp theo sau bảng 1
  */
 function _buildSummaryTable(sheet, branches, brands) {
-  var N = branches.length || 1;
-  var B = brands.length || 1;
-  var totalSummaryColIdx = 2 + N;
+  const N = branches.length || 1;
+  const B = brands.length || 1;
+  const totalSummaryColIdx = 2 + N;
 
-  var colThuongHieu = columnToLetter(COL_DT.THUONG_HIEU);
-  var colChiNhanh = columnToLetter(COL_DT.CHI_NHANH);
-  var colTrangThai = columnToLetter(COL_DT.TRANG_THAI_KHO);
+  const colThuongHieu = columnToLetter(COL_DT.THUONG_HIEU);
+  const colChiNhanh = columnToLetter(COL_DT.CHI_NHANH);
+  const colTrangThai = columnToLetter(COL_DT.TRANG_THAI_KHO);
 
   // Dòng 4: Tiêu đề Bảng 1
-  var summaryTitleRange = sheet.getRange(4, 1, 1, totalSummaryColIdx);
+  const summaryTitleRange = sheet.getRange(4, 1, 1, totalSummaryColIdx);
   summaryTitleRange.merge();
   summaryTitleRange.setValue("TỔNG SỐ MÁY ĐIỆN THOẠI CỦA MỖI CHI NHÁNH");
   summaryTitleRange
@@ -861,7 +866,7 @@ function _buildSummaryTable(sheet, branches, brands) {
     .setHorizontalAlignment("left");
 
   // Dòng 5: Headers Bảng 1
-  var summaryHeaders = ["Thương hiệu"];
+  const summaryHeaders = ["Thương hiệu"];
   branches.forEach(function (branch) {
     summaryHeaders.push(branch);
   });
@@ -869,16 +874,16 @@ function _buildSummaryTable(sheet, branches, brands) {
   sheet.getRange(5, 1, 1, totalSummaryColIdx).setValues([summaryHeaders]);
 
   // Dòng 6 đến 5 + B: Ghi danh sách thương hiệu & công thức
-  var brandValues = [];
+  const brandValues = [];
   brands.forEach(function (brand) {
     brandValues.push([brand]);
   });
   sheet.getRange(6, 1, B, 1).setValues(brandValues);
 
   // Chèn công thức COUNTIFS cho các chi nhánh & SUM cho cột Tổng cộng
-  for (var r = 6; r <= 5 + B; r++) {
-    for (var c = 2; c <= 1 + N; c++) {
-      var colLetter = columnToLetter(c);
+  for (let r = 6; r <= 5 + B; r++) {
+    for (let c = 2; c <= 1 + N; c++) {
+      const colLetter = columnToLetter(c);
       sheet
         .getRange(r, c)
         .setFormula(
@@ -889,23 +894,23 @@ function _buildSummaryTable(sheet, branches, brands) {
             "$5; 'Điện thoại'!$" + colTrangThai + ":$" + colTrangThai + "; \"Còn hàng\")",
         );
     }
-    var lastBranchColLetter = columnToLetter(1 + N);
+    const lastBranchColLetter = columnToLetter(1 + N);
     sheet
       .getRange(r, 2 + N)
       .setFormula("=SUM(B" + r + ":" + lastBranchColLetter + r + ")");
   }
 
   // Dòng 6 + B: Dòng Tổng cộng của bảng 1
-  var totalRowIdx = 6 + B;
+  const totalRowIdx = 6 + B;
   sheet.getRange(totalRowIdx, 1).setValue("Tổng cộng");
-  for (var c = 2; c <= 1 + N; c++) {
-    var colLetter = columnToLetter(c);
+  for (let c = 2; c <= 1 + N; c++) {
+    const colLetter = columnToLetter(c);
     sheet
       .getRange(totalRowIdx, c)
       .setFormula("=SUM(" + colLetter + "6:" + colLetter + (5 + B) + ")");
   }
 
-  var lastBranchColLetter = columnToLetter(1 + N);
+  const lastBranchColLetter = columnToLetter(1 + N);
   sheet
     .getRange(totalRowIdx, 2 + N)
     .setFormula(
@@ -913,14 +918,14 @@ function _buildSummaryTable(sheet, branches, brands) {
     );
 
   // Format Table 1
-  var summaryHeaderRange = sheet.getRange(5, 1, 1, totalSummaryColIdx);
+  const summaryHeaderRange = sheet.getRange(5, 1, 1, totalSummaryColIdx);
   summaryHeaderRange
     .setBackground("#e8f0fe")
     .setFontColor("#1a73e8")
     .setFontWeight("bold")
     .setHorizontalAlignment("left");
 
-  var summaryTotalRowRange = sheet.getRange(
+  const summaryTotalRowRange = sheet.getRange(
     totalRowIdx,
     1,
     1,
@@ -943,11 +948,11 @@ function _buildSummaryTable(sheet, branches, brands) {
  * @return {number} Chỉ số cột Tổng tồn của điện thoại
  */
 function _buildPhoneInventoryTable(sheet, startRow, branches) {
-  var N = branches.length || 1;
-  var totalPhoneColIdx = 3 + N + 1; // 3 cột thông tin + N chi nhánh + 1 cột tổng
+  const N = branches.length || 1;
+  const totalPhoneColIdx = 3 + N + 1; // 3 cột thông tin + N chi nhánh + 1 cột tổng
 
   // Tiêu đề Bảng 2
-  var phoneTitleRange = sheet.getRange(
+  const phoneTitleRange = sheet.getRange(
     startRow,
     1,
     1,
@@ -962,34 +967,30 @@ function _buildPhoneInventoryTable(sheet, startRow, branches) {
     .setBackground("#1a73e8")
     .setHorizontalAlignment("left");
 
-  var colTenSPCol = "Col" + COL_DT.TEN_SP;
-  var colMauSacCol = "Col" + COL_DT.MAU_SAC;
-  var colDungLuongCol = "Col" + COL_DT.DUNG_LUONG;
-  var colMaDTCol = "Col" + COL_DT.MA_DT;
-  var colTrangThaiCol = "Col" + COL_DT.TRANG_THAI_KHO;
-  var colThuongHieuCol = "Col" + COL_DT.THUONG_HIEU;
-  var colImeiCol = "Col" + COL_DT.IMEI;
-  var colImei2Col = "Col" + COL_DT.IMEI_2;
-  var colChiNhanhCol = "Col" + COL_DT.CHI_NHANH;
-
-  var maxColLetter = columnToLetter(Math.max(
+  const maxColLetter = columnToLetter(Math.max(
     COL_DT.MA_DT, COL_DT.TEN_SP, COL_DT.THUONG_HIEU, COL_DT.IMEI, COL_DT.IMEI_2,
     COL_DT.MAU_SAC, COL_DT.DUNG_LUONG, COL_DT.TRANG_THAI_KHO, COL_DT.CHI_NHANH
   ));
 
   // Công thức QUERY xoay chiều theo chi nhánh (có lọc theo ô Tìm kiếm B2)
-  var queryFormula = 
-    "=QUERY(INDEX(TO_TEXT('Điện thoại'!A:" + maxColLetter + ")); \"select " + colTenSPCol + ", " + colMauSacCol + ", " + colDungLuongCol + ", count(" + colMaDTCol + ") " +
-    "where " + colMaDTCol + " is not null and " + colTrangThaiCol + " = 'Còn hàng' \" & " +
-    "IF(ISBLANK($B$2); \"\"; \"and (lower(" + colTenSPCol + ") contains '\"&LOWER($B$2)&\"' or lower(" + colMauSacCol + ") contains '\"&LOWER($B$2)&\"' or lower(" + colDungLuongCol + ") contains '\"&LOWER($B$2)&\"' or lower(" + colThuongHieuCol + ") contains '\"&LOWER($B$2)&\"' or lower(" + colImeiCol + ") contains '\"&LOWER($B$2)&\"' or lower(" + colImei2Col + ") contains '\"&LOWER($B$2)&\"')\") & " +
-    "\" group by " + colTenSPCol + ", " + colMauSacCol + ", " + colDungLuongCol + " pivot " + colChiNhanhCol + "\"; 1)";
+  const queryFormula = _buildPhoneQueryFormula(maxColLetter, {
+    colTenSP: "Col" + COL_DT.TEN_SP,
+    colMauSac: "Col" + COL_DT.MAU_SAC,
+    colDungLuong: "Col" + COL_DT.DUNG_LUONG,
+    colMaDT: "Col" + COL_DT.MA_DT,
+    colTrangThai: "Col" + COL_DT.TRANG_THAI_KHO,
+    colThuongHieu: "Col" + COL_DT.THUONG_HIEU,
+    colImei: "Col" + COL_DT.IMEI,
+    colImei2: "Col" + COL_DT.IMEI_2,
+    colChiNhanh: "Col" + COL_DT.CHI_NHANH
+  });
 
   sheet
     .getRange(startRow + 1, 1)
     .setFormula(queryFormula);
 
   // Đầu cột Tổng tồn
-  var phoneTotalHeaderCell = sheet.getRange(
+  const phoneTotalHeaderCell = sheet.getRange(
     startRow + 1,
     totalPhoneColIdx,
   );
@@ -1001,7 +1002,7 @@ function _buildPhoneInventoryTable(sheet, startRow, branches) {
     .setFontColor("#1a73e8");
 
   // Công thức tính Tổng tồn dùng MAP và OFFSET động từ dòng startRow + 2
-  var phoneTotalFormulaCell = sheet.getRange(
+  const phoneTotalFormulaCell = sheet.getRange(
     startRow + 2,
     totalPhoneColIdx,
   );
@@ -1014,7 +1015,7 @@ function _buildPhoneInventoryTable(sheet, startRow, branches) {
   );
 
   // Định dạng Header Dòng startRow + 1
-  var phoneHeaderRange = sheet.getRange(
+  const phoneHeaderRange = sheet.getRange(
     startRow + 1,
     1,
     1,
@@ -1035,12 +1036,12 @@ function _buildPhoneInventoryTable(sheet, startRow, branches) {
  * @return {Object} { spacerColIdx, totalAccColIdx }
  */
 function _buildAccessoryInventoryTable(sheet, startRow, branches, totalPhoneColIdx) {
-  var N = branches.length || 1;
-  var spacerColIdx = totalPhoneColIdx + 1; // Cột khoảng cách trống
-  var startAccColIdx = spacerColIdx + 1; // Cột bắt đầu bảng Phụ kiện
-  var totalAccColIdx = startAccColIdx + 4 + N; // 4 cột thông tin + N chi nhánh + 1 cột tổng
+  const N = branches.length || 1;
+  const spacerColIdx = totalPhoneColIdx + 1; // Cột khoảng cách trống
+  const startAccColIdx = spacerColIdx + 1; // Cột bắt đầu bảng Phụ kiện
+  const totalAccColIdx = startAccColIdx + 4 + N; // 4 cột thông tin + N chi nhánh + 1 cột tổng
 
-  var accTitleRange = sheet.getRange(
+  const accTitleRange = sheet.getRange(
     startRow,
     startAccColIdx,
     1,
@@ -1055,33 +1056,30 @@ function _buildAccessoryInventoryTable(sheet, startRow, branches, totalPhoneColI
     .setBackground("#1a73e8")
     .setHorizontalAlignment("left");
 
-  var colMaPK = columnToLetter(COL_PK.MA_PK);
-  var colTenPK = columnToLetter(COL_PK.TEN_SP);
-  var colLoaiPK = columnToLetter(COL_PK.LOAI_PK);
-  var colThuongHieuPK = columnToLetter(COL_PK.THUONG_HIEU);
-  var colSoLuongTon = columnToLetter(COL_PK.SO_LUONG_TON);
-  var colTrangThaiPK = columnToLetter(COL_PK.TRANG_THAI);
-  var colChiNhanhPK = columnToLetter(COL_PK.CHI_NHANH);
-
-  var maxColPKLetter = columnToLetter(Math.max(
+  const maxColPKLetter = columnToLetter(Math.max(
     COL_PK.MA_PK, COL_PK.TEN_SP, COL_PK.LOAI_PK, COL_PK.THUONG_HIEU,
     COL_PK.SO_LUONG_TON, COL_PK.TRANG_THAI, COL_PK.CHI_NHANH
   ));
 
+  const startAccColLetter = columnToLetter(startAccColIdx);
+
   // Công thức QUERY xoay chiều theo chi nhánh (có lọc theo ô Tìm kiếm B2)
-  var startAccColLetter = columnToLetter(startAccColIdx);
-  var queryAccFormula =
-    "=QUERY('Phụ kiện'!A:" + maxColPKLetter + "; \"select " + colMaPK + ", " + colTenPK + ", " + colLoaiPK + ", " + colThuongHieuPK + ", sum(" + colSoLuongTon + ") " +
-    "where " + colMaPK + " is not null and " + colTrangThaiPK + " = 'Đang bán' and " + colSoLuongTon + " > 0 \" & " +
-    "IF(ISBLANK($B$2); \"\"; \"and (lower(" + colMaPK + ") contains '\"&LOWER($B$2)&\"' or lower(" + colTenPK + ") contains '\"&LOWER($B$2)&\"' or lower(" + colLoaiPK + ") contains '\"&LOWER($B$2)&\"' or lower(" + colThuongHieuPK + ") contains '\"&LOWER($B$2)&\"')\") & " +
-    "\" group by " + colMaPK + ", " + colTenPK + ", " + colLoaiPK + ", " + colThuongHieuPK + " pivot " + colChiNhanhPK + "\"; 1)";
+  const queryAccFormula = _buildAccessoryQueryFormula(maxColPKLetter, {
+    colMaPK: columnToLetter(COL_PK.MA_PK),
+    colTenPK: columnToLetter(COL_PK.TEN_SP),
+    colLoaiPK: columnToLetter(COL_PK.LOAI_PK),
+    colThuongHieuPK: columnToLetter(COL_PK.THUONG_HIEU),
+    colSoLuongTon: columnToLetter(COL_PK.SO_LUONG_TON),
+    colTrangThai: columnToLetter(COL_PK.TRANG_THAI),
+    colChiNhanh: columnToLetter(COL_PK.CHI_NHANH)
+  });
 
   sheet
     .getRange(startRow + 1, startAccColIdx)
     .setFormula(queryAccFormula);
 
   // Đầu cột Tổng tồn của Phụ kiện
-  var accTotalHeaderCell = sheet.getRange(
+  const accTotalHeaderCell = sheet.getRange(
     startRow + 1,
     totalAccColIdx,
   );
@@ -1093,7 +1091,7 @@ function _buildAccessoryInventoryTable(sheet, startRow, branches, totalPhoneColI
     .setFontColor("#1a73e8");
 
   // Công thức tính Tổng tồn Phụ kiện
-  var accTotalFormulaCell = sheet.getRange(
+  const accTotalFormulaCell = sheet.getRange(
     startRow + 2,
     totalAccColIdx,
   );
@@ -1109,7 +1107,7 @@ function _buildAccessoryInventoryTable(sheet, startRow, branches, totalPhoneColI
   );
 
   // Định dạng Header Dòng startRow + 1
-  var accHeaderRange = sheet.getRange(
+  const accHeaderRange = sheet.getRange(
     startRow + 1,
     startAccColIdx,
     1,
@@ -1131,8 +1129,8 @@ function _buildAccessoryInventoryTable(sheet, startRow, branches, totalPhoneColI
  * @return {string}
  */
 function columnToLetter(column) {
-  var temp,
-    letter = "";
+  let temp;
+  let letter = "";
   while (column > 0) {
     temp = (column - 1) % 26;
     letter = String.fromCharCode(temp + 65) + letter;
@@ -1170,4 +1168,66 @@ function getInitialSidebarData() {
     brands: getBrandsDropdown(),
     storeInterestRate: getInterestRateConfig(),
   };
+}
+
+/**
+ * Tạo công thức QUERY cho bảng tồn kho điện thoại
+ * @private
+ */
+function _buildPhoneQueryFormula(maxColLetter, params) {
+  const {
+    colTenSP,
+    colMauSac,
+    colDungLuong,
+    colMaDT,
+    colTrangThai,
+    colThuongHieu,
+    colImei,
+    colImei2,
+    colChiNhanh,
+    searchCell = "$B$2"
+  } = params;
+
+  const selectClause = `select ${colTenSP}, ${colMauSac}, ${colDungLuong}, count(${colMaDT})`;
+  const whereBase = `where ${colMaDT} is not null and ${colTrangThai} = 'Còn hàng'`;
+  
+  const searchFilter = `and (lower(${colTenSP}) contains '\"&LOWER(${searchCell})&\"' ` +
+                       `or lower(${colMauSac}) contains '\"&LOWER(${searchCell})&\"' ` +
+                       `or lower(${colDungLuong}) contains '\"&LOWER(${searchCell})&\"' ` +
+                       `or lower(${colThuongHieu}) contains '\"&LOWER(${searchCell})&\"' ` +
+                       `or lower(${colImei}) contains '\"&LOWER(${searchCell})&\"' ` +
+                       `or lower(${colImei2}) contains '\"&LOWER(${searchCell})&\"')`;
+
+  const groupPivotClause = `group by ${colTenSP}, ${colMauSac}, ${colDungLuong} pivot ${colChiNhanh}`;
+
+  return `=QUERY(INDEX(TO_TEXT('Điện thoại'!A:${maxColLetter})); "${selectClause} ${whereBase} " & IF(ISBLANK(${searchCell}); ""; "${searchFilter}") & " ${groupPivotClause}"; 1)`;
+}
+
+/**
+ * Tạo công thức QUERY cho bảng tồn kho phụ kiện
+ * @private
+ */
+function _buildAccessoryQueryFormula(maxColPKLetter, params) {
+  const {
+    colMaPK,
+    colTenPK,
+    colLoaiPK,
+    colThuongHieuPK,
+    colSoLuongTon,
+    colTrangThai,
+    colChiNhanh,
+    searchCell = "$B$2"
+  } = params;
+
+  const selectClause = `select ${colMaPK}, ${colTenPK}, ${colLoaiPK}, ${colThuongHieuPK}, sum(${colSoLuongTon})`;
+  const whereBase = `where ${colMaPK} is not null and ${colTrangThai} = 'Đang bán' and ${colSoLuongTon} > 0`;
+
+  const searchFilter = `and (lower(${colMaPK}) contains '\"&LOWER(${searchCell})&\"' ` +
+                       `or lower(${colTenPK}) contains '\"&LOWER(${searchCell})&\"' ` +
+                       `or lower(${colLoaiPK}) contains '\"&LOWER(${searchCell})&\"' ` +
+                       `or lower(${colThuongHieuPK}) contains '\"&LOWER(${searchCell})&\"')`;
+
+  const groupPivotClause = `group by ${colMaPK}, ${colTenPK}, ${colLoaiPK}, ${colThuongHieuPK} pivot ${colChiNhanh}`;
+
+  return `=QUERY('Phụ kiện'!A:${maxColPKLetter}; "${selectClause} ${whereBase} " & IF(ISBLANK(${searchCell}); ""; "${searchFilter}") & " ${groupPivotClause}"; 1)`;
 }

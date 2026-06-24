@@ -14,33 +14,33 @@
  */
 function taoHopDongTraGop(data) {
   initializeColumnEnums();
-  var maTG = generateId("TG", SHEET_NAMES.TRA_GOP);
+  const maTG = generateId("TG", SHEET_NAMES.TRA_GOP);
 
-  var tongTien = Number(data.tongTien) || 0;
-  var traTruocNum = parseAmountVal(data.traTruoc);
-  var conLai = tongTien - traTruocNum;
-  var soKy = Number(data.soKy) || 1;
+  const tongTien = Number(data.tongTien) || 0;
+  const traTruocNum = parseAmountVal(data.traTruoc);
+  const conLai = tongTien - traTruocNum;
+  const soKy = Number(data.soKy) || 1;
 
-  var loaiTraGop = data.loaiTraGop || "Cửa hàng";
-  var isCTTC = loaiTraGop === "Công ty tài chính";
+  const loaiTraGop = data.loaiTraGop || "Cửa hàng";
+  const isCTTC = loaiTraGop === "Công ty tài chính";
 
   // Nếu là công ty tài chính, sử dụng số tiền đóng mỗi kỳ truyền lên (đã bao gồm lãi)
   // Nếu là cửa hàng, tính tiền mỗi kỳ = tiền gốc mỗi tháng + tiền lãi mỗi tháng
-  var interestRate = getInterestRateConfig();
-  var tienMoiKy = isCTTC
+  const interestRate = getInterestRateConfig();
+  const tienMoiKy = isCTTC
     ? Number(data.tienMoiKy) || 0
     : Math.ceil(conLai / soKy) + Math.round(conLai * (interestRate / 100));
 
-  var tenKH = lookupValue(SHEET_NAMES.KHACH_HANG, 1, data.maKH, 2) || "";
+  const tenKH = lookupValue(SHEET_NAMES.KHACH_HANG, 1, data.maKH, 2) || "";
 
-  var ngayBatDau = new Date();
-  var ngayKetThuc = new Date();
+  const ngayBatDau = new Date();
+  const ngayKetThuc = new Date();
   ngayKetThuc.setMonth(ngayKetThuc.getMonth() + soKy);
 
-  var tienMat = 0;
-  var chuyenKhoan = 0;
+  let tienMat = 0;
+  let chuyenKhoan = 0;
   if (typeof data.traTruoc === "string" && data.traTruoc.indexOf(",") !== -1) {
-    var parts = data.traTruoc.split(",");
+    const parts = data.traTruoc.split(",");
     chuyenKhoan = Number(parts[0]) || 0;
     tienMat = Number(parts[1]) || 0;
   } else {
@@ -62,7 +62,7 @@ function taoHopDongTraGop(data) {
     }
   }
 
-  var rowData = [];
+  const rowData = [];
   rowData[COL_TG.MA_TG - 1] = maTG;
   rowData[COL_TG.MA_DH - 1] = data.maDH || "";
   rowData[COL_TG.MA_KH - 1] = data.maKH || "";
@@ -71,7 +71,7 @@ function taoHopDongTraGop(data) {
   rowData[COL_TG.TRA_TRUOC - 1] = traTruocNum;
   rowData[COL_TG.CON_LAI - 1] = conLai;
   rowData[COL_TG.SO_KY - 1] = soKy;
-  rowData[COL_TG.TIEN_MO_KY - 1] = tienMoiKy;
+  rowData[COL_TG.TIEN_MOI_KY - 1] = tienMoiKy;
   rowData[COL_TG.NGAY_BAT_DAU - 1] = ngayBatDau;
   rowData[COL_TG.NGAY_KET_THUC - 1] = ngayKetThuc;
   rowData[COL_TG.DA_TRA_SO_KY - 1] = isCTTC ? soKy : 0;
@@ -87,16 +87,16 @@ function taoHopDongTraGop(data) {
 
   // Chỉ tạo lịch thanh toán từng kỳ cho Cửa hàng tự trả góp
   if (!isCTTC) {
-    var historyRows = [];
-    var baseNum = getNewIdCounter("LS", SHEET_NAMES.LICH_SU_TRA_GOP);
-    for (var i = 1; i <= soKy; i++) {
-      var nextNum = baseNum + i;
-      var padded = ("00000" + nextNum).slice(-5);
-      var maLS = "LS" + padded + getRandomLetters();
-      var ngayCanTra = new Date(ngayBatDau);
+    const historyRows = [];
+    const baseNum = getNewIdCounter("LS", SHEET_NAMES.LICH_SU_TRA_GOP);
+    for (let i = 1; i <= soKy; i++) {
+      const nextNum = baseNum + i;
+      const padded = ("00000" + nextNum).slice(-5);
+      const maLS = "LS" + padded + getRandomLetters();
+      const ngayCanTra = new Date(ngayBatDau);
       ngayCanTra.setMonth(ngayCanTra.getMonth() + i);
 
-      var lichData = [];
+      const lichData = [];
       lichData[COL_LSTG.MA_LS - 1] = maLS;
       lichData[COL_LSTG.MA_TG - 1] = maTG;
       lichData[COL_LSTG.KY_SO - 1] = i;
@@ -115,7 +115,7 @@ function taoHopDongTraGop(data) {
     appendRows(SHEET_NAMES.LICH_SU_TRA_GOP, historyRows);
   }
 
-  var msgToast = isCTTC
+  const msgToast = isCTTC
     ? "✅ Đã tạo HĐ trả góp qua CTTC: " + maTG
     : "✅ Đã tạo HĐ trả góp: " +
       maTG +
@@ -138,30 +138,30 @@ function ghiNhanThanhToan(data) {
   return withDocumentLock(function () {
     clearSheetCache();
     initializeColumnEnums();
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
 
-    var soTien = Number(data.soTien) || 0;
-    var splitResult = calculatePaymentSplit(data, soTien);
-    var tienMat = splitResult.tienMat;
-    var chuyenKhoan = splitResult.chuyenKhoan;
+    const soTien = Number(data.soTien) || 0;
+    const splitResult = calculatePaymentSplit(data, soTien);
+    const tienMat = splitResult.tienMat;
+    const chuyenKhoan = splitResult.chuyenKhoan;
 
     // Tìm dòng lịch sử trả góp
-    var lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
+    const lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
     if (!lstgSheet) {
       showAlert("❌ Lỗi", "Không tìm thấy bảng Lịch sử trả góp!");
       return false;
     }
 
-    var lastRow = lstgSheet.getLastRow();
+    const lastRow = lstgSheet.getLastRow();
     if (lastRow <= 1) {
       showAlert("❌ Lỗi", "Không có dữ liệu lịch sử trả góp!");
       return false;
     }
 
-    var allData = lstgSheet.getRange(2, 1, lastRow - 1, 10).getValues();
-    var targetRow = -1;
+    const allData = lstgSheet.getRange(2, 1, lastRow - 1, 10).getValues();
+    let targetRow = -1;
 
-    for (var i = 0; i < allData.length; i++) {
+    for (let i = 0; i < allData.length; i++) {
       if (
         String(allData[i][1]) === data.maTG &&
         Number(allData[i][2]) === Number(data.kySo)
@@ -180,9 +180,9 @@ function ghiNhanThanhToan(data) {
     }
 
     // Cập nhật lịch sử hàng loạt trong 1 range
-    var lastCol = lstgSheet.getLastColumn();
-    var range = lstgSheet.getRange(targetRow, 1, 1, lastCol);
-    var rowValues = range.getValues()[0];
+    const lastCol = lstgSheet.getLastColumn();
+    const range = lstgSheet.getRange(targetRow, 1, 1, lastCol);
+    const rowValues = range.getValues()[0];
 
     rowValues[COL_LSTG.SO_TIEN_DA_TRA - 1] = soTien;
     rowValues[COL_LSTG.NGAY_THUC_TRA - 1] = new Date();
@@ -222,16 +222,16 @@ function ghiNhanThanhToan(data) {
  */
 function _capNhatTongTraGop(maTG) {
   return withDocumentLock(function () {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
 
     // Đếm kỳ đã trả và tổng tiền
-    var lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
-    var lastRow = lstgSheet.getLastRow();
+    const lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
+    const lastRow = lstgSheet.getLastRow();
     if (lastRow <= 1) return;
 
-    var allData = lstgSheet.getRange(2, 1, lastRow - 1, 9).getValues();
-    var daTraSoKy = 0;
-    var daTraSoTien = 0;
+    const allData = lstgSheet.getRange(2, 1, lastRow - 1, 9).getValues();
+    let daTraSoKy = 0;
+    let daTraSoTien = 0;
 
     allData.forEach(function (row) {
       if (String(row[1]) === maTG && String(row[8]) === "Đã trả") {
@@ -242,16 +242,16 @@ function _capNhatTongTraGop(maTG) {
 
     // Tìm dòng trả góp
     initializeColumnEnums();
-    var tgRow = findRow(SHEET_NAMES.TRA_GOP, COL_TG.MA_TG, maTG);
+    const tgRow = findRow(SHEET_NAMES.TRA_GOP, COL_TG.MA_TG, maTG);
     if (tgRow === -1) return;
 
-    var tgSheet = ss.getSheetByName(SHEET_NAMES.TRA_GOP);
-    var lastCol = tgSheet.getLastColumn();
-    var range = tgSheet.getRange(tgRow, 1, 1, lastCol);
-    var rowValues = range.getValues()[0];
+    const tgSheet = ss.getSheetByName(SHEET_NAMES.TRA_GOP);
+    const lastCol = tgSheet.getLastColumn();
+    const range = tgSheet.getRange(tgRow, 1, 1, lastCol);
+    const rowValues = range.getValues()[0];
 
-    var traTruoc = parseAmountVal(rowValues[COL_TG.TRA_TRUOC - 1]);
-    var soKy = Number(rowValues[COL_TG.SO_KY - 1]) || 0;
+    const traTruoc = parseAmountVal(rowValues[COL_TG.TRA_TRUOC - 1]);
+    const soKy = Number(rowValues[COL_TG.SO_KY - 1]) || 0;
 
     rowValues[COL_TG.DA_TRA_SO_KY - 1] = daTraSoKy;
     rowValues[COL_TG.DA_TRA_SO_TIEN - 1] = traTruoc + daTraSoTien;
@@ -261,13 +261,13 @@ function _capNhatTongTraGop(maTG) {
       rowValues[COL_TG.TRANG_THAI - 1] = "Hoàn tất";
       
       // Cập nhật trạng thái kho điện thoại → Đã bán
-      var maDH = rowValues[COL_TG.MA_DH - 1];
-      var maSP = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.MA_SP);
-      var nguonSP = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.NGUON_SP);
+      const maDH = rowValues[COL_TG.MA_DH - 1];
+      const maSP = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.MA_SP);
+      const nguonSP = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.NGUON_SP);
       if (nguonSP === "Điện thoại" && maSP) {
-        var ghiChuDH = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.GHI_CHU) || "";
-        var imeiMatch = ghiChuDH.match(/\[IMEI:\s*([^\s\]]+)\]/);
-        var imei = imeiMatch ? imeiMatch[1] : "";
+        const ghiChuDH = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.GHI_CHU) || "";
+        const imeiMatch = ghiChuDH.match(/\[IMEI:\s*([^\s\]]+)\]/);
+        const imei = imeiMatch ? imeiMatch[1] : "";
         updateTrangThaiKhoDT(imei || maSP, "Đã bán");
       }
     }
@@ -286,26 +286,34 @@ function _capNhatTongTraGop(maTG) {
  */
 function huyHopDongTraGop(maDH) {
   return withDocumentLock(function () {
-    var maTG = lookupValue(SHEET_NAMES.TRA_GOP, 2, maDH, 1);
+    initializeColumnEnums();
+    const maTG = lookupValue(SHEET_NAMES.TRA_GOP, COL_TG.MA_DH, maDH, COL_TG.MA_TG);
     if (maTG) {
-      var tgRow = findRow(SHEET_NAMES.TRA_GOP, 1, maTG);
+      const tgRow = findRow(SHEET_NAMES.TRA_GOP, COL_TG.MA_TG, maTG);
       if (tgRow !== -1) {
-        updateCell(SHEET_NAMES.TRA_GOP, tgRow, 16, "Đã huỷ");
+        updateCell(SHEET_NAMES.TRA_GOP, tgRow, COL_TG.TRANG_THAI, "Đã huỷ");
 
         // Cập nhật trạng thái các kỳ chưa thanh toán trong Lịch sử trả góp thành "Đã huỷ"
-        var ss = SpreadsheetApp.getActiveSpreadsheet();
-        var lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
+        const ss = SpreadsheetApp.getActiveSpreadsheet();
+        const lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
         if (lstgSheet) {
-          var lastRow = lstgSheet.getLastRow();
+          const lastRow = lstgSheet.getLastRow();
           if (lastRow > 1) {
-            var allLichSu = lstgSheet.getRange(2, 2, lastRow - 1, 8).getValues(); // Cột B (MaTG) đến I (TrangThai)
-            for (var i = 0; i < allLichSu.length; i++) {
-              if (String(allLichSu[i][0]) === maTG) {
-                var status = String(allLichSu[i][7]);
-                if (status !== "Đã trả") {
-                  lstgSheet.getRange(i + 2, 9).setValue("Đã huỷ"); // Cột I (Cột 9)
-                }
+            const lastCol = lstgSheet.getLastColumn();
+            const range = lstgSheet.getRange(2, 1, lastRow - 1, lastCol);
+            const allData = range.getValues();
+            let changed = false;
+            for (let i = 0; i < allData.length; i++) {
+              if (
+                String(allData[i][COL_LSTG.MA_TG - 1]) === maTG &&
+                String(allData[i][COL_LSTG.TRANG_THAI - 1]) !== "Đã trả"
+              ) {
+                allData[i][COL_LSTG.TRANG_THAI - 1] = "Đã huỷ";
+                changed = true;
               }
+            }
+            if (changed) {
+              range.setValues(allData);
             }
             clearSheetCache(SHEET_NAMES.LICH_SU_TRA_GOP);
           }
@@ -321,21 +329,21 @@ function huyHopDongTraGop(maDH) {
  * @return {Object[]} Danh sách kỳ trả góp đã quá hạn
  */
 function getTraGopQuaHan() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
   if (!lstgSheet) return [];
 
-  var lastRow = lstgSheet.getLastRow();
+  const lastRow = lstgSheet.getLastRow();
   if (lastRow <= 1) return [];
 
-  var allData = lstgSheet.getRange(2, 1, lastRow - 1, 10).getValues();
-  var today = new Date();
+  const allData = lstgSheet.getRange(2, 1, lastRow - 1, 10).getValues();
+  const today = new Date();
   today.setHours(0, 0, 0, 0);
-  var result = [];
+  const result = [];
 
   allData.forEach(function (row, index) {
-    var trangThai = String(row[8]);
-    var ngayCanTra = row[5];
+    const trangThai = String(row[8]);
+    const ngayCanTra = row[5];
 
     if (trangThai === "Chưa trả" && ngayCanTra instanceof Date) {
       ngayCanTra.setHours(0, 0, 0, 0);
@@ -343,7 +351,7 @@ function getTraGopQuaHan() {
         // Đánh dấu quá hạn
         lstgSheet.getRange(index + 2, 9).setValue("Quá hạn");
 
-        var obj = {
+        const obj = {
           MaLS: String(row[0]),
           MaTG: String(row[1]),
           KySo: Number(row[2]),
@@ -357,7 +365,7 @@ function getTraGopQuaHan() {
         };
 
         // Thêm thông tin KH
-        var maTG = String(row[1]);
+        const maTG = String(row[1]);
         obj.TenKH = lookupValue(SHEET_NAMES.TRA_GOP, 1, maTG, 4) || "";
         obj.SoNgayQuaHan = Math.floor(
           (today - ngayCanTra) / (1000 * 60 * 60 * 24),
@@ -378,14 +386,14 @@ function getTraGopQuaHan() {
  * @return {Object|null}
  */
 function getTrangThaiTraGop(maTG) {
-  var row = findRow(SHEET_NAMES.TRA_GOP, 1, maTG);
+  const row = findRow(SHEET_NAMES.TRA_GOP, 1, maTG);
   if (row === -1) return null;
 
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(SHEET_NAMES.TRA_GOP);
-  var r = sheet.getRange(row, 1, 1, 17).getValues()[0];
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAMES.TRA_GOP);
+  const r = sheet.getRange(row, 1, 1, 17).getValues()[0];
 
-  var result = {
+  const result = {
     MaTG: String(r[0]),
     MaDH: String(r[1]),
     MaKH: String(r[2]),
@@ -406,7 +414,7 @@ function getTrangThaiTraGop(maTG) {
   };
 
   // Lấy lịch sử thanh toán
-  var allLSTG = getAllData(SHEET_NAMES.LICH_SU_TRA_GOP);
+  const allLSTG = getAllData(SHEET_NAMES.LICH_SU_TRA_GOP);
   result.lichSu = [];
 
   allLSTG.forEach(function (rowVals) {
@@ -435,8 +443,8 @@ function getTrangThaiTraGop(maTG) {
  * @return {Object[]} [{value: 'TG001', text: 'TG001 - Nguyễn Văn A - Đang trả (5/12 kỳ)'}, ...]
  */
 function getTraGopDropdown() {
-  var data = getAllData(SHEET_NAMES.TRA_GOP);
-  var result = [];
+  const data = getAllData(SHEET_NAMES.TRA_GOP);
+  const result = [];
 
   data.forEach(function (row) {
     if (
@@ -473,8 +481,8 @@ function getTraGopDropdown() {
  * @return {Object[]} Các kỳ chưa trả
  */
 function getKyChuaTra(maTG) {
-  var allLSTG = getAllData(SHEET_NAMES.LICH_SU_TRA_GOP);
-  var result = [];
+  const allLSTG = getAllData(SHEET_NAMES.LICH_SU_TRA_GOP);
+  const result = [];
 
   allLSTG.forEach(function (row) {
     if (String(row[1]) === maTG && String(row[8]) !== "Đã trả") {
@@ -501,8 +509,8 @@ function getKyChuaTra(maTG) {
  * @private
  */
 function _buildTraGopDropdownCache() {
-  var data = getAllData(SHEET_NAMES.TRA_GOP);
-  var result = [];
+  const data = getAllData(SHEET_NAMES.TRA_GOP);
+  const result = [];
 
   data.forEach(function (row) {
     if (
@@ -541,16 +549,16 @@ function _buildTraGopDropdownCache() {
  * @return {Object[]}
  */
 function getTraGopDropdownSearch(keyword) {
-  var kw = String(keyword).trim().toLowerCase();
+  const kw = String(keyword).trim().toLowerCase();
 
-  var allItems = getChunkedCache("dd_tg");
+  let allItems = getChunkedCache("dd_tg");
   if (!allItems) {
     allItems = _buildTraGopDropdownCache();
     setChunkedCache("dd_tg", allItems);
   }
 
-  var result = [];
-  for (var i = 0; i < allItems.length; i++) {
+  const result = [];
+  for (let i = 0; i < allItems.length; i++) {
     if (allItems[i]._s.indexOf(kw) !== -1) {
       result.push({
         value: allItems[i].v,

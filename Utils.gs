@@ -6,9 +6,9 @@
  */
 
 // Cache lưu trữ dữ liệu của các sheet trong một lần chạy để tối ưu hiệu năng đọc
-var _sheetDataCache = {};
-var _sheetIndexCache = {};
-var _holdsLock = false;
+let _sheetDataCache = {};
+let _sheetIndexCache = {};
+let _holdsLock = false;
 
 function clearSheetCache(sheetName) {
   if (sheetName) {
@@ -29,9 +29,8 @@ function clearSheetCache(sheetName) {
   }
 }
 
-
 // Các Enum cột mặc định (sẽ được cập nhật động bằng initializeColumnEnums)
-var COL_DT = {
+const COL_DT = {
   MA_DT: 1,
   TEN_SP: 2,
   THUONG_HIEU: 3,
@@ -50,7 +49,7 @@ var COL_DT = {
   NGAY_XUAT: 16,
 };
 
-var COL_PK = {
+const COL_PK = {
   MA_PK: 1,
   TEN_SP: 2,
   LOAI_PK: 3,
@@ -63,7 +62,7 @@ var COL_PK = {
   CHI_NHANH: 10,
 };
 
-var COL_DH = {
+const COL_DH = {
   MA_DH: 1,
   NGAY_BAN: 2,
   MA_KH: 3,
@@ -93,7 +92,7 @@ var COL_DH = {
   CHUYEN_KHOAN: 27,
 };
 
-var COL_TM = {
+const COL_TM = {
   MA_TM: 1,
   NGAY_TM: 2,
   MA_KH: 3,
@@ -117,7 +116,7 @@ var COL_TM = {
   CHUYEN_KHOAN: 21,
 };
 
-var COL_NK = {
+const COL_NK = {
   MA_NK: 1,
   NGAY_NHAP: 2,
   NGUON_NHAP: 3,
@@ -131,7 +130,7 @@ var COL_NK = {
   CHI_NHANH: 11,
 };
 
-var COL_TG = {
+const COL_TG = {
   MA_TG: 1,
   MA_DH: 2,
   MA_KH: 3,
@@ -153,7 +152,7 @@ var COL_TG = {
   CHUYEN_KHOAN: 19,
 };
 
-var COL_LSTG = {
+const COL_LSTG = {
   MA_LS: 1,
   MA_TG: 2,
   KY_SO: 3,
@@ -168,7 +167,7 @@ var COL_LSTG = {
   CHUYEN_KHOAN: 12,
 };
 
-var COL_DV = {
+const COL_DV = {
   MA_DV: 1,
   NGAY_GD: 2,
   LOAI_DV: 3,
@@ -186,7 +185,7 @@ var COL_DV = {
   CHUYEN_KHOAN: 15,
 };
 
-var COL_DT_TRA = {
+const COL_DT_TRA = {
   MA_DT: 1,
   NGAY_DT: 2,
   MA_DH: 3,
@@ -210,7 +209,7 @@ var COL_DT_TRA = {
   CHUYEN_KHOAN: 21,
 };
 
-var COL_KH = {
+const COL_KH = {
   MA_KH: 1,
   HO_TEN: 2,
   CCCD: 3,
@@ -219,7 +218,7 @@ var COL_KH = {
   GHI_CHU: 6,
 };
 
-var COL_BH = {
+const COL_BH = {
   MA_BH: 1,
   NGAY_NHAN: 2,
   MA_KH: 3,
@@ -238,7 +237,7 @@ var COL_BH = {
   CHUYEN_KHOAN: 16,
 };
 
-var COL_NV = {
+const COL_NV = {
   MA_NV: 1,
   HO_TEN: 2,
   SO_DIEN_THOAI: 3,
@@ -249,14 +248,14 @@ var COL_NV = {
   TRANG_THAI: 8,
 };
 
-var _columnEnumsInitialized = false;
+let _columnEnumsInitialized = false;
 
 /**
  * Xóa cache column enums của hệ thống
  */
 function clearColumnEnumsCache() {
   try {
-    var cache = CacheService.getScriptCache();
+    const cache = CacheService.getScriptCache();
     cache.remove("system_column_enums_cache");
     _columnEnumsInitialized = false;
   } catch (e) {
@@ -268,11 +267,11 @@ function initializeColumnEnums() {
   if (_columnEnumsInitialized) return;
 
   // Sử dụng bộ nhớ đệm CacheService để tối ưu hiệu năng đọc (tránh 10 cuộc gọi Sheet API)
-  var cache = CacheService.getScriptCache();
-  var cached = cache.get("system_column_enums_cache");
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get("system_column_enums_cache");
   if (cached) {
     try {
-      var data = JSON.parse(cached);
+      const data = JSON.parse(cached);
       Object.assign(COL_DT, data.COL_DT);
       Object.assign(COL_PK, data.COL_PK);
       Object.assign(COL_DH, data.COL_DH);
@@ -292,7 +291,7 @@ function initializeColumnEnums() {
     }
   }
 
-  var mapDT = getColMapFromSheet(SHEET_NAMES.DIEN_THOAI);
+  const mapDT = getColMapFromSheet(SHEET_NAMES.DIEN_THOAI);
   if (mapDT) {
     COL_DT.MA_DT = mapDT["mã điện thoại"] || COL_DT.MA_DT;
     COL_DT.TEN_SP = mapDT["tên sản phẩm"] || COL_DT.TEN_SP;
@@ -312,7 +311,7 @@ function initializeColumnEnums() {
     COL_DT.NGAY_XUAT = mapDT["ngày xuất"] || COL_DT.NGAY_XUAT;
   }
 
-  var mapPK = getColMapFromSheet(SHEET_NAMES.PHU_KIEN);
+  const mapPK = getColMapFromSheet(SHEET_NAMES.PHU_KIEN);
   if (mapPK) {
     COL_PK.MA_PK = mapPK["mã phụ kiện"] || COL_PK.MA_PK;
     COL_PK.TEN_SP = mapPK["tên sản phẩm"] || COL_PK.TEN_SP;
@@ -326,7 +325,7 @@ function initializeColumnEnums() {
     COL_PK.CHI_NHANH = mapPK["chi nhánh"] || COL_PK.CHI_NHANH;
   }
 
-  var mapDH = getColMapFromSheet(SHEET_NAMES.DON_HANG);
+  const mapDH = getColMapFromSheet(SHEET_NAMES.DON_HANG);
   if (mapDH) {
     COL_DH.MA_DH = mapDH["mã đơn hàng"] || COL_DH.MA_DH;
     COL_DH.NGAY_BAN = mapDH["ngày bán"] || COL_DH.NGAY_BAN;
@@ -358,13 +357,12 @@ function initializeColumnEnums() {
     COL_DH.CHUYEN_KHOAN = mapDH["chuyển khoản"] || COL_DH.CHUYEN_KHOAN;
   }
 
-  var mapTM = getColMapFromSheet(SHEET_NAMES.THU_MUA);
+  const mapTM = getColMapFromSheet(SHEET_NAMES.THU_MUA);
   if (mapTM) {
     COL_TM.MA_TM = mapTM["mã thu mua"] || COL_TM.MA_TM;
     COL_TM.NGAY_TM = mapTM["ngày thu mua"] || COL_TM.NGAY_TM;
     COL_TM.MA_KH = mapTM["mã khách hàng"] || COL_TM.MA_KH;
     COL_TM.TEN_KH = mapTM["tên khách hàng"] || COL_TM.TEN_KH;
-    // COL_TM.SDT_KH = mapTM["số điện thoại khách"] || COL_TM.SDT_KH;
     COL_TM.TEN_SP_THU = mapTM["tên sản phẩm thu"] || COL_TM.TEN_SP_THU;
     COL_TM.THUONG_HIEU_THU = mapTM["thương hiệu thu"] || COL_TM.THUONG_HIEU_THU;
     COL_TM.IMEI_THU = mapTM["imei thu"] || COL_TM.IMEI_THU;
@@ -384,7 +382,7 @@ function initializeColumnEnums() {
     COL_TM.CHUYEN_KHOAN = mapTM["chuyển khoản"] || COL_TM.CHUYEN_KHOAN;
   }
 
-  var mapNK = getColMapFromSheet(SHEET_NAMES.NHAP_KHO);
+  const mapNK = getColMapFromSheet(SHEET_NAMES.NHAP_KHO);
   if (mapNK) {
     COL_NK.MA_NK = mapNK["mã nhập kho"] || COL_NK.MA_NK;
     COL_NK.NGAY_NHAP = mapNK["ngày nhập"] || COL_NK.NGAY_NHAP;
@@ -399,7 +397,7 @@ function initializeColumnEnums() {
     COL_NK.CHI_NHANH = mapNK["chi nhánh"] || COL_NK.CHI_NHANH;
   }
 
-  var mapTG = getColMapFromSheet(SHEET_NAMES.TRA_GOP);
+  const mapTG = getColMapFromSheet(SHEET_NAMES.TRA_GOP);
   if (mapTG) {
     COL_TG.MA_TG = mapTG["mã trả góp"] || COL_TG.MA_TG;
     COL_TG.MA_DH = mapTG["mã đơn hàng"] || COL_TG.MA_DH;
@@ -409,7 +407,7 @@ function initializeColumnEnums() {
     COL_TG.TRA_TRUOC = mapTG["trả trước"] || COL_TG.TRA_TRUOC;
     COL_TG.CON_LAI = mapTG["còn lại"] || COL_TG.CON_LAI;
     COL_TG.SO_KY = mapTG["số kỳ"] || COL_TG.SO_KY;
-    COL_TG.TIEN_MO_KY = mapTG["tiền mỗi kỳ"] || COL_TG.TIEN_MO_KY;
+    COL_TG.TIEN_MOI_KY = mapTG["tiền mỗi kỳ"] || COL_TG.TIEN_MOI_KY;
     COL_TG.NGAY_BAT_DAU = mapTG["ngày bắt đầu"] || COL_TG.NGAY_BAT_DAU;
     COL_TG.NGAY_KET_THUC = mapTG["ngày kết thúc"] || COL_TG.NGAY_KET_THUC;
     COL_TG.DA_TRA_SO_KY = mapTG["đã trả số kỳ"] || COL_TG.DA_TRA_SO_KY;
@@ -422,7 +420,7 @@ function initializeColumnEnums() {
     COL_TG.CHUYEN_KHOAN = mapTG["chuyển khoản"] || COL_TG.CHUYEN_KHOAN;
   }
 
-  var mapLSTG = getColMapFromSheet(SHEET_NAMES.LICH_SU_TRA_GOP);
+  const mapLSTG = getColMapFromSheet(SHEET_NAMES.LICH_SU_TRA_GOP);
   if (mapLSTG) {
     COL_LSTG.MA_LS = mapLSTG["mã lịch sử"] || COL_LSTG.MA_LS;
     COL_LSTG.MA_TG = mapLSTG["mã trả góp"] || COL_LSTG.MA_TG;
@@ -441,14 +439,13 @@ function initializeColumnEnums() {
     COL_LSTG.CHUYEN_KHOAN = mapLSTG["chuyển khoản"] || COL_LSTG.CHUYEN_KHOAN;
   }
 
-  var mapDV = getColMapFromSheet(SHEET_NAMES.DICH_VU);
+  const mapDV = getColMapFromSheet(SHEET_NAMES.DICH_VU);
   if (mapDV) {
     COL_DV.MA_DV = mapDV["mã dịch vụ"] || COL_DV.MA_DV;
     COL_DV.NGAY_GD = mapDV["ngày giao dịch"] || COL_DV.NGAY_GD;
     COL_DV.LOAI_DV = mapDV["loại dịch vụ"] || COL_DV.LOAI_DV;
     COL_DV.MA_KH = mapDV["mã khách hàng"] || COL_DV.MA_KH;
     COL_DV.TEN_KH = mapDV["tên khách hàng"] || COL_DV.TEN_KH;
-    // COL_DV.SDT_KH = mapDV["số điện thoại khách"] || COL_DV.SDT_KH;
     COL_DV.SO_TIEN_GD = mapDV["số tiền giao dịch"] || COL_DV.SO_TIEN_GD;
     COL_DV.PHI_DV = mapDV["phí dịch vụ"] || COL_DV.PHI_DV;
     COL_DV.HINH_THUC_TT = mapDV["hình thức thanh toán"] || COL_DV.HINH_THUC_TT;
@@ -462,7 +459,7 @@ function initializeColumnEnums() {
     COL_DV.CHUYEN_KHOAN = mapDV["chuyển khoản"] || COL_DV.CHUYEN_KHOAN;
   }
 
-  var mapDoiTra = getColMapFromSheet(SHEET_NAMES.DOI_TRA);
+  const mapDoiTra = getColMapFromSheet(SHEET_NAMES.DOI_TRA);
   if (mapDoiTra) {
     COL_DT_TRA.MA_DT = mapDoiTra["mã đổi trả"] || COL_DT_TRA.MA_DT;
     COL_DT_TRA.NGAY_DT = mapDoiTra["ngày đổi trả"] || COL_DT_TRA.NGAY_DT;
@@ -494,7 +491,7 @@ function initializeColumnEnums() {
       mapDoiTra["chuyển khoản"] || COL_DT_TRA.CHUYEN_KHOAN;
   }
 
-  var mapKH = getColMapFromSheet(SHEET_NAMES.KHACH_HANG);
+  const mapKH = getColMapFromSheet(SHEET_NAMES.KHACH_HANG);
   if (mapKH) {
     COL_KH.MA_KH = mapKH["mã khách hàng"] || COL_KH.MA_KH;
     COL_KH.HO_TEN = mapKH["họ tên"] || mapKH["họ và tên"] || COL_KH.HO_TEN;
@@ -504,13 +501,12 @@ function initializeColumnEnums() {
     COL_KH.GHI_CHU = mapKH["ghi chú"] || COL_KH.GHI_CHU;
   }
 
-  var mapBH = getColMapFromSheet(SHEET_NAMES.BAO_HANH);
+  const mapBH = getColMapFromSheet(SHEET_NAMES.BAO_HANH);
   if (mapBH) {
     COL_BH.MA_BH = mapBH["mã bảo hành"] || COL_BH.MA_BH;
     COL_BH.NGAY_NHAN = mapBH["ngày nhận"] || COL_BH.NGAY_NHAN;
     COL_BH.MA_KH = mapBH["mã khách hàng"] || COL_BH.MA_KH;
     COL_BH.TEN_KH = mapBH["tên khách hàng"] || COL_BH.TEN_KH;
-    // COL_BH.SDT_KH = mapBH["số điện thoại"] || COL_BH.SDT_KH;
     COL_BH.TEN_SP = mapBH["tên sản phẩm"] || COL_BH.TEN_SP;
     COL_BH.TINH_TRANG_LOI = mapBH["tình trạng lỗi"] || COL_BH.TINH_TRANG_LOI;
     COL_BH.LOAI_DICH_VU = mapBH["loại dịch vụ"] || COL_BH.LOAI_DICH_VU;
@@ -525,7 +521,7 @@ function initializeColumnEnums() {
     COL_BH.CHUYEN_KHOAN = mapBH["chuyển khoản"] || COL_BH.CHUYEN_KHOAN;
   }
 
-  var mapNV = getColMapFromSheet(SHEET_NAMES.NHAN_VIEN);
+  const mapNV = getColMapFromSheet(SHEET_NAMES.NHAN_VIEN);
   if (mapNV) {
     COL_NV.MA_NV = mapNV["mã nhân viên"] || COL_NV.MA_NV;
     COL_NV.HO_TEN = mapNV["họ tên"] || COL_NV.HO_TEN;
@@ -538,7 +534,7 @@ function initializeColumnEnums() {
   }
 
   // Lưu cấu trúc cột vào Cache
-  var dataToCache = {
+  const dataToCache = {
     COL_DT: COL_DT,
     COL_PK: COL_PK,
     COL_DH: COL_DH,
@@ -570,16 +566,16 @@ function initializeColumnEnums() {
  */
 function getColMapFromSheet(sheetName) {
   try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName(sheetName);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(sheetName);
     if (!sheet) return null;
 
-    var lastCol = sheet.getLastColumn();
+    const lastCol = sheet.getLastColumn();
     if (lastCol <= 0) return {};
 
-    var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-    var map = {};
-    for (var i = 0; i < headers.length; i++) {
+    const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    const map = {};
+    for (let i = 0; i < headers.length; i++) {
       map[String(headers[i]).trim().toLowerCase()] = i + 1;
     }
     return map;
@@ -597,14 +593,14 @@ function getColMapFromSheet(sheetName) {
  */
 function ensureSheetColumnsExist(sheetName) {
   try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName(sheetName);
-    var expected = SHEET_HEADERS[sheetName];
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(sheetName);
+    const expected = SHEET_HEADERS[sheetName];
     if (!sheet || !expected) return;
 
-    var current = sheet.getLastColumn();
+    const current = sheet.getLastColumn();
     if (expected.length > current) {
-      var missing = expected.slice(current);
+      const missing = expected.slice(current);
       sheet.getRange(1, current + 1, 1, missing.length).setValues([missing]);
     }
   } catch (e) {
@@ -617,13 +613,13 @@ function getSheetIndex(sheetName, searchCol) {
     _sheetIndexCache[sheetName] = {};
   }
   if (!_sheetIndexCache[sheetName][searchCol]) {
-    var indexMap = {};
-    var data = getSheetDataCached(sheetName);
-    for (var i = 0; i < data.length; i++) {
-      var row = data[i];
+    const indexMap = {};
+    const data = getSheetDataCached(sheetName);
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
       if (row.length < searchCol) continue;
-      var rawVal = row[searchCol - 1];
-      var cellVal = "";
+      const rawVal = row[searchCol - 1];
+      let cellVal = "";
       if (sheetName === SHEET_NAMES.DOANH_SO && searchCol === 1) {
         cellVal = formatMonthYear(rawVal);
       } else {
@@ -641,7 +637,7 @@ function getSheetIndex(sheetName, searchCol) {
 
 // ==================== CACHE SERVICE (PERSISTENT ACROSS REQUESTS) ====================
 
-var DROPDOWN_CACHE_TTL = 3600; // 1 giờ
+const DROPDOWN_CACHE_TTL = 3600; // 1 giờ
 
 /**
  * Lưu dữ liệu vào CacheService với chunking (tránh giới hạn 100KB/key)
@@ -651,15 +647,15 @@ var DROPDOWN_CACHE_TTL = 3600; // 1 giờ
  */
 function setChunkedCache(key, data) {
   try {
-    var cache = CacheService.getScriptCache();
-    var json = JSON.stringify(data);
-    var CHUNK_SIZE = 90000; // ~90KB per chunk (buffer từ giới hạn 100KB)
-    var numChunks = Math.ceil(json.length / CHUNK_SIZE);
+    const cache = CacheService.getScriptCache();
+    const json = JSON.stringify(data);
+    const CHUNK_SIZE = 90000; // ~90KB per chunk (buffer từ giới hạn 100KB)
+    const numChunks = Math.ceil(json.length / CHUNK_SIZE);
 
-    var cacheObj = {};
+    const cacheObj = {};
     cacheObj[key + "_m"] = JSON.stringify({ c: numChunks });
 
-    for (var i = 0; i < numChunks; i++) {
+    for (let i = 0; i < numChunks; i++) {
       cacheObj[key + "_" + i] = json.substring(
         i * CHUNK_SIZE,
         (i + 1) * CHUNK_SIZE,
@@ -680,22 +676,22 @@ function setChunkedCache(key, data) {
  */
 function getChunkedCache(key) {
   try {
-    var cache = CacheService.getScriptCache();
-    var meta = cache.get(key + "_m");
+    const cache = CacheService.getScriptCache();
+    const meta = cache.get(key + "_m");
     if (!meta) return null;
 
-    var metaObj = JSON.parse(meta);
-    var numChunks = metaObj.c;
+    const metaObj = JSON.parse(meta);
+    const numChunks = metaObj.c;
 
-    var keys = [];
-    for (var i = 0; i < numChunks; i++) {
+    const keys = [];
+    for (let i = 0; i < numChunks; i++) {
       keys.push(key + "_" + i);
     }
 
-    var all = cache.getAll(keys);
-    var json = "";
-    for (var i = 0; i < numChunks; i++) {
-      var chunk = all[key + "_" + i];
+    const all = cache.getAll(keys);
+    let json = "";
+    for (let i = 0; i < numChunks; i++) {
+      const chunk = all[key + "_" + i];
       if (!chunk) return null; // Partial cache miss
       json += chunk;
     }
@@ -713,7 +709,7 @@ function getChunkedCache(key) {
  * @param {string} sheetName - Tên sheet đã thay đổi dữ liệu
  */
 function invalidateDropdownCache(sheetName) {
-  var cacheKeys = [];
+  let cacheKeys = [];
   if (sheetName === SHEET_NAMES.KHACH_HANG) {
     cacheKeys = ["dd_kh"];
   } else if (sheetName === SHEET_NAMES.DIEN_THOAI) {
@@ -727,14 +723,14 @@ function invalidateDropdownCache(sheetName) {
   if (cacheKeys.length === 0) return;
 
   try {
-    var cache = CacheService.getScriptCache();
-    for (var k = 0; k < cacheKeys.length; k++) {
-      var key = cacheKeys[k];
-      var meta = cache.get(key + "_m");
+    const cache = CacheService.getScriptCache();
+    for (let k = 0; k < cacheKeys.length; k++) {
+      const key = cacheKeys[k];
+      const meta = cache.get(key + "_m");
       if (meta) {
-        var metaObj = JSON.parse(meta);
-        var removeKeys = [key + "_m"];
-        for (var i = 0; i < metaObj.c; i++) {
+        const metaObj = JSON.parse(meta);
+        const removeKeys = [key + "_m"];
+        for (let i = 0; i < metaObj.c; i++) {
           removeKeys.push(key + "_" + i);
         }
         cache.removeAll(removeKeys);
@@ -749,15 +745,15 @@ function getSheetDataCached(sheetName) {
   if (_sheetDataCache[sheetName]) {
     return _sheetDataCache[sheetName];
   }
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(sheetName);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(sheetName);
   if (!sheet) return [];
 
-  var lastRow = sheet.getLastRow();
-  var lastCol = sheet.getLastColumn();
+  const lastRow = sheet.getLastRow();
+  const lastCol = sheet.getLastColumn();
   if (lastRow <= 1 || lastCol === 0) return [];
 
-  var data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  const data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   _sheetDataCache[sheetName] = data;
   return data;
 }
@@ -770,26 +766,21 @@ function getSheetDataCached(sheetName) {
  * @param {string} sheetName - Tên sheet để đếm số dòng
  * @return {string} Mã mới
  */
-// function getRandomLetters() {
-//   var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-//   return chars.charAt(Math.floor(Math.random() * 26)) + chars.charAt(Math.floor(Math.random() * 26));
-// }
-
 function getNewIdCounter(prefix, sheetName) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(sheetName);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(sheetName);
   if (!sheet) return 0;
 
-  var lastRow = sheet.getLastRow();
+  const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return 0;
 
-  var data = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
-  var maxNum = 0;
+  const data = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  let maxNum = 0;
 
   data.forEach(function (row) {
-    var val = String(row[0]).trim();
+    const val = String(row[0]).trim();
     if (val.indexOf(prefix) === 0) {
-      var numPart = parseInt(val.substring(prefix.length), 10);
+      const numPart = parseInt(val.substring(prefix.length), 10);
       if (!isNaN(numPart) && numPart > maxNum) {
         maxNum = numPart;
       }
@@ -799,25 +790,19 @@ function getNewIdCounter(prefix, sheetName) {
   return maxNum;
 }
 
-// function generateId(prefix, sheetName) {
-//   var maxNum = getNewIdCounter(prefix, sheetName);
-//   var nextNum = maxNum + 1;
-//   var padded = ("00000" + nextNum).slice(-5);
-//   return prefix + padded + getRandomLetters();
-// }
 function generateId(prefix, sheetName) {
-var lock = LockService.getScriptLock();
+  const lock = LockService.getScriptLock();
   // Chờ tối đa 5 giây nếu có người khác đang tạo ID
   lock.waitLock(5000);
   try {
-    var props = PropertiesService.getScriptProperties();
-    var key = "id_counter_" + prefix + "_" + sheetName;
+    const props = PropertiesService.getScriptProperties();
+    const key = "id_counter_" + prefix + "_" + sheetName;
     // Đọc counter cũ, nếu chưa có thì gán là 0, sau đó cộng 1
-    var count = Number(props.getProperty(key) || "0") + 1;
+    const count = Number(props.getProperty(key) || "0") + 1;
     // Lưu counter mới lại ngay lập tức
     props.setProperty(key, String(count));
     // Định dạng số thành 5 chữ số (00001, 00002...)
-    var padded = ("00000" + count).slice(-5);
+    const padded = ("00000" + count).slice(-5);
     // Tạo ID kết hợp Counter và Random (Cần đảm bảo hàm getRandomLetters() đã được định nghĩa)
     return prefix + padded; 
   } finally {
@@ -835,12 +820,12 @@ var lock = LockService.getScriptLock();
  * @return {*} Giá trị tìm được hoặc null
  */
 function lookupValue(sheetName, searchCol, searchVal, returnCol) {
-  var indexMap = getSheetIndex(sheetName, searchCol);
-  var searchStr = String(searchVal).trim().toLowerCase();
+  const indexMap = getSheetIndex(sheetName, searchCol);
+  const searchStr = String(searchVal).trim().toLowerCase();
   if (searchStr in indexMap) {
-    var data = getSheetDataCached(sheetName);
-    var rowIndex = indexMap[searchStr];
-    var row = data[rowIndex];
+    const data = getSheetDataCached(sheetName);
+    const rowIndex = indexMap[searchStr];
+    const row = data[rowIndex];
     if (row.length >= returnCol) {
       return row[returnCol - 1];
     }
@@ -858,13 +843,13 @@ function lookupValue(sheetName, searchCol, searchVal, returnCol) {
  * @return {Object|null} Object với key là index cột, value là giá trị
  */
 function lookupMultipleValues(sheetName, searchCol, searchVal, returnCols) {
-  var indexMap = getSheetIndex(sheetName, searchCol);
-  var searchStr = String(searchVal).trim().toLowerCase();
+  const indexMap = getSheetIndex(sheetName, searchCol);
+  const searchStr = String(searchVal).trim().toLowerCase();
   if (searchStr in indexMap) {
-    var data = getSheetDataCached(sheetName);
-    var rowIndex = indexMap[searchStr];
-    var row = data[rowIndex];
-    var result = {};
+    const data = getSheetDataCached(sheetName);
+    const rowIndex = indexMap[searchStr];
+    const row = data[rowIndex];
+    const result = {};
     returnCols.forEach(function (col) {
       result[col] = row.length >= col ? row[col - 1] : "";
     });
@@ -893,9 +878,9 @@ function formatCurrency(number) {
  */
 function formatDate(date) {
   if (!date || !(date instanceof Date)) return "";
-  var dd = ("0" + date.getDate()).slice(-2);
-  var mm = ("0" + (date.getMonth() + 1)).slice(-2);
-  var yyyy = date.getFullYear();
+  const dd = ("0" + date.getDate()).slice(-2);
+  const mm = ("0" + (date.getMonth() + 1)).slice(-2);
+  const yyyy = date.getFullYear();
   return dd + "/" + mm + "/" + yyyy;
 }
 
@@ -908,13 +893,13 @@ function formatDate(date) {
 function formatMonthYear(val) {
   if (!val) return "";
   if (val instanceof Date) {
-    var mm = ("0" + (val.getMonth() + 1)).slice(-2);
+    const mm = ("0" + (val.getMonth() + 1)).slice(-2);
     return mm + "/" + val.getFullYear();
   }
-  var str = String(val).trim();
+  const str = String(val).trim();
   if (str.length > 7 && !isNaN(Date.parse(str))) {
-    var d = new Date(str);
-    var mm = ("0" + (d.getMonth() + 1)).slice(-2);
+    const d = new Date(str);
+    const mm = ("0" + (d.getMonth() + 1)).slice(-2);
     return mm + "/" + d.getFullYear();
   }
   return str;
@@ -927,7 +912,7 @@ function formatMonthYear(val) {
  * @return {string} Giá trị cấu hình (cột B) hoặc ''
  */
 function getConfig(key) {
-  var val = lookupValue(SHEET_NAMES.CAU_HINH, 1, key, 2);
+  const val = lookupValue(SHEET_NAMES.CAU_HINH, 1, key, 2);
   return val !== null ? String(val) : "";
 }
 
@@ -938,8 +923,8 @@ function getConfig(key) {
  * @return {number} Giá trị số hoặc 0
  */
 function getConfigNumber(key) {
-  var val = getConfig(key);
-  var num = parseFloat(val);
+  const val = getConfig(key);
+  const num = parseFloat(val);
   return isNaN(num) ? 0 : num;
 }
 
@@ -971,21 +956,21 @@ function getAllData(sheetName) {
 function saveRowData(sheetName, row, columnValueMap) {
   clearSheetCache(sheetName);
   invalidateDropdownCache(sheetName);
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(sheetName);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(sheetName);
   if (!sheet) throw new Error('Sheet "' + sheetName + '" không tồn tại!');
 
   // Xác định số cột lớn nhất cần thiết
-  var maxColNeeded = 0;
+  let maxColNeeded = 0;
   Object.keys(columnValueMap).forEach(function(colStr) {
-    var col = parseInt(colStr, 10);
+    const col = parseInt(colStr, 10);
     if (!isNaN(col) && col > maxColNeeded) {
       maxColNeeded = col;
     }
   });
 
   // Tự động mở rộng số cột nếu thiếu
-  var maxCols = sheet.getMaxColumns();
+  const maxCols = sheet.getMaxColumns();
   if (maxCols < maxColNeeded) {
     sheet.insertColumnsAfter(maxCols, maxColNeeded - maxCols);
   }
@@ -996,14 +981,14 @@ function saveRowData(sheetName, row, columnValueMap) {
     row = sheet.getLastRow();
   }
 
-  var range = sheet.getRange(row, 1, 1, maxColNeeded);
-  var rowValues = range.getValues()[0];
+  const range = sheet.getRange(row, 1, 1, maxColNeeded);
+  const rowValues = range.getValues()[0];
 
   // Áp dụng dữ liệu cập nhật
   Object.keys(columnValueMap).forEach(function(colStr) {
-    var col = parseInt(colStr, 10);
+    const col = parseInt(colStr, 10);
     if (isNaN(col)) return;
-    var value = columnValueMap[colStr];
+    let value = columnValueMap[colStr];
 
     // Tránh mất số 0 ở đầu đối với chuỗi số điện thoại hoặc mã bắt đầu bằng 0
     if (typeof value === "string" && value.indexOf("0") === 0 && value.length > 1 && /^\d+$/.test(value)) {
@@ -1022,34 +1007,29 @@ function saveRowData(sheetName, row, columnValueMap) {
 function appendRow(sheetName, rowData) {
   clearSheetCache(sheetName);
   invalidateDropdownCache(sheetName);
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(sheetName);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(sheetName);
   if (!sheet) throw new Error('Sheet "' + sheetName + '" không tồn tại!');
 
   // Tự động mở rộng số cột nếu dòng dữ liệu mới dài hơn số cột hiện tại
-  var maxCols = sheet.getMaxColumns();
+  const maxCols = sheet.getMaxColumns();
   if (maxCols < rowData.length) {
     sheet.insertColumnsAfter(maxCols, rowData.length - maxCols);
   }
 
   // Tránh mất số 0 ở đầu đối với chuỗi số điện thoại hoặc mã bắt đầu bằng 0
-  for (var i = 0; i < rowData.length; i++) {
-    var val = rowData[i];
+  for (let i = 0; i < rowData.length; i++) {
+    const val = rowData[i];
     if (typeof val === "string" && val.indexOf("0") === 0 && val.length > 1 && /^\d+$/.test(val)) {
       rowData[i] = "'" + val;
     }
   }
 
   sheet.appendRow(rowData);
-  var lastRow = sheet.getLastRow();
-  var range = sheet.getRange(lastRow, 1, 1, rowData.length);
+  const lastRow = sheet.getLastRow();
+  const range = sheet.getRange(lastRow, 1, 1, rowData.length);
   range.setFontFamily("Times New Roman");
   range.setFontSize(12);
-
-  // Auto-resize columns - Đã lược bỏ để tối ưu hiệu năng ghi (giảm ~3-5 giây mỗi lần ghi)
-  // for (var i = 1; i <= rowData.length; i++) {
-  //   sheet.autoResizeColumn(i);
-  // }
 
   return lastRow;
 }
@@ -1058,38 +1038,38 @@ function appendRows(sheetName, rowsData) {
   if (!rowsData || rowsData.length === 0) return 0;
   clearSheetCache(sheetName);
   invalidateDropdownCache(sheetName);
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(sheetName);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(sheetName);
   if (!sheet) throw new Error('Sheet "' + sheetName + '" không tồn tại!');
 
   // Tìm số cột dữ liệu lớn nhất trong các dòng
-  var maxDataCols = Math.max.apply(null, rowsData.map(function(r) { return r.length; }));
-  var maxCols = sheet.getMaxColumns();
+  const maxDataCols = Math.max.apply(null, rowsData.map(function(r) { return r.length; }));
+  const maxCols = sheet.getMaxColumns();
   if (maxCols < maxDataCols) {
     sheet.insertColumnsAfter(maxCols, maxDataCols - maxCols);
   }
 
   // Tránh mất số 0 ở đầu đối với chuỗi số điện thoại hoặc mã bắt đầu bằng 0
   rowsData.forEach(function (rowData) {
-    for (var i = 0; i < rowData.length; i++) {
-      var val = rowData[i];
+    for (let i = 0; i < rowData.length; i++) {
+      const val = rowData[i];
       if (typeof val === "string" && val.indexOf("0") === 0 && val.length > 1 && /^\d+$/.test(val)) {
         rowData[i] = "'" + val;
       }
     }
   });
 
-  var lastRow = sheet.getLastRow();
+  const lastRow = sheet.getLastRow();
   // Pad các hàng ngắn để khớp với kích thước mảng 2 chiều
-  var normalizedRows = rowsData.map(function(r) {
-    var arr = r.slice();
+  const normalizedRows = rowsData.map(function(r) {
+    const arr = r.slice();
     while (arr.length < maxDataCols) {
       arr.push("");
     }
     return arr;
   });
 
-  var range = sheet.getRange(lastRow + 1, 1, normalizedRows.length, maxDataCols);
+  const range = sheet.getRange(lastRow + 1, 1, normalizedRows.length, maxDataCols);
   range.setValues(normalizedRows);
   range.setFontFamily("Times New Roman");
   range.setFontSize(12);
@@ -1108,17 +1088,17 @@ function appendRows(sheetName, rowsData) {
 function updateCell(sheetName, row, col, value) {
   clearSheetCache(sheetName);
   invalidateDropdownCache(sheetName);
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(sheetName);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(sheetName);
   if (!sheet) throw new Error('Sheet "' + sheetName + '" không tồn tại!');
 
   // Tự động mở rộng số cột nếu cột cần cập nhật vượt quá số cột hiện tại
-  var maxCols = sheet.getMaxColumns();
+  const maxCols = sheet.getMaxColumns();
   if (maxCols < col) {
     sheet.insertColumnsAfter(maxCols, col - maxCols);
   }
 
-  var cell = sheet.getRange(row, col);
+  const cell = sheet.getRange(row, col);
   // Tránh mất số 0 ở đầu đối với chuỗi số điện thoại hoặc mã bắt đầu bằng 0
   if (typeof value === "string" && value.indexOf("0") === 0 && value.length > 1 && /^\d+$/.test(value)) {
     value = "'" + value;
@@ -1126,8 +1106,6 @@ function updateCell(sheetName, row, col, value) {
   cell.setValue(value);
   cell.setFontFamily("Times New Roman");
   cell.setFontSize(12);
-  // Auto-resize column - Đã lược bỏ để tối ưu hiệu năng ghi
-  // sheet.autoResizeColumn(col);
 }
 
 /**
@@ -1139,8 +1117,8 @@ function updateCell(sheetName, row, col, value) {
  * @return {number} Row number (1-indexed) hoặc -1 nếu không tìm thấy
  */
 function findRow(sheetName, searchCol, searchVal) {
-  var indexMap = getSheetIndex(sheetName, searchCol);
-  var searchStr = String(searchVal).trim().toLowerCase();
+  const indexMap = getSheetIndex(sheetName, searchCol);
+  const searchStr = String(searchVal).trim().toLowerCase();
   if (searchStr in indexMap) {
     return indexMap[searchStr] + 2; // +2 vì skip header và 0-indexed
   }
@@ -1174,7 +1152,7 @@ function showToast(message, title, duration) {
  */
 function showAlert(title, message) {
   try {
-    var ui = SpreadsheetApp.getUi();
+    const ui = SpreadsheetApp.getUi();
     if (ui) {
       ui.alert(title, message, ui.ButtonSet.OK);
       return;
@@ -1200,8 +1178,8 @@ function isApple(thuongHieu) {
  * @return {string} VD: "06/2026"
  */
 function getCurrentMonthYear() {
-  var now = new Date();
-  var mm = ("0" + (now.getMonth() + 1)).slice(-2);
+  const now = new Date();
+  const mm = ("0" + (now.getMonth() + 1)).slice(-2);
   return mm + "/" + now.getFullYear();
 }
 
@@ -1211,7 +1189,7 @@ function getCurrentMonthYear() {
  * @return {string[]}
  */
 function getBranchesList() {
-  var branchesStr = getConfig("Danh sách chi nhánh");
+  const branchesStr = getConfig("Danh sách chi nhánh");
   if (!branchesStr) return ["Chi nhánh 1", "Chi nhánh 2", "Chi nhánh 3"];
   return branchesStr.split(",").map(function (item) {
     return item.trim();
@@ -1224,7 +1202,7 @@ function getBranchesList() {
  * @return {Object[]}
  */
 function getBranchesDropdown() {
-  var list = getBranchesList();
+  const list = getBranchesList();
   return list.map(function (item) {
     return { value: item, text: item };
   });
@@ -1236,7 +1214,7 @@ function getBranchesDropdown() {
  * @return {string[]}
  */
 function getFinanceCompaniesList() {
-  var listStr = getConfig("Danh sách công ty tài chính");
+  const listStr = getConfig("Danh sách công ty tài chính");
   if (!listStr)
     return ["FE Credit", "Home Credit", "HD Saison", "MIRAES Asset"];
   return listStr.split(",").map(function (item) {
@@ -1250,7 +1228,7 @@ function getFinanceCompaniesList() {
  * @return {Object[]}
  */
 function getFinanceCompaniesDropdown() {
-  var list = getFinanceCompaniesList();
+  const list = getFinanceCompaniesList();
   return list.map(function (item) {
     return { value: item, text: item };
   });
@@ -1265,13 +1243,13 @@ function getFinanceCompaniesDropdown() {
  * @param {string} description - Mô tả cấu hình
  */
 function ensureConfigKey(key, defaultValue, description) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(SHEET_NAMES.CAU_HINH);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAMES.CAU_HINH);
   if (!sheet) return;
-  var row = findRow(SHEET_NAMES.CAU_HINH, 1, key);
+  const row = findRow(SHEET_NAMES.CAU_HINH, 1, key);
   if (row === -1) {
-    var lastRow = sheet.getLastRow();
-    var range = sheet.getRange(lastRow + 1, 1, 1, 3);
+    const lastRow = sheet.getLastRow();
+    const range = sheet.getRange(lastRow + 1, 1, 1, 3);
     range.setValues([[key, defaultValue, description]]);
     range.setFontFamily("Times New Roman").setFontSize(12);
   }
@@ -1288,7 +1266,7 @@ function getBrandsList() {
     "Apple, Samsung, Xiaomi, OPPO, Vivo, Realme, Khác",
     "Danh sách các thương hiệu điện thoại, phân cách bằng dấu phẩy",
   );
-  var brandsStr = getConfig("Danh sách thương hiệu");
+  const brandsStr = getConfig("Danh sách thương hiệu");
   if (!brandsStr)
     return ["Apple", "Samsung", "Xiaomi", "OPPO", "Vivo", "Realme", "Khác"];
   return brandsStr.split(",").map(function (item) {
@@ -1302,7 +1280,7 @@ function getBrandsList() {
  * @return {Object[]}
  */
 function getBrandsDropdown() {
-  var list = getBrandsList();
+  const list = getBrandsList();
   return list.map(function (item) {
     return { value: item, text: item };
   });
@@ -1316,7 +1294,7 @@ function getBrandsDropdown() {
  * @return {Object} { tm: number, ck: number } số tiền mặt và chuyển khoản (bao gồm POS)
  */
 function parseMixedPayment(hinhThucTT, totalAmount) {
-  var str = String(hinhThucTT || "").trim();
+  const str = String(hinhThucTT || "").trim();
   if (str === "Tiền mặt") {
     return { tm: totalAmount, ck: 0 };
   }
@@ -1325,18 +1303,18 @@ function parseMixedPayment(hinhThucTT, totalAmount) {
   }
 
   if (str.indexOf("+") !== -1 || str.indexOf(":") !== -1) {
-    var tmMatch = str.match(/Tiền mặt:\s*([\d,]+)/i);
-    var ckMatch = str.match(/Chuyển khoản:\s*([\d,]+)/i);
-    var posMatch = str.match(/Quẹt thẻ\s*\(POS\):\s*([\d,]+)/i);
+    const tmMatch = str.match(/Tiền mặt:\s*([\d,]+)/i);
+    const ckMatch = str.match(/Chuyển khoản:\s*([\d,]+)/i);
+    const posMatch = str.match(/Quẹt thẻ\s*\(POS\):\s*([\d,]+)/i);
 
-    var tmVal = tmMatch ? Number(tmMatch[1].replace(/,/g, "")) : 0;
-    var ckVal = ckMatch ? Number(ckMatch[1].replace(/,/g, "")) : 0;
-    var posVal = posMatch ? Number(posMatch[1].replace(/,/g, "")) : 0;
+    const tmVal = tmMatch ? Number(tmMatch[1].replace(/,/g, "")) : 0;
+    const ckVal = ckMatch ? Number(ckMatch[1].replace(/,/g, "")) : 0;
+    const posVal = posMatch ? Number(posMatch[1].replace(/,/g, "")) : 0;
 
-    var sum = tmVal + ckVal + posVal;
+    const sum = tmVal + ckVal + posVal;
     if (sum > 0) {
       // Tính tỷ lệ để phân bổ chính xác theo totalAmount thực tế thu/chi
-      var ratio = totalAmount / sum;
+      const ratio = totalAmount / sum;
       return {
         tm: Math.round(tmVal * ratio),
         ck: Math.round((ckVal + posVal) * ratio),
@@ -1354,12 +1332,12 @@ function parseMixedPayment(hinhThucTT, totalAmount) {
  * @return {Object|null} { ck: number, tm: number } hoặc null nếu không phải định dạng hỗn hợp
  */
 function parseHybridAmount(val) {
-  var str = String(val || "").trim();
+  const str = String(val || "").trim();
   if (str.indexOf(",") !== -1) {
-    var parts = str.split(",");
+    const parts = str.split(",");
     if (parts.length === 2) {
-      var ck = Number(parts[0]);
-      var tm = Number(parts[1]);
+      const ck = Number(parts[0]);
+      const tm = Number(parts[1]);
       if (!isNaN(ck) && !isNaN(tm)) {
         return { ck: ck, tm: tm };
       }
@@ -1375,7 +1353,7 @@ function parseHybridAmount(val) {
  */
 function parseAmountVal(val) {
   if (val === undefined || val === null || val === "") return 0;
-  var parsed = parseHybridAmount(val);
+  const parsed = parseHybridAmount(val);
   if (parsed) {
     return parsed.ck + parsed.tm;
   }
@@ -1390,15 +1368,15 @@ function clearAllCaches() {
   clearSheetCache();
 
   // Xoá tất cả cache của dropdown
-  var cache = CacheService.getScriptCache();
-  var keys = ["dd_kh", "dd_dt", "dd_pk", "dd_pku", "dd_tg"];
+  const cache = CacheService.getScriptCache();
+  const keys = ["dd_kh", "dd_dt", "dd_pk", "dd_pku", "dd_tg"];
   keys.forEach(function (key) {
-    var meta = cache.get(key + "_m");
+    const meta = cache.get(key + "_m");
     if (meta) {
       try {
-        var metaObj = JSON.parse(meta);
-        var removeKeys = [key + "_m"];
-        for (var i = 0; i < metaObj.c; i++) {
+        const metaObj = JSON.parse(meta);
+        const removeKeys = [key + "_m"];
+        for (let i = 0; i < metaObj.c; i++) {
           removeKeys.push(key + "_" + i);
         }
         cache.removeAll(removeKeys);
@@ -1415,15 +1393,15 @@ function clearAllCaches() {
  * @return {number} Phần trăm lãi suất (VD: 2 nếu là 2%)
  */
 function getInterestRateConfig() {
-  var val = getConfig("Lãi suất trả góp cửa hàng (%)");
+  const val = getConfig("Lãi suất trả góp cửa hàng (%)");
   if (!val) return 0;
-  var cleanVal = val.replace("%", "").trim();
-  var num = parseFloat(cleanVal);
+  const cleanVal = val.replace("%", "").trim();
+  const num = parseFloat(cleanVal);
   return isNaN(num) ? 0 : num;
 }
 
 /**
- * Thực thi một hàm an toàn trong môi trường khóa tài liệu (Document Lock)
+ * Thực thi một hàm an sau trong môi trường khóa tài liệu (Document Lock)
  * 
  * @param {Function} callback Hàm chứa logic nghiệp vụ cần thực hiện trong lock
  * @return {*} Kết quả trả về của callback
@@ -1432,7 +1410,7 @@ function withDocumentLock(callback) {
   if (_holdsLock) {
     return callback();
   }
-  var lock = LockService.getDocumentLock();
+  const lock = LockService.getDocumentLock();
   try {
     lock.waitLock(15000);
   } catch (e) {
@@ -1460,13 +1438,13 @@ function withDocumentLock(callback) {
  * @return {Object} { tienMat, chuyenKhoan, hinhThucTTDisplay }
  */
 function calculatePaymentSplit(data, totalAmount) {
-  var tienMat = 0;
-  var chuyenKhoan = 0;
-  var hinhThucTTDisplay = data.hinhThucThanhToan || "Tiền mặt";
+  let tienMat = 0;
+  let chuyenKhoan = 0;
+  const hinhThucTTDisplay = data.hinhThucThanhToan || "Tiền mặt";
   
   if (data.hinhThucThanhToan === "Hỗn hợp") {
-    var splitTienMat = Number(data.splitTienMat) || 0;
-    var splitChuyenKhoan = Number(data.splitChuyenKhoan) || 0;
+    const splitTienMat = Number(data.splitTienMat) || 0;
+    const splitChuyenKhoan = Number(data.splitChuyenKhoan) || 0;
     if (Math.abs(splitTienMat + splitChuyenKhoan - totalAmount) > 1) {
       throw new Error(
         "Lỗi dữ liệu: Tổng tiền mặt (" +
@@ -1508,4 +1486,3 @@ function isSameMonthYear(date, month, year) {
     date.getFullYear() === year
   );
 }
-

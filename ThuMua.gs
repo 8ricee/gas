@@ -22,9 +22,9 @@ function thucHienThuMua(data) {
   return withDocumentLock(function () {
     clearSheetCache();
     initializeColumnEnums();
-    var maTM = generateId("TM", SHEET_NAMES.THU_MUA);
-    var chiNhanh = data.chiNhanh;
-    var loaiGD = data.loaiGiaoDich;
+    const maTM = generateId("TM", SHEET_NAMES.THU_MUA);
+    const chiNhanh = data.chiNhanh;
+    const loaiGD = data.loaiGiaoDich;
 
     if (!data.maKH || !loaiGD || !data.imei_Thu || !chiNhanh) {
       throw new Error(
@@ -32,27 +32,27 @@ function thucHienThuMua(data) {
       );
     }
 
-    var tenKH = ensureKhachHangExists(data.maKH, data.tenKH);
-    var giaThuMua = Number(data.giaThuMua) || 0;
-    var tienHoTro = Number(data.tienHoTro) || 0;
-    var tongTienTraKhach = giaThuMua + tienHoTro;
+    const tenKH = ensureKhachHangExists(data.maKH, data.tenKH);
+    let giaThuMua = Number(data.giaThuMua) || 0;
+    let tienHoTro = Number(data.tienHoTro) || 0;
+    const tongTienTraKhach = giaThuMua + tienHoTro;
 
-    var rollbackActions = [];
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    const rollbackActions = [];
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
     try {
       // 1. Không cần tự động đưa máy thu mua vào kho Điện thoại theo yêu cầu của người dùng
       // Dữ liệu chỉ cần lưu lại ở sheet Thu mua.
 
-      var maDH_Moi = "";
+      let maDH_Moi = "";
 
       // 2. Nếu là Thu cũ đổi mới -> Tạo đơn hàng mua máy mới
       if (loaiGD === "Thu cũ đổi mới") {
-        var maSP_Moi = data.maSP_Moi;
+        const maSP_Moi = data.maSP_Moi;
         if (!maSP_Moi) {
           throw new Error("Vui lòng chọn máy mới để đổi lên đời!");
         }
 
-        var giaBanMoi = Number(data.donGia_Moi) ||
+        const giaBanMoi = Number(data.donGia_Moi) ||
           Number(
             lookupValue(
               SHEET_NAMES.DIEN_THOAI,
@@ -62,15 +62,15 @@ function thucHienThuMua(data) {
             ),
           ) || 0;
 
-        var hinhThucBan = data.hinhThucBan || "Bán thẳng";
-        var giaThuMua = Number(data.giaThuMua) || 0;
-        var tienHoTro = Number(data.tienHoTro) || 0;
-        var tienGiamGia = Number(data.tienGiamGia) || 0;
+        const hinhThucBan = data.hinhThucBan || "Bán thẳng";
+        giaThuMua = Number(data.giaThuMua) || 0;
+        tienHoTro = Number(data.tienHoTro) || 0;
+        const tienGiamGia = Number(data.tienGiamGia) || 0;
 
         // Tạo đơn hàng mua máy mới
-        var donHangHTTT = data.hinhThucThanhToanPhu || "Tiền mặt";
-        var donHangSplitTM = undefined;
-        var donHangSplitCK = undefined;
+        const donHangHTTT = data.hinhThucThanhToanPhu || "Tiền mặt";
+        let donHangSplitTM = undefined;
+        let donHangSplitCK = undefined;
 
         if (donHangHTTT === "Hỗn hợp") {
           donHangSplitTM = data.splitTienMatPhu;
@@ -112,8 +112,8 @@ function thucHienThuMua(data) {
         rollbackActions.push(function () {
           try {
             huyDonHang(maDH_Moi);
-            var dhSheet = ss.getSheetByName(SHEET_NAMES.DON_HANG);
-            var dhRow = findRow(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH_Moi);
+            const dhSheet = ss.getSheetByName(SHEET_NAMES.DON_HANG);
+            const dhRow = findRow(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH_Moi);
             if (dhRow !== -1) {
               dhSheet.deleteRow(dhRow);
               clearSheetCache(SHEET_NAMES.DON_HANG);
@@ -125,7 +125,7 @@ function thucHienThuMua(data) {
       }
 
       // 3. Ghi nhận giao dịch vào bảng ThuMua
-      var rowData = [];
+      const rowData = [];
       rowData[COL_TM.MA_TM - 1] = maTM;
       rowData[COL_TM.NGAY_TM - 1] = new Date();
       rowData[COL_TM.MA_KH - 1] = data.maKH;
@@ -147,24 +147,24 @@ function thucHienThuMua(data) {
       rowData[COL_TM.NGUOI_THUC_HIEN - 1] = data.nguoiThucHien || "";
       rowData[COL_TM.GHI_CHU - 1] = data.ghiChu || "";
 
-      var splitResult = calculatePaymentSplit(data, tongTienTraKhach);
+      const splitResult = calculatePaymentSplit(data, tongTienTraKhach);
       rowData[COL_TM.TIEN_MAT - 1] = splitResult.tienMat;
       rowData[COL_TM.CHUYEN_KHOAN - 1] = splitResult.chuyenKhoan;
 
-      var tmSheet = ss.getSheetByName(SHEET_NAMES.THU_MUA);
-      var tmRow = appendRow(SHEET_NAMES.THU_MUA, rowData);
+      const tmSheet = ss.getSheetByName(SHEET_NAMES.THU_MUA);
+      const tmRow = appendRow(SHEET_NAMES.THU_MUA, rowData);
       rollbackActions.push(function () {
         try {
-          var ss = SpreadsheetApp.getActiveSpreadsheet();
-          var tmSheet = ss.getSheetByName(SHEET_NAMES.THU_MUA);
-          tmSheet.deleteRow(tmRow);
+          const ssRollback = SpreadsheetApp.getActiveSpreadsheet();
+          const tmSheetRollback = ssRollback.getSheetByName(SHEET_NAMES.THU_MUA);
+          tmSheetRollback.deleteRow(tmRow);
           clearSheetCache(SHEET_NAMES.THU_MUA);
         } catch (err) {
           Logger.log("Rollback failed to delete buyback row: " + err.message);
         }
       });
     } catch (e) {
-      for (var rIdx = rollbackActions.length - 1; rIdx >= 0; rIdx--) {
+      for (let rIdx = rollbackActions.length - 1; rIdx >= 0; rIdx--) {
         rollbackActions[rIdx]();
       }
       throw e;

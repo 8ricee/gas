@@ -24,13 +24,13 @@
 function nhapKho(data) {
   return withDocumentLock(function () {
     initializeColumnEnums();
-    var maNK = generateId("NK", SHEET_NAMES.NHAP_KHO);
-    var nguonNhap = data.nguonNhap || "Điện thoại";
-    var maSP = "";
-    var tenSP = "";
-    var soLuong = Number(data.soLuong) || 1;
-    var giaNhap = Number(data.giaNhap) || 0;
-    var chiNhanh = data.chiNhanh;
+    const maNK = generateId("NK", SHEET_NAMES.NHAP_KHO);
+    const nguonNhap = data.nguonNhap || "Điện thoại";
+    let maSP = "";
+    let tenSP = "";
+    let soLuong = Number(data.soLuong) || 1;
+    const giaNhap = Number(data.giaNhap) || 0;
+    const chiNhanh = data.chiNhanh;
 
     if (!chiNhanh) {
       throw new Error("Vui lòng chọn chi nhánh nhập kho!");
@@ -69,7 +69,7 @@ function nhapKho(data) {
 
         // Cập nhật giá nhập mới nếu có (cho đúng dòng chi nhánh!)
         if (giaNhap > 0) {
-          var row = findPhuKienRow(maSP, chiNhanh);
+          const row = findPhuKienRow(maSP, chiNhanh);
           if (row !== -1) {
             updateCell(SHEET_NAMES.PHU_KIEN, row, COL_PK.GIA_NHAP, giaNhap);
           }
@@ -91,7 +91,7 @@ function nhapKho(data) {
     }
 
     // Ghi vào sheet NhapKho
-    var rowData = [
+    const rowData = [
       maNK,
       new Date(), // NgayNhap
       nguonNhap,
@@ -128,8 +128,8 @@ function nhapKho(data) {
  * @return {Object[]}
  */
 function getLichSuNhapKho(maSP) {
-  var data = getAllData(SHEET_NAMES.NHAP_KHO);
-  var result = [];
+  const data = getAllData(SHEET_NAMES.NHAP_KHO);
+  const result = [];
 
   data.forEach(function (row) {
     if (String(row[3]) === maSP) {
@@ -160,8 +160,8 @@ function getLichSuNhapKho(maSP) {
  * @return {Object}
  */
 function getTongKetNhapKho(thang, nam) {
-  var data = getAllData(SHEET_NAMES.NHAP_KHO);
-  var result = {
+  const data = getAllData(SHEET_NAMES.NHAP_KHO);
+  const result = {
     tongNhap: 0,
     tongTien: 0,
     dienThoai: { soLuong: 0, tongTien: 0 },
@@ -169,7 +169,7 @@ function getTongKetNhapKho(thang, nam) {
   };
 
   data.forEach(function (row) {
-    var ngay = row[1];
+    const ngay = row[1];
     if (isSameMonthYear(ngay, thang, nam)) {
       result.tongNhap++;
       result.tongTien += Number(row[7]) || 0;

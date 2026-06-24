@@ -9,7 +9,7 @@
  * Định dạng Times New Roman cỡ 12 cho toàn hệ thống
  */
 function formatAllSheets() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   
   // Thiết lập locale tiếng Việt cho spreadsheet để các định dạng ngày giờ chuẩn hóa theo vi_VN
   try {
@@ -18,10 +18,10 @@ function formatAllSheets() {
     Logger.log("Không thể thiết lập locale vi_VN: " + e.message);
   }
 
-  var sheets = ss.getSheets();
+  const sheets = ss.getSheets();
 
   // Danh sách các sheet dữ liệu chuẩn cần tự động format định dạng tiền tệ và ngày giờ
-  var standardDataSheets = [
+  const standardDataSheets = [
     SHEET_NAMES.NHAN_VIEN,
     SHEET_NAMES.DIEN_THOAI,
     SHEET_NAMES.PHU_KIEN,
@@ -38,36 +38,36 @@ function formatAllSheets() {
   ];
 
   sheets.forEach(function (sheet) {
-    var sheetName = sheet.getName();
-    var maxRows = sheet.getMaxRows();
-    var maxCols = sheet.getMaxColumns();
+    const sheetName = sheet.getName();
+    const maxRows = sheet.getMaxRows();
+    const maxCols = sheet.getMaxColumns();
     if (maxRows > 0 && maxCols > 0) {
-      var range = sheet.getRange(1, 1, maxRows, maxCols);
+      const range = sheet.getRange(1, 1, maxRows, maxCols);
       // Apply basic font settings
       range.setFontFamily("Times New Roman");
       range.setFontSize(12);
     }
 
     // Reformat headers to remain bold and lefted (skip Tồn kho to preserve custom layout and column widths)
-    var lastCol = sheet.getLastColumn();
-    var lastRow = sheet.getLastRow();
+    const lastCol = sheet.getLastColumn();
+    const lastRow = sheet.getLastRow();
 
     if (lastCol > 0 && sheetName !== SHEET_NAMES.TON_KHO) {
-      var headerRange = sheet.getRange(1, 1, 1, lastCol);
+      const headerRange = sheet.getRange(1, 1, 1, lastCol);
       headerRange.setFontWeight("bold");
       headerRange.setHorizontalAlignment("left");
 
       // Auto resize columns
-      for (var col = 1; col <= lastCol; col++) {
+      for (let col = 1; col <= lastCol; col++) {
         sheet.autoResizeColumn(col);
       }
 
       // Tự động định dạng tiền tệ #,##0 và ngày giờ cho các cột tương ứng nếu thuộc danh sách sheet dữ liệu chuẩn
       if (standardDataSheets.indexOf(sheetName) !== -1 && maxRows > 1) {
-        var headers = headerRange.getValues()[0];
-        for (var col = 1; col <= lastCol; col++) {
-          var headerName = headers[col - 1];
-          var formatRange = sheet.getRange(2, col, maxRows - 1, 1);
+        const headers = headerRange.getValues()[0];
+        for (let col = 1; col <= lastCol; col++) {
+          const headerName = headers[col - 1];
+          const formatRange = sheet.getRange(2, col, maxRows - 1, 1);
           if (isFinancialHeader(headerName)) {
             formatRange.setNumberFormat("#,##0");
           } else if (isDateTimeHeader(headerName)) {
@@ -83,10 +83,10 @@ function formatAllSheets() {
 
 function isFinancialHeader(name) {
   if (!name) return false;
-  var n = String(name).trim().toLowerCase();
+  const n = String(name).trim().toLowerCase();
   
   // Các từ khóa chỉ tiền tệ, giá cả, chi phí, thu nhập
-  var keywords = [
+  const keywords = [
     "giá",
     "tiền",
     "phí",
@@ -110,7 +110,7 @@ function isFinancialHeader(name) {
   if (n.indexOf("số điện thoại") !== -1) return false;
   if (n.indexOf("sđt") !== -1) return false;
 
-  for (var i = 0; i < keywords.length; i++) {
+  for (let i = 0; i < keywords.length; i++) {
     if (n.indexOf(keywords[i]) !== -1) {
       return true;
     }
@@ -120,13 +120,13 @@ function isFinancialHeader(name) {
 
 function isDateTimeHeader(name) {
   if (!name) return false;
-  var n = String(name).trim().toLowerCase();
+  const n = String(name).trim().toLowerCase();
   return n === "thời gian" || n.indexOf("thời gian") !== -1;
 }
 
 function isDateHeader(name) {
   if (!name) return false;
-  var n = String(name).trim().toLowerCase();
+  const n = String(name).trim().toLowerCase();
   return n.indexOf("ngày") !== -1;
 }
 
@@ -135,9 +135,9 @@ function isDateHeader(name) {
  */
 function applyConditionalFormatting(ss) {
   initializeColumnEnums();
-  var branches = getBranchesList();
-  var brands = getBrandsList();
-  var colorMap = _buildColorMap(branches, brands);
+  const branches = getBranchesList();
+  const brands = getBrandsList();
+  const colorMap = _buildColorMap(branches, brands);
 
   _applyNhanVienFormatting(ss, colorMap);
   _applyDienThoaiFormatting(ss, colorMap, brands, branches);
@@ -153,12 +153,12 @@ function applyConditionalFormatting(ss) {
 }
 
 function _buildColorMap(branches, brands) {
-  var colorMap = {};
-  for (var key in CONDITIONAL_COLOR_MAP) {
+  const colorMap = {};
+  for (const key in CONDITIONAL_COLOR_MAP) {
     colorMap[key] = CONDITIONAL_COLOR_MAP[key];
   }
 
-  var BRANCH_COLORS = [
+  const BRANCH_COLORS = [
     { bg: "#e8f0fe", fg: "#1a73e8" }, // Blue
     { bg: "#fce8e6", fg: "#c5221f" }, // Red
     { bg: "#fef7e0", fg: "#b06000" }, // Yellow
@@ -166,11 +166,11 @@ function _buildColorMap(branches, brands) {
     { bg: "#f3e8fd", fg: "#a142f4" }, // Purple
   ];
   branches.forEach(function (branch, index) {
-    var colorIdx = index % BRANCH_COLORS.length;
+    const colorIdx = index % BRANCH_COLORS.length;
     colorMap[branch] = BRANCH_COLORS[colorIdx];
   });
 
-  var BRAND_COLORS = [
+  const BRAND_COLORS = [
     { bg: "#e8f0fe", fg: "#1a73e8" }, // Blue
     { bg: "#e6f4ea", fg: "#137333" }, // Green
     { bg: "#fef7e0", fg: "#b06000" }, // Orange/Yellow
@@ -181,13 +181,13 @@ function _buildColorMap(branches, brands) {
     { bg: "#fbf9ff", fg: "#6a1b9a" }, // Dark Violet
   ];
   brands.forEach(function (brand, index) {
-    var lowerBrand = brand.toLowerCase();
+    const lowerBrand = brand.toLowerCase();
     if (lowerBrand === "apple") {
       colorMap[brand] = { bg: "#cbd5e1", fg: "#1e293b" };
     } else if (lowerBrand === "khác") {
       colorMap[brand] = { bg: "#e2e8f0", fg: "#475569" };
     } else {
-      var colorIdx = index % BRAND_COLORS.length;
+      const colorIdx = index % BRAND_COLORS.length;
       colorMap[brand] = BRAND_COLORS[colorIdx];
     }
   });
@@ -200,13 +200,13 @@ function _buildColorMap(branches, brands) {
 
 function _applyRulesForSheet(sheet, mappings, colorMap) {
   if (!sheet) return;
-  var rules = [];
+  const rules = [];
   mappings.forEach(function (map) {
-    var range = sheet.getRange(map.range);
+    const range = sheet.getRange(map.range);
     map.values.forEach(function (val) {
-      var color = colorMap[val];
+      const color = colorMap[val];
       if (color) {
-        var builder = SpreadsheetApp.newConditionalFormatRule().setRanges([
+        const builder = SpreadsheetApp.newConditionalFormatRule().setRanges([
           range,
         ]);
         if (val === "__NOT_EMPTY__") {
@@ -214,7 +214,7 @@ function _applyRulesForSheet(sheet, mappings, colorMap) {
         } else {
           builder.whenTextEqualTo(val);
         }
-        var rule = builder
+        const rule = builder
           .setBackground(color.bg)
           .setFontColor(color.fg)
           .build();
@@ -226,10 +226,10 @@ function _applyRulesForSheet(sheet, mappings, colorMap) {
 }
 
 function _applyNhanVienFormatting(ss, colorMap) {
-  var sheet = ss.getSheetByName(SHEET_NAMES.NHAN_VIEN);
-  var colVaiTro = columnToLetter(COL_NV.VAI_TRO);
-  var colQuyen = columnToLetter(COL_NV.QUYEN_XUAT);
-  var colTrangThai = columnToLetter(COL_NV.TRANG_THAI);
+  const sheet = ss.getSheetByName(SHEET_NAMES.NHAN_VIEN);
+  const colVaiTro = columnToLetter(COL_NV.VAI_TRO);
+  const colQuyen = columnToLetter(COL_NV.QUYEN_XUAT);
+  const colTrangThai = columnToLetter(COL_NV.TRANG_THAI);
 
   _applyRulesForSheet(sheet, [
     { range: colVaiTro + "2:" + colVaiTro, values: ["Bán hàng", "Kế toán", "Kỹ thuật"] },
@@ -239,11 +239,11 @@ function _applyNhanVienFormatting(ss, colorMap) {
 }
 
 function _applyDienThoaiFormatting(ss, colorMap, brands, branches) {
-  var sheet = ss.getSheetByName(SHEET_NAMES.DIEN_THOAI);
-  var colThuongHieuLetter = columnToLetter(COL_DT.THUONG_HIEU);
-  var colTinhTrangLetter = columnToLetter(COL_DT.TINH_TRANG);
-  var colTrangThaiLetter = columnToLetter(COL_DT.TRANG_THAI_KHO);
-  var colChiNhanhLetter = columnToLetter(COL_DT.CHI_NHANH);
+  const sheet = ss.getSheetByName(SHEET_NAMES.DIEN_THOAI);
+  const colThuongHieuLetter = columnToLetter(COL_DT.THUONG_HIEU);
+  const colTinhTrangLetter = columnToLetter(COL_DT.TINH_TRANG);
+  const colTrangThaiLetter = columnToLetter(COL_DT.TRANG_THAI_KHO);
+  const colChiNhanhLetter = columnToLetter(COL_DT.CHI_NHANH);
 
   _applyRulesForSheet(sheet, [
     { range: colThuongHieuLetter + "2:" + colThuongHieuLetter, values: brands },
@@ -257,11 +257,11 @@ function _applyDienThoaiFormatting(ss, colorMap, brands, branches) {
 }
 
 function _applyPhuKienFormatting(ss, colorMap, brands, branches) {
-  var sheet = ss.getSheetByName(SHEET_NAMES.PHU_KIEN);
-  var colPKLoaiPK = columnToLetter(COL_PK.LOAI_PK);
-  var colPKThuongHieu = columnToLetter(COL_PK.THUONG_HIEU);
-  var colPKTrangThai = columnToLetter(COL_PK.TRANG_THAI);
-  var colPKChiNhanh = columnToLetter(COL_PK.CHI_NHANH);
+  const sheet = ss.getSheetByName(SHEET_NAMES.PHU_KIEN);
+  const colPKLoaiPK = columnToLetter(COL_PK.LOAI_PK);
+  const colPKThuongHieu = columnToLetter(COL_PK.THUONG_HIEU);
+  const colPKTrangThai = columnToLetter(COL_PK.TRANG_THAI);
+  const colPKChiNhanh = columnToLetter(COL_PK.CHI_NHANH);
 
   _applyRulesForSheet(sheet, [
     {
@@ -275,13 +275,13 @@ function _applyPhuKienFormatting(ss, colorMap, brands, branches) {
 }
 
 function _applyDonHangFormatting(ss, colorMap, branches) {
-  var sheet = ss.getSheetByName(SHEET_NAMES.DON_HANG);
-  var colDHNguonSP = columnToLetter(COL_DH.NGUON_SP);
-  var colDHHinhThucBan = columnToLetter(COL_DH.HINH_THUC_BAN);
-  var colDHHTTT = columnToLetter(COL_DH.HINH_THUC_TT);
-  var colDHTrangThai = columnToLetter(COL_DH.TRANG_THAI);
-  var colDHChiNhanh = columnToLetter(COL_DH.CHI_NHANH);
-  var colDHCoNhanQua = columnToLetter(COL_DH.CO_NHAN_QUA);
+  const sheet = ss.getSheetByName(SHEET_NAMES.DON_HANG);
+  const colDHNguonSP = columnToLetter(COL_DH.NGUON_SP);
+  const colDHHinhThucBan = columnToLetter(COL_DH.HINH_THUC_BAN);
+  const colDHHTTT = columnToLetter(COL_DH.HINH_THUC_TT);
+  const colDHTrangThai = columnToLetter(COL_DH.TRANG_THAI);
+  const colDHChiNhanh = columnToLetter(COL_DH.CHI_NHANH);
+  const colDHCoNhanQua = columnToLetter(COL_DH.CO_NHAN_QUA);
 
   _applyRulesForSheet(sheet, [
     { range: colDHNguonSP + "2:" + colDHNguonSP, values: ["Điện thoại", "Phụ kiện"] },
@@ -294,11 +294,11 @@ function _applyDonHangFormatting(ss, colorMap, branches) {
 }
 
 function _applyDichVuFormatting(ss, colorMap, branches) {
-  var sheet = ss.getSheetByName(SHEET_NAMES.DICH_VU);
-  var colDVLoaiDV = columnToLetter(COL_DV.LOAI_DV);
-  var colDVHTTT = columnToLetter(COL_DV.HINH_THUC_TT);
-  var colDVTrangThai = columnToLetter(COL_DV.TRANG_THAI);
-  var colDVChiNhanh = columnToLetter(COL_DV.CHI_NHANH);
+  const sheet = ss.getSheetByName(SHEET_NAMES.DICH_VU);
+  const colDVLoaiDV = columnToLetter(COL_DV.LOAI_DV);
+  const colDVHTTT = columnToLetter(COL_DV.HINH_THUC_TT);
+  const colDVTrangThai = columnToLetter(COL_DV.TRANG_THAI);
+  const colDVChiNhanh = columnToLetter(COL_DV.CHI_NHANH);
 
   _applyRulesForSheet(sheet, [
     {
@@ -312,10 +312,10 @@ function _applyDichVuFormatting(ss, colorMap, branches) {
 }
 
 function _applyTraGopFormatting(ss, colorMap, branches) {
-  var sheet = ss.getSheetByName(SHEET_NAMES.TRA_GOP);
-  var colTGLoaiTG = columnToLetter(COL_TG.LOAI_TRA_GOP);
-  var colTGTrangThai = columnToLetter(COL_TG.TRANG_THAI);
-  var colTGChiNhanh = columnToLetter(COL_TG.CHI_NHANH);
+  const sheet = ss.getSheetByName(SHEET_NAMES.TRA_GOP);
+  const colTGLoaiTG = columnToLetter(COL_TG.LOAI_TRA_GOP);
+  const colTGTrangThai = columnToLetter(COL_TG.TRANG_THAI);
+  const colTGChiNhanh = columnToLetter(COL_TG.CHI_NHANH);
 
   _applyRulesForSheet(sheet, [
     { range: colTGLoaiTG + "2:" + colTGLoaiTG, values: ["Cửa hàng", "Công ty tài chính"] },
@@ -325,9 +325,9 @@ function _applyTraGopFormatting(ss, colorMap, branches) {
 }
 
 function _applyLichSuTraGopFormatting(ss, colorMap) {
-  var sheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
-  var colLSTGHTTT = columnToLetter(COL_LSTG.HINH_THUC_TT);
-  var colLSTGTrangThai = columnToLetter(COL_LSTG.TRANG_THAI);
+  const sheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
+  const colLSTGHTTT = columnToLetter(COL_LSTG.HINH_THUC_TT);
+  const colLSTGTrangThai = columnToLetter(COL_LSTG.TRANG_THAI);
 
   _applyRulesForSheet(sheet, [
     { range: colLSTGHTTT + "2:" + colLSTGHTTT, values: ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Hỗn hợp"] },
@@ -336,7 +336,7 @@ function _applyLichSuTraGopFormatting(ss, colorMap) {
 }
 
 function _applyNhapKhoFormatting(ss, colorMap, branches) {
-  var sheet = ss.getSheetByName(SHEET_NAMES.NHAP_KHO);
+  const sheet = ss.getSheetByName(SHEET_NAMES.NHAP_KHO);
   _applyRulesForSheet(sheet, [
     { range: "C2:C", values: ["Điện thoại", "Phụ kiện"] },
     { range: "K2:K", values: branches },
@@ -344,11 +344,11 @@ function _applyNhapKhoFormatting(ss, colorMap, branches) {
 }
 
 function _applyDoiTraFormatting(ss, colorMap, branches) {
-  var sheet = ss.getSheetByName(SHEET_NAMES.DOI_TRA);
-  var colDTRLoaiGD = columnToLetter(COL_DT_TRA.LOAI_GD);
-  var colDTRHTTT = columnToLetter(COL_DT_TRA.HINH_THUC_TT);
-  var colDTRChiNhanh = columnToLetter(COL_DT_TRA.CHI_NHANH);
-  var colDTRTrangThai = columnToLetter(COL_DT_TRA.TRANG_THAI);
+  const sheet = ss.getSheetByName(SHEET_NAMES.DOI_TRA);
+  const colDTRLoaiGD = columnToLetter(COL_DT_TRA.LOAI_GD);
+  const colDTRHTTT = columnToLetter(COL_DT_TRA.HINH_THUC_TT);
+  const colDTRChiNhanh = columnToLetter(COL_DT_TRA.CHI_NHANH);
+  const colDTRTrangThai = columnToLetter(COL_DT_TRA.TRANG_THAI);
 
   _applyRulesForSheet(sheet, [
     { range: colDTRLoaiGD + "2:" + colDTRLoaiGD, values: ["Trả máy", "Đổi máy"] },
@@ -359,12 +359,12 @@ function _applyDoiTraFormatting(ss, colorMap, branches) {
 }
 
 function _applyThuMuaFormatting(ss, colorMap, brands, branches) {
-  var sheet = ss.getSheetByName(SHEET_NAMES.THU_MUA);
-  var colTMBrand = columnToLetter(COL_TM.THUONG_HIEU_THU);
-  var colTMTinhTrang = columnToLetter(COL_TM.TINH_TRANG_THU);
-  var colTMLoaiGD = columnToLetter(COL_TM.LOAI_GD);
-  var colTMHTTT = columnToLetter(COL_TM.HINH_THUC_TT);
-  var colTMChiNhanh = columnToLetter(COL_TM.CHI_NHANH);
+  const sheet = ss.getSheetByName(SHEET_NAMES.THU_MUA);
+  const colTMBrand = columnToLetter(COL_TM.THUONG_HIEU_THU);
+  const colTMTinhTrang = columnToLetter(COL_TM.TINH_TRANG_THU);
+  const colTMLoaiGD = columnToLetter(COL_TM.LOAI_GD);
+  const colTMHTTT = columnToLetter(COL_TM.HINH_THUC_TT);
+  const colTMChiNhanh = columnToLetter(COL_TM.CHI_NHANH);
 
   _applyRulesForSheet(sheet, [
     { range: colTMBrand + "2:" + colTMBrand, values: brands },
@@ -376,11 +376,11 @@ function _applyThuMuaFormatting(ss, colorMap, brands, branches) {
 }
 
 function _applyBaoHanhFormatting(ss, colorMap, branches) {
-  var sheet = ss.getSheetByName(SHEET_NAMES.BAO_HANH);
-  var colBHLoaiDV = columnToLetter(COL_BH.LOAI_DICH_VU);
-  var colBHHTTT = columnToLetter(COL_BH.HINH_THUC_TT);
-  var colBHTrangThai = columnToLetter(COL_BH.TRANG_THAI);
-  var colBHChiNhanh = columnToLetter(COL_BH.CHI_NHANH);
+  const sheet = ss.getSheetByName(SHEET_NAMES.BAO_HANH);
+  const colBHLoaiDV = columnToLetter(COL_BH.LOAI_DICH_VU);
+  const colBHHTTT = columnToLetter(COL_BH.HINH_THUC_TT);
+  const colBHTrangThai = columnToLetter(COL_BH.TRANG_THAI);
+  const colBHChiNhanh = columnToLetter(COL_BH.CHI_NHANH);
 
   _applyRulesForSheet(sheet, [
     { range: colBHLoaiDV + "2:" + colBHLoaiDV, values: ["Sửa chữa", "Bảo hành"] },

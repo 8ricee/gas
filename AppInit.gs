@@ -10,13 +10,13 @@
  */
 function setupSheets() {
   clearColumnEnumsCache();
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var runSetup = false;
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let runSetup = false;
 
   try {
-    var ui = SpreadsheetApp.getUi();
+    const ui = SpreadsheetApp.getUi();
     if (ui) {
-      var result = ui.alert(
+      const result = ui.alert(
         "Khởi tạo hệ thống",
         "Hệ thống sẽ tạo các sheet mới.\n\nCác sheet đã tồn tại sẽ KHÔNG bị ghi đè.\n\nBạn có muốn tiếp tục?",
         ui.ButtonSet.YES_NO,
@@ -36,12 +36,12 @@ function setupSheets() {
 
   if (!runSetup) return;
 
-  var sheetOrder = SHEET_ORDER;
+  const sheetOrder = SHEET_ORDER;
 
-  var createdCount = 0;
+  let createdCount = 0;
 
   sheetOrder.forEach(function (name) {
-    var existing = ss.getSheetByName(name);
+    const existing = ss.getSheetByName(name);
     if (!existing) {
       ss.insertSheet(name);
       createdCount++;
@@ -52,7 +52,7 @@ function setupSheets() {
   syncSheetHeaders(ss);
 
   // Insert default config data if CauHinh is freshly created
-  var cauHinhSheet = ss.getSheetByName(SHEET_NAMES.CAU_HINH);
+  const cauHinhSheet = ss.getSheetByName(SHEET_NAMES.CAU_HINH);
   if (cauHinhSheet && cauHinhSheet.getLastRow() <= 1) {
     cauHinhSheet
       .getRange(2, 1, DEFAULT_CONFIG.length, DEFAULT_CONFIG[0].length)
@@ -69,13 +69,13 @@ function setupSheets() {
   applyConditionalFormatting(ss);
 
   // Khởi tạo sheet Tồn kho nếu vừa được tạo mới hoặc chưa có dữ liệu
-  var tonKhoSheet = ss.getSheetByName(SHEET_NAMES.TON_KHO);
+  const tonKhoSheet = ss.getSheetByName(SHEET_NAMES.TON_KHO);
   if (tonKhoSheet && tonKhoSheet.getLastRow() <= 1) {
     rebuildTonKhoSheet(ss);
   }
 
   // Khởi tạo Báo cáo ngày nếu vừa được tạo mới hoặc chưa có dữ liệu
-  var reportSheet = ss.getSheetByName(SHEET_NAMES.BAO_CAO_NGAY);
+  const reportSheet = ss.getSheetByName(SHEET_NAMES.BAO_CAO_NGAY);
   if (reportSheet && reportSheet.getLastRow() <= 1) {
     reportSheet.getRange(3, 1).setValue("Ngày báo cáo:").setFontWeight("bold");
     reportSheet
@@ -94,11 +94,11 @@ function setupSheets() {
   }
 
   // Khởi tạo Báo cáo doanh số nếu vừa được tạo mới hoặc chưa có dữ liệu
-  var salesReportSheet = ss.getSheetByName(SHEET_NAMES.BAO_CAO_DOANH_SO);
+  const salesReportSheet = ss.getSheetByName(SHEET_NAMES.BAO_CAO_DOANH_SO);
   if (salesReportSheet && salesReportSheet.getLastRow() <= 1) {
     salesReportSheet.getRange(3, 1).setValue("Từ ngày:").setFontWeight("bold");
-    var now = new Date();
-    var firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
     salesReportSheet
       .getRange(3, 2)
       .setValue(firstDay)
@@ -127,7 +127,7 @@ function setupSheets() {
   }
 
   // Remove default "Sheet1" if it exists and is empty
-  var defaultSheet =
+  const defaultSheet =
     ss.getSheetByName("Sheet1") ||
     ss.getSheetByName("Trang tính1") ||
     ss.getSheetByName("Sheet 1");
@@ -151,18 +151,18 @@ function setupSheets() {
  */
 function syncSheetHeaders(ss) {
   if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheetOrder = SHEET_ORDER;
+  const sheetOrder = SHEET_ORDER;
 
-  var updatedSheets = [];
+  const updatedSheets = [];
 
   sheetOrder.forEach(function (name) {
-    var sheet = ss.getSheetByName(name);
-    var targetHeaders = SHEET_HEADERS[name];
+    const sheet = ss.getSheetByName(name);
+    const targetHeaders = SHEET_HEADERS[name];
     if (!sheet || !targetHeaders || targetHeaders.length === 0) return;
 
-    var maxCols = sheet.getMaxColumns();
-    var lastCol = sheet.getLastColumn();
-    var currentHeaders = [];
+    const maxCols = sheet.getMaxColumns();
+    const lastCol = sheet.getLastColumn();
+    let currentHeaders = [];
 
     if (lastCol > 0) {
       currentHeaders = sheet
@@ -173,7 +173,7 @@ function syncSheetHeaders(ss) {
         });
     }
 
-    var needsUpdate = false;
+    let needsUpdate = false;
 
     // Nếu số cột hiện tại ít hơn số tiêu đề định nghĩa
     if (maxCols < targetHeaders.length) {
@@ -182,9 +182,9 @@ function syncSheetHeaders(ss) {
     }
 
     // Kiểm tra từng tiêu đề cột xem có khớp hoặc thiếu không
-    for (var colIdx = 0; colIdx < targetHeaders.length; colIdx++) {
-      var expectedHeader = targetHeaders[colIdx];
-      var actualHeader = currentHeaders[colIdx];
+    for (let colIdx = 0; colIdx < targetHeaders.length; colIdx++) {
+      const expectedHeader = targetHeaders[colIdx];
+      const actualHeader = currentHeaders[colIdx];
 
       if (String(actualHeader).trim() !== expectedHeader) {
         sheet.getRange(1, colIdx + 1).setValue(expectedHeader);
@@ -194,7 +194,7 @@ function syncSheetHeaders(ss) {
 
     if (needsUpdate) {
       // Định dạng lại dòng tiêu đề cho đồng bộ
-      var headerRange = sheet.getRange(1, 1, 1, targetHeaders.length);
+      const headerRange = sheet.getRange(1, 1, 1, targetHeaders.length);
       headerRange.setBackground("#1a73e8");
       headerRange.setFontColor("#ffffff");
       headerRange.setFontWeight("bold");
@@ -214,25 +214,25 @@ function syncSheetHeaders(ss) {
 function migrateDeletePhoneColumns(ss) {
   if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
   
-  var targetSheets = [
+  const targetSheets = [
     { name: SHEET_NAMES.DICH_VU, header: "Số điện thoại khách" },
     { name: SHEET_NAMES.THU_MUA, header: "Số điện thoại khách" },
     { name: SHEET_NAMES.BAO_HANH, header: "Số điện thoại" }
   ];
   
-  var deletedCount = 0;
+  let deletedCount = 0;
   
   targetSheets.forEach(function(target) {
-    var sheet = ss.getSheetByName(target.name);
+    const sheet = ss.getSheetByName(target.name);
     if (!sheet) return;
     
-    var lastCol = sheet.getLastColumn();
+    const lastCol = sheet.getLastColumn();
     if (lastCol <= 0) return;
     
-    var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-    var colIndex = -1;
-    for (var i = 0; i < headers.length; i++) {
-      var h = String(headers[i]).trim().toLowerCase();
+    const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    let colIndex = -1;
+    for (let i = 0; i < headers.length; i++) {
+      const h = String(headers[i]).trim().toLowerCase();
       if (h === target.header.toLowerCase()) {
         colIndex = i + 1;
         break;
@@ -260,11 +260,11 @@ function migrateDeletePhoneColumns(ss) {
  */
 function ensureDefaultConfigsExist(ss) {
   if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(SHEET_NAMES.CAU_HINH);
+  const sheet = ss.getSheetByName(SHEET_NAMES.CAU_HINH);
   if (!sheet) return;
 
-  var lastRow = sheet.getLastRow();
-  var keys = [];
+  const lastRow = sheet.getLastRow();
+  let keys = [];
   if (lastRow > 1) {
     keys = sheet.getRange(2, 1, lastRow - 1, 1).getValues().map(function(row) {
       return String(row[0]).trim().toLowerCase();
@@ -272,10 +272,10 @@ function ensureDefaultConfigsExist(ss) {
   }
 
   DEFAULT_CONFIG.forEach(function(row) {
-    var key = String(row[0]).trim().toLowerCase();
+    const key = String(row[0]).trim().toLowerCase();
     if (keys.indexOf(key) === -1) {
       sheet.appendRow(row);
-      var newRow = sheet.getLastRow();
+      const newRow = sheet.getLastRow();
       sheet.getRange(newRow, 1, 1, row.length)
         .setFontFamily("Times New Roman")
         .setFontSize(12)

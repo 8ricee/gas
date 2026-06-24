@@ -9,7 +9,7 @@
  * Tạo custom menu khi mở Spreadsheet
  */
 function createCustomMenu() {
-  var ui = SpreadsheetApp.getUi();
+  const ui = SpreadsheetApp.getUi();
 
   ui.createMenu("Bà xã hơm")
     .addItem("Dịch vụ", "showSidebar")
@@ -46,9 +46,9 @@ function createCustomMenu() {
  * Hiển thị sidebar Quản lý cửa hàng (Bảng điều khiển chung)
  */
 function showSidebar() {
-  var html = HtmlService.createTemplateFromFile("Sidebar");
+  const html = HtmlService.createTemplateFromFile("Sidebar");
   html.mode = "donHang"; // Mặc định mở phần Đơn hàng
-  var output = html
+  const output = html
     .evaluate()
     .setWidth(900)
     .setHeight(950)
@@ -62,14 +62,14 @@ function showSidebar() {
  * Hiển thị danh sách trả góp quá hạn
  */
 function menuTraGopQuaHan() {
-  var quaHan = getTraGopQuaHan();
+  const quaHan = getTraGopQuaHan();
 
   if (quaHan.length === 0) {
     showAlert("Trả góp", "Không có khoản trả góp nào quá hạn!");
     return;
   }
 
-  var msg = "Có " + quaHan.length + " kỳ trả góp quá hạn:\n\n";
+  let msg = "Có " + quaHan.length + " kỳ trả góp quá hạn:\n\n";
 
   quaHan.forEach(function (item, index) {
     msg += index + 1 + ". HĐ " + item.MaTG + " - Kỳ " + item.KySo + "\n";
@@ -85,14 +85,14 @@ function menuTraGopQuaHan() {
  * Hiển thị danh sách phụ kiện sắp hết
  */
 function menuPhuKienSapHet() {
-  var sapHet = getPhuKienSapHet();
+  const sapHet = getPhuKienSapHet();
 
   if (sapHet.length === 0) {
     showAlert("Tồn kho", "Không có phụ kiện nào sắp hết hàng!");
     return;
   }
 
-  var msg = "Có " + sapHet.length + " phụ kiện sắp hết:\n\n";
+  let msg = "Có " + sapHet.length + " phụ kiện sắp hết:\n\n";
 
   sapHet.forEach(function (item, index) {
     msg +=
@@ -116,7 +116,7 @@ function menuPhuKienSapHet() {
  */
 function menuFormatAllSheets() {
   try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
 
     // Tái xây dựng báo cáo Tồn kho và bảng màu trước
     rebuildTonKhoSheet(ss);
@@ -142,7 +142,7 @@ function menuNormalizeSystem() {
     // Xoá cache cấu trúc cột cũ để nạp lại cấu trúc mới nhất
     clearColumnEnumsCache();
 
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
 
     // Tự động bổ sung các cấu hình mặc định còn thiếu
     ensureDefaultConfigsExist(ss);

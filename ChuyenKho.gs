@@ -14,11 +14,11 @@
 function chuyenKho(data) {
   return withDocumentLock(function () {
     initializeColumnEnums();
-    var nguonSP = data.nguonSP || "Điện thoại";
-    var maSP = data.maSP;
-    var cnNguon = data.chiNhanhNguon;
-    var cnDich = data.chiNhanhDich;
-    var soLuong = Number(data.soLuong) || 1;
+    const nguonSP = data.nguonSP || "Điện thoại";
+    const maSP = data.maSP;
+    const cnNguon = data.chiNhanhNguon;
+    const cnDich = data.chiNhanhDich;
+    const soLuong = Number(data.soLuong) || 1;
 
     if (!maSP || !cnNguon || !cnDich) {
       throw new Error(
@@ -31,9 +31,9 @@ function chuyenKho(data) {
     }
 
     if (nguonSP === "Điện thoại") {
-      var ss = SpreadsheetApp.getActiveSpreadsheet();
-      var sheet = ss.getSheetByName(SHEET_NAMES.DIEN_THOAI);
-      var row = -1;
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      const sheet = ss.getSheetByName(SHEET_NAMES.DIEN_THOAI);
+      let row = -1;
 
       if (data.imei) {
         row = findRow(SHEET_NAMES.DIEN_THOAI, COL_DT.IMEI, data.imei);
@@ -42,13 +42,13 @@ function chuyenKho(data) {
         }
       } else {
         // Tự động tìm máy có mã SP tại chi nhánh nguồn và đang "Còn hàng"
-        var dtData = getAllData(SHEET_NAMES.DIEN_THOAI);
-        var maDTIdx = COL_DT.MA_DT - 1;
-        var chiNhanhIdx = COL_DT.CHI_NHANH - 1;
-        var trangThaiKhoIdx = COL_DT.TRANG_THAI_KHO - 1;
-        var imeiIdx = COL_DT.IMEI - 1;
+        const dtData = getAllData(SHEET_NAMES.DIEN_THOAI);
+        const maDTIdx = COL_DT.MA_DT - 1;
+        const chiNhanhIdx = COL_DT.CHI_NHANH - 1;
+        const trangThaiKhoIdx = COL_DT.TRANG_THAI_KHO - 1;
+        const imeiIdx = COL_DT.IMEI - 1;
 
-        for (var i = 0; i < dtData.length; i++) {
+        for (let i = 0; i < dtData.length; i++) {
           if (
             String(dtData[i][maDTIdx]) === maSP &&
             String(dtData[i][chiNhanhIdx]) === cnNguon &&
@@ -70,8 +70,8 @@ function chuyenKho(data) {
             (data.imei ? "IMEI: " + data.imei : maSP),
         );
 
-      var currentBranch = sheet.getRange(row, COL_DT.CHI_NHANH).getValue();
-      var currentStatus = sheet.getRange(row, COL_DT.TRANG_THAI_KHO).getValue();
+      const currentBranch = sheet.getRange(row, COL_DT.CHI_NHANH).getValue();
+      const currentStatus = sheet.getRange(row, COL_DT.TRANG_THAI_KHO).getValue();
 
       if (currentBranch !== cnNguon) {
         throw new Error(

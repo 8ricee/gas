@@ -11,15 +11,15 @@
 function _setupDataValidations(ss) {
   initializeColumnEnums();
 
-  var branches = getBranchesList();
-  var brands = getBrandsList();
+  const branches = getBranchesList();
+  const brands = getBrandsList();
 
-  var chiNhanhRule = SpreadsheetApp.newDataValidation()
+  const chiNhanhRule = SpreadsheetApp.newDataValidation()
     .requireValueInList(branches, true)
     .setAllowInvalid(false)
     .build();
 
-  var thuongHieuRule = SpreadsheetApp.newDataValidation()
+  const thuongHieuRule = SpreadsheetApp.newDataValidation()
     .requireValueInList(brands, true)
     .setAllowInvalid(false)
     .build();
@@ -41,8 +41,8 @@ function _setupDataValidations(ss) {
 
 function _clearSheetDataValidations(sheet) {
   if (!sheet) return;
-  var maxRows = sheet.getMaxRows();
-  var maxCols = sheet.getMaxColumns();
+  const maxRows = sheet.getMaxRows();
+  const maxCols = sheet.getMaxColumns();
   if (maxRows > 1 && maxCols > 0) {
     sheet.getRange(2, 1, maxRows - 1, maxCols).clearDataValidations();
   }
@@ -56,8 +56,8 @@ function _clearSheetDataValidations(sheet) {
  * @param {string[]} listValues Danh sách các giá trị hợp lệ
  */
 function setColumnListValidation(sheet, colIndex, listValues) {
-  var colLetter = columnToLetter(colIndex);
-  var rule = SpreadsheetApp.newDataValidation()
+  const colLetter = columnToLetter(colIndex);
+  const rule = SpreadsheetApp.newDataValidation()
     .requireValueInList(listValues, true)
     .setAllowInvalid(false)
     .build();
@@ -65,7 +65,7 @@ function setColumnListValidation(sheet, colIndex, listValues) {
 }
 
 function _setupNhanVienValidations(ss, chiNhanhRule) {
-  var nvSheet = ss.getSheetByName(SHEET_NAMES.NHAN_VIEN);
+  const nvSheet = ss.getSheetByName(SHEET_NAMES.NHAN_VIEN);
   if (!nvSheet) return;
   _clearSheetDataValidations(nvSheet);
 
@@ -75,11 +75,11 @@ function _setupNhanVienValidations(ss, chiNhanhRule) {
 }
 
 function _setupDienThoaiValidations(ss, chiNhanhRule, thuongHieuRule) {
-  var dtSheet = ss.getSheetByName(SHEET_NAMES.DIEN_THOAI);
+  const dtSheet = ss.getSheetByName(SHEET_NAMES.DIEN_THOAI);
   if (!dtSheet) return;
   _clearSheetDataValidations(dtSheet);
 
-  var colTinhTrangLetter = columnToLetter(COL_DT.TINH_TRANG);
+  const colTinhTrangLetter = columnToLetter(COL_DT.TINH_TRANG);
   dtSheet.getRange(colTinhTrangLetter + "2:" + colTinhTrangLetter).clearDataValidations();
 
   setColumnListValidation(dtSheet, COL_DT.TRANG_THAI_KHO, ["Còn hàng", "Đã bán", "Đang trả góp", "Đã trả lại"]);
@@ -88,7 +88,7 @@ function _setupDienThoaiValidations(ss, chiNhanhRule, thuongHieuRule) {
 }
 
 function _setupPhuKienValidations(ss, chiNhanhRule, thuongHieuRule) {
-  var pkSheet = ss.getSheetByName(SHEET_NAMES.PHU_KIEN);
+  const pkSheet = ss.getSheetByName(SHEET_NAMES.PHU_KIEN);
   if (!pkSheet) return;
   _clearSheetDataValidations(pkSheet);
 
@@ -100,7 +100,7 @@ function _setupPhuKienValidations(ss, chiNhanhRule, thuongHieuRule) {
 }
 
 function _setupDonHangValidations(ss, chiNhanhRule) {
-  var dhSheet = ss.getSheetByName(SHEET_NAMES.DON_HANG);
+  const dhSheet = ss.getSheetByName(SHEET_NAMES.DON_HANG);
   if (!dhSheet) return;
   _clearSheetDataValidations(dhSheet);
 
@@ -113,7 +113,7 @@ function _setupDonHangValidations(ss, chiNhanhRule) {
 }
 
 function _setupDichVuValidations(ss, chiNhanhRule) {
-  var dvSheet = ss.getSheetByName(SHEET_NAMES.DICH_VU);
+  const dvSheet = ss.getSheetByName(SHEET_NAMES.DICH_VU);
   if (!dvSheet) return;
   _clearSheetDataValidations(dvSheet);
 
@@ -124,7 +124,7 @@ function _setupDichVuValidations(ss, chiNhanhRule) {
 }
 
 function _setupTraGopValidations(ss, chiNhanhRule) {
-  var tgSheet = ss.getSheetByName(SHEET_NAMES.TRA_GOP);
+  const tgSheet = ss.getSheetByName(SHEET_NAMES.TRA_GOP);
   if (!tgSheet) return;
   _clearSheetDataValidations(tgSheet);
 
@@ -134,7 +134,7 @@ function _setupTraGopValidations(ss, chiNhanhRule) {
 }
 
 function _setupLichSuTraGopValidations(ss) {
-  var lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
+  const lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
   if (!lstgSheet) return;
   _clearSheetDataValidations(lstgSheet);
 
@@ -143,7 +143,7 @@ function _setupLichSuTraGopValidations(ss) {
 }
 
 function _setupNhapKhoValidations(ss, chiNhanhRule) {
-  var nkSheet = ss.getSheetByName(SHEET_NAMES.NHAP_KHO);
+  const nkSheet = ss.getSheetByName(SHEET_NAMES.NHAP_KHO);
   if (!nkSheet) return;
   _clearSheetDataValidations(nkSheet);
 
@@ -152,7 +152,7 @@ function _setupNhapKhoValidations(ss, chiNhanhRule) {
 }
 
 function _setupDoiTraValidations(ss, chiNhanhRule) {
-  var doiTraSheet = ss.getSheetByName(SHEET_NAMES.DOI_TRA);
+  const doiTraSheet = ss.getSheetByName(SHEET_NAMES.DOI_TRA);
   if (!doiTraSheet) return;
   _clearSheetDataValidations(doiTraSheet);
 
@@ -163,11 +163,11 @@ function _setupDoiTraValidations(ss, chiNhanhRule) {
 }
 
 function _setupThuMuaValidations(ss, chiNhanhRule, thuongHieuRule) {
-  var thuMuaSheet = ss.getSheetByName(SHEET_NAMES.THU_MUA);
+  const thuMuaSheet = ss.getSheetByName(SHEET_NAMES.THU_MUA);
   if (!thuMuaSheet) return;
   _clearSheetDataValidations(thuMuaSheet);
 
-  var colTMTinhTrang = columnToLetter(COL_TM.TINH_TRANG_THU);
+  const colTMTinhTrang = columnToLetter(COL_TM.TINH_TRANG_THU);
   thuMuaSheet.getRange(colTMTinhTrang + "2:" + colTMTinhTrang).clearDataValidations();
 
   setColumnListValidation(thuMuaSheet, COL_TM.LOAI_GD, ["Bán thẳng", "Thu cũ đổi mới"]);
@@ -177,37 +177,37 @@ function _setupThuMuaValidations(ss, chiNhanhRule, thuongHieuRule) {
 }
 
 function _setupBaoCaoDoanhSoValidations(ss) {
-  var reportDS = ss.getSheetByName(SHEET_NAMES.BAO_CAO_DOANH_SO);
+  const reportDS = ss.getSheetByName(SHEET_NAMES.BAO_CAO_DOANH_SO);
   if (!reportDS) return;
 
-  var staffList = ["Tất cả"];
-  var nvSheet = ss.getSheetByName(SHEET_NAMES.NHAN_VIEN);
+  const staffList = ["Tất cả"];
+  const nvSheet = ss.getSheetByName(SHEET_NAMES.NHAN_VIEN);
   if (nvSheet) {
     initializeColumnEnums();
-    var lastRow = nvSheet.getLastRow();
+    const lastRow = nvSheet.getLastRow();
     if (lastRow > 1) {
-      var nvData = nvSheet.getRange(2, 1, lastRow - 1, 8).getValues();
-      var c_maNV = COL_NV.MA_NV - 1;
-      var c_tenNV = COL_NV.HO_TEN - 1;
-      var c_trangThai = COL_NV.TRANG_THAI - 1;
+      const nvData = nvSheet.getRange(2, 1, lastRow - 1, 8).getValues();
+      const c_maNV = COL_NV.MA_NV - 1;
+      const c_tenNV = COL_NV.HO_TEN - 1;
+      const c_trangThai = COL_NV.TRANG_THAI - 1;
       nvData.forEach(function (row) {
         if (row.length <= c_trangThai) return;
-        var maNV = String(row[c_maNV]).trim();
-        var tenNV = String(row[c_tenNV]).trim();
-        var trangThai = String(row[c_trangThai]).trim();
+        const maNV = String(row[c_maNV]).trim();
+        const tenNV = String(row[c_tenNV]).trim();
+        const trangThai = String(row[c_trangThai]).trim();
         if (maNV && trangThai !== "Nghỉ việc") {
           staffList.push(maNV + " - " + tenNV);
         }
       });
     }
   }
-  var staffRule = SpreadsheetApp.newDataValidation()
+  const staffRule = SpreadsheetApp.newDataValidation()
     .requireValueInList(staffList, true)
     .setAllowInvalid(false)
     .build();
   reportDS.getRange(3, 6).setDataValidation(staffRule);
 
-  var gdList = [
+  const gdList = [
     "Tất cả",
     "Đơn hàng (Bán máy)",
     "Đơn hàng (Hỗ trợ)",
@@ -217,7 +217,7 @@ function _setupBaoCaoDoanhSoValidations(ss) {
     "Dịch vụ: Sửa chữa",
     "Dịch vụ: Bảo hành",
   ];
-  var gdRule = SpreadsheetApp.newDataValidation()
+  const gdRule = SpreadsheetApp.newDataValidation()
     .requireValueInList(gdList, true)
     .setAllowInvalid(false)
     .build();
@@ -225,14 +225,14 @@ function _setupBaoCaoDoanhSoValidations(ss) {
 }
 
 function _setupDoanhSoValidations(ss) {
-  var dsSheet = ss.getSheetByName(SHEET_NAMES.DOANH_SO);
+  const dsSheet = ss.getSheetByName(SHEET_NAMES.DOANH_SO);
   if (dsSheet) {
     _clearSheetDataValidations(dsSheet);
   }
 }
 
 function _setupBaoHanhValidations(ss, chiNhanhRule) {
-  var bhSheet = ss.getSheetByName(SHEET_NAMES.BAO_HANH);
+  const bhSheet = ss.getSheetByName(SHEET_NAMES.BAO_HANH);
   if (!bhSheet) return;
   _clearSheetDataValidations(bhSheet);
 

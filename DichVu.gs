@@ -20,21 +20,21 @@
 function taoDichVu(data) {
   return withDocumentLock(function () {
     initializeColumnEnums();
-    var maDV = generateId("DV", SHEET_NAMES.DICH_VU);
-    var chiNhanh = data.chiNhanh;
+    const maDV = generateId("DV", SHEET_NAMES.DICH_VU);
+    const chiNhanh = data.chiNhanh;
 
     if (!chiNhanh) {
       throw new Error("Vui lòng chọn chi nhánh thực hiện giao dịch!");
     }
 
     // Auto lookup tên NV
-    var tenNguoiThucHien = getNhanVienName(data.nguoiThucHien);
+    const tenNguoiThucHien = getNhanVienName(data.nguoiThucHien);
 
     // Auto lookup tên KH nếu có mã KH
-    var tenKH = ensureKhachHangExists(data.maKH, data.tenKH);
+    const tenKH = ensureKhachHangExists(data.maKH, data.tenKH);
 
     // Xác định phí dịch vụ
-    var phiDichVu = Number(data.phiDichVu) || 0;
+    let phiDichVu = Number(data.phiDichVu) || 0;
     if (data.loaiDichVu === "Nạp thẻ điện thoại") {
       phiDichVu = 0; // Nạp thẻ miễn phí
     } else if (phiDichVu === 0) {
@@ -46,16 +46,16 @@ function taoDichVu(data) {
       }
     }
 
-    var soTienGiaoDich = Number(data.soTienGiaoDich) || 0;
+    const soTienGiaoDich = Number(data.soTienGiaoDich) || 0;
 
     // Backend validation and calculation for Hỗn hợp / Tiền mặt / Chuyển khoản payments
-    var totalNeeded = soTienGiaoDich + phiDichVu;
-    var splitResult = calculatePaymentSplit(data, totalNeeded);
-    var tienMat = splitResult.tienMat;
-    var chuyenKhoan = splitResult.chuyenKhoan;
-    var hinhThucTTDisplay = splitResult.hinhThucTTDisplay;
+    const totalNeeded = soTienGiaoDich + phiDichVu;
+    const splitResult = calculatePaymentSplit(data, totalNeeded);
+    const tienMat = splitResult.tienMat;
+    const chuyenKhoan = splitResult.chuyenKhoan;
+    const hinhThucTTDisplay = splitResult.hinhThucTTDisplay;
 
-    var rowData = [];
+    const rowData = [];
     rowData[COL_DV.MA_DV - 1] = maDV;
     rowData[COL_DV.NGAY_GD - 1] = new Date();
     rowData[COL_DV.LOAI_DV - 1] = data.loaiDichVu || "";
@@ -97,11 +97,11 @@ function taoDichVu(data) {
  */
 function getDichVuTheoThang(thang, nam) {
   initializeColumnEnums();
-  var data = getAllData(SHEET_NAMES.DICH_VU);
-  var result = [];
+  const data = getAllData(SHEET_NAMES.DICH_VU);
+  const result = [];
 
   data.forEach(function (row) {
-    var ngay = row[COL_DV.NGAY_GD - 1];
+    const ngay = row[COL_DV.NGAY_GD - 1];
     if (isSameMonthYear(ngay, thang, nam)) {
         result.push({
           MaDV: String(row[COL_DV.MA_DV - 1] || ""),
@@ -135,8 +135,8 @@ function getDichVuTheoThang(thang, nam) {
  * @return {number} Tổng phí
  */
 function getTongPhiDichVu(maNV, thang, nam) {
-  var dichVus = getDichVuTheoThang(thang, nam);
-  var tong = 0;
+  const dichVus = getDichVuTheoThang(thang, nam);
+  let tong = 0;
 
   dichVus.forEach(function (dv) {
     if (String(dv.NguoiThucHien) === maNV && dv.TrangThai !== "Huỷ") {
@@ -155,8 +155,8 @@ function getTongPhiDichVu(maNV, thang, nam) {
  * @return {Object}
  */
 function getTongKetDichVu(thang, nam) {
-  var dichVus = getDichVuTheoThang(thang, nam);
-  var result = {
+  const dichVus = getDichVuTheoThang(thang, nam);
+  const result = {
     tongGiaoDich: 0,
     tongTienGD: 0,
     tongPhi: 0,
@@ -173,7 +173,7 @@ function getTongKetDichVu(thang, nam) {
       result.tongTienGD += Number(dv.SoTienGiaoDich) || 0;
       result.tongPhi += Number(dv.PhiDichVu) || 0;
 
-      var loai = dv.LoaiDichVu;
+      const loai = dv.LoaiDichVu;
       if (loai === "Chuyển khoản hộ") {
         result.chiTiet.chuyenKhoan.soGD++;
         result.chiTiet.chuyenKhoan.tongTien += Number(dv.SoTienGiaoDich) || 0;

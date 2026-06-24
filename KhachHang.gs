@@ -12,12 +12,12 @@
  */
 function getAllKhachHang() {
   initializeColumnEnums();
-  var data = getAllData(SHEET_NAMES.KHACH_HANG);
-  var headers = SHEET_HEADERS[SHEET_NAMES.KHACH_HANG];
-  var result = [];
+  const data = getAllData(SHEET_NAMES.KHACH_HANG);
+  const headers = SHEET_HEADERS[SHEET_NAMES.KHACH_HANG];
+  const result = [];
 
   data.forEach(function (row) {
-    var obj = {};
+    const obj = {};
     headers.forEach(function (h, i) {
       obj[h] = row[i];
     });
@@ -34,14 +34,14 @@ function getAllKhachHang() {
  */
 function getKhachHangDropdown() {
   initializeColumnEnums();
-  var data = getAllData(SHEET_NAMES.KHACH_HANG);
-  var result = [];
+  const data = getAllData(SHEET_NAMES.KHACH_HANG);
+  const result = [];
 
   data.forEach(function (row) {
-    var ma = String(row[COL_KH.MA_KH - 1] || "");
+    const ma = String(row[COL_KH.MA_KH - 1] || "");
     if (ma.trim() !== "") {
-      var ten = String(row[COL_KH.HO_TEN - 1] || "");
-      var displayText = ma + " - " + ten;
+      const ten = String(row[COL_KH.HO_TEN - 1] || "");
+      const displayText = ma + " - " + ten;
       result.push({
         value: ma,
         text: displayText,
@@ -60,11 +60,11 @@ function getKhachHangDropdown() {
  */
 function addKhachHang(data) {
   initializeColumnEnums();
-  var phone = String(data.soDienThoai || "").trim();
-  var maKH = phone ? phone : generateId("KH", SHEET_NAMES.KHACH_HANG);
+  const phone = String(data.soDienThoai || "").trim();
+  const maKH = phone ? phone : generateId("KH", SHEET_NAMES.KHACH_HANG);
 
   // Kiểm tra Mã KH trùng
-  var existing = lookupValue(
+  const existing = lookupValue(
     SHEET_NAMES.KHACH_HANG,
     COL_KH.MA_KH,
     maKH,
@@ -80,7 +80,7 @@ function addKhachHang(data) {
     );
   }
 
-  var rowData = [];
+  const rowData = [];
   rowData[COL_KH.MA_KH - 1] = maKH;
   rowData[COL_KH.HO_TEN - 1] = data.hoTen || "";
   rowData[COL_KH.CCCD - 1] = data.cccd || "";
@@ -102,13 +102,13 @@ function addKhachHang(data) {
  */
 function updateKhachHang(maKH, data) {
   initializeColumnEnums();
-  var row = findRow(SHEET_NAMES.KHACH_HANG, COL_KH.MA_KH, maKH);
+  const row = findRow(SHEET_NAMES.KHACH_HANG, COL_KH.MA_KH, maKH);
   if (row === -1) {
     showAlert("Lỗi", "Không tìm thấy khách hàng: " + maKH);
     return false;
   }
 
-  var updates = {};
+  const updates = {};
   if (data.soDienThoai !== undefined) {
     updates[COL_KH.MA_KH] = data.soDienThoai;
   }
@@ -131,22 +131,22 @@ function updateKhachHang(maKH, data) {
  */
 function searchKhachHang(keyword) {
   initializeColumnEnums();
-  var data = getAllData(SHEET_NAMES.KHACH_HANG);
-  var headers = SHEET_HEADERS[SHEET_NAMES.KHACH_HANG];
-  var result = [];
-  var kw = String(keyword).trim().toLowerCase();
+  const data = getAllData(SHEET_NAMES.KHACH_HANG);
+  const headers = SHEET_HEADERS[SHEET_NAMES.KHACH_HANG];
+  const result = [];
+  const kw = String(keyword).trim().toLowerCase();
 
   data.forEach(function (row) {
-    var hoTen = String(row[COL_KH.HO_TEN - 1] || "").toLowerCase();
-    var sdt = String(row[COL_KH.MA_KH - 1] || "").toLowerCase();
-    var cccd = String(row[COL_KH.CCCD - 1] || "").toLowerCase();
+    const hoTen = String(row[COL_KH.HO_TEN - 1] || "").toLowerCase();
+    const sdt = String(row[COL_KH.MA_KH - 1] || "").toLowerCase();
+    const cccd = String(row[COL_KH.CCCD - 1] || "").toLowerCase();
 
     if (
       hoTen.indexOf(kw) !== -1 ||
       sdt.indexOf(kw) !== -1 ||
       cccd.indexOf(kw) !== -1
     ) {
-      var obj = {};
+      const obj = {};
       headers.forEach(function (h, i) {
         obj[h] = row[i];
       });
@@ -163,15 +163,15 @@ function searchKhachHang(keyword) {
  */
 function _buildKhachHangDropdownCache() {
   initializeColumnEnums();
-  var data = getAllData(SHEET_NAMES.KHACH_HANG);
-  var result = [];
+  const data = getAllData(SHEET_NAMES.KHACH_HANG);
+  const result = [];
 
   data.forEach(function (row) {
-    var ma = String(row[COL_KH.MA_KH - 1] || "");
+    const ma = String(row[COL_KH.MA_KH - 1] || "");
     if (ma.trim() !== "") {
-      var ten = String(row[COL_KH.HO_TEN - 1] || "");
-      var cccd = String(row[COL_KH.CCCD - 1] || "");
-      var displayText = ma + " - " + ten;
+      const ten = String(row[COL_KH.HO_TEN - 1] || "");
+      const cccd = String(row[COL_KH.CCCD - 1] || "");
+      const displayText = ma + " - " + ten;
       result.push({
         v: ma,
         t: displayText,
@@ -191,17 +191,17 @@ function _buildKhachHangDropdownCache() {
  * @return {Object[]} [{value: 'KH001', text: 'KH001 - Nguyễn Văn A (0901234567)'}, ...]
  */
 function getKhachHangDropdownSearch(keyword) {
-  var kw = String(keyword).trim().toLowerCase();
+  const kw = String(keyword).trim().toLowerCase();
 
   // Đọc từ cache, nếu miss thì build lại
-  var allItems = getChunkedCache("dd_kh");
+  let allItems = getChunkedCache("dd_kh");
   if (!allItems) {
     allItems = _buildKhachHangDropdownCache();
     setChunkedCache("dd_kh", allItems);
   }
 
-  var result = [];
-  for (var i = 0; i < allItems.length; i++) {
+  const result = [];
+  for (let i = 0; i < allItems.length; i++) {
     if (allItems[i]._s.indexOf(kw) !== -1) {
       result.push({
         value: allItems[i].v,
@@ -228,7 +228,7 @@ function ensureKhachHangExists(maKH, hoTen, soDienThoai) {
   initializeColumnEnums();
   
   // Kiểm tra xem mã khách hàng đã có trong DB chưa
-  var existingRow = findRow(SHEET_NAMES.KHACH_HANG, COL_KH.MA_KH, maKH);
+  const existingRow = findRow(SHEET_NAMES.KHACH_HANG, COL_KH.MA_KH, maKH);
   
   if (existingRow !== -1) {
     // Nếu khách hàng đã tồn tại, trả về tên hiện tại trong hệ thống (nếu hoTen đầu vào trống)
@@ -240,7 +240,7 @@ function ensureKhachHangExists(maKH, hoTen, soDienThoai) {
   
   if (hoTen && hoTen !== maKH) {
     // Khách hàng chưa tồn tại, tự động thêm mới
-    var rowData = [];
+    const rowData = [];
     rowData[COL_KH.MA_KH - 1] = maKH;
     rowData[COL_KH.HO_TEN - 1] = hoTen;
     rowData[COL_KH.NGAY_TAO - 1] = new Date();

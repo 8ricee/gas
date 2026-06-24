@@ -33,9 +33,9 @@ function _getPhuKienIndices() {
  * @return {Object[]}
  */
 function getAllPhuKien(chiConHang, chiNhanh) {
-  var data = getAllData(SHEET_NAMES.PHU_KIEN);
-  var result = [];
-  var c = _getPhuKienIndices();
+  const data = getAllData(SHEET_NAMES.PHU_KIEN);
+  const result = [];
+  const c = _getPhuKienIndices();
 
   data.forEach(function (row) {
     if (row.length <= c.chiNhanh) return;
@@ -73,9 +73,9 @@ function getAllPhuKien(chiConHang, chiNhanh) {
  * @return {Object[]} [{value: 'PK001', text: 'PK001 - Ốp lưng iPhone 15 (Tồn: 10)'}, ...]
  */
 function getPhuKienDropdown(chiNhanh) {
-  var data = getAllData(SHEET_NAMES.PHU_KIEN);
-  var result = [];
-  var c = _getPhuKienIndices();
+  const data = getAllData(SHEET_NAMES.PHU_KIEN);
+  const result = [];
+  const c = _getPhuKienIndices();
 
   data.forEach(function (row) {
     if (row.length <= c.chiNhanh) return;
@@ -85,7 +85,7 @@ function getPhuKienDropdown(chiNhanh) {
       String(row[c.trangThai]) !== "Ngừng bán" &&
       Number(row[c.soLuongTon]) > 0
     ) {
-      var rowChiNhanh = String(row[c.chiNhanh] || "");
+      const rowChiNhanh = String(row[c.chiNhanh] || "");
       if (!chiNhanh || rowChiNhanh === chiNhanh) {
         result.push({
           value: String(row[c.maPK]),
@@ -117,9 +117,9 @@ function getPhuKienDropdown(chiNhanh) {
  */
 function addPhuKien(data) {
   initializeColumnEnums();
-  var maPK = generateId("PK", SHEET_NAMES.PHU_KIEN);
+  const maPK = generateId("PK", SHEET_NAMES.PHU_KIEN);
 
-  var rowData = [];
+  const rowData = [];
   rowData[COL_PK.MA_PK - 1] = maPK;
   rowData[COL_PK.TEN_SP - 1] = data.tenSP || "";
   rowData[COL_PK.LOAI_PK - 1] = data.loaiPK || "Khác";
@@ -145,13 +145,13 @@ function addPhuKien(data) {
  */
 function updatePhuKien(maPK, data) {
   initializeColumnEnums();
-  var chiNhanh = data.chiNhanh;
+  const chiNhanh = data.chiNhanh;
   if (!chiNhanh) {
     showAlert("❌ Lỗi", "Cần cung cấp chi nhánh để cập nhật phụ kiện: " + maPK);
     return false;
   }
 
-  var row = findPhuKienRow(maPK, chiNhanh);
+  const row = findPhuKienRow(maPK, chiNhanh);
   if (row === -1) {
     showAlert(
       "❌ Lỗi",
@@ -160,12 +160,12 @@ function updatePhuKien(maPK, data) {
     return false;
   }
 
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(SHEET_NAMES.PHU_KIEN);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAMES.PHU_KIEN);
   invalidateDropdownCache(SHEET_NAMES.PHU_KIEN);
 
   // Đảm bảo đủ cột
-  var maxColNeeded = Math.max(
+  const maxColNeeded = Math.max(
     COL_PK.MA_PK,
     COL_PK.TEN_SP,
     COL_PK.LOAI_PK,
@@ -177,13 +177,13 @@ function updatePhuKien(maPK, data) {
     COL_PK.TRANG_THAI,
     COL_PK.CHI_NHANH,
   );
-  var maxCols = sheet.getMaxColumns();
+  const maxCols = sheet.getMaxColumns();
   if (maxCols < maxColNeeded) {
     sheet.insertColumnsAfter(maxCols, maxColNeeded - maxCols);
   }
 
-  var range = sheet.getRange(row, 1, 1, maxColNeeded);
-  var rowValues = range.getValues()[0];
+  const range = sheet.getRange(row, 1, 1, maxColNeeded);
+  const rowValues = range.getValues()[0];
 
   if (data.tenSP !== undefined)
     rowValues[COL_PK.TEN_SP - 1] = data.tenSP;
@@ -208,7 +208,7 @@ function updatePhuKien(maPK, data) {
   return true;
 }
 
-var _phuKienCompositeIndex = null;
+let _phuKienCompositeIndex = null;
 
 function clearPhuKienCompositeIndex() {
   _phuKienCompositeIndex = null;
@@ -225,14 +225,14 @@ function findPhuKienRow(maPK, chiNhanh) {
   initializeColumnEnums();
   if (!_phuKienCompositeIndex) {
     _phuKienCompositeIndex = {};
-    var data = getAllData(SHEET_NAMES.PHU_KIEN);
-    var maPKIdx = COL_PK.MA_PK - 1;
-    var chiNhanhIdx = COL_PK.CHI_NHANH - 1;
+    const data = getAllData(SHEET_NAMES.PHU_KIEN);
+    const maPKIdx = COL_PK.MA_PK - 1;
+    const chiNhanhIdx = COL_PK.CHI_NHANH - 1;
 
-    for (var i = 0; i < data.length; i++) {
-      var row = data[i];
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
       if (row.length <= chiNhanhIdx) continue;
-      var key =
+      const key =
         String(row[maPKIdx]).trim().toLowerCase() +
         "_" +
         String(row[chiNhanhIdx] || "")
@@ -244,7 +244,7 @@ function findPhuKienRow(maPK, chiNhanh) {
     }
   }
 
-  var searchKey =
+  const searchKey =
     String(maPK).trim().toLowerCase() +
     "_" +
     String(chiNhanh).trim().toLowerCase();
@@ -267,14 +267,14 @@ function updateTonKhoPhuKien(maPK, soLuong, type, chiNhanh) {
       throw new Error("Thiếu chi nhánh khi cập nhật tồn kho phụ kiện!");
     }
 
-    var row = findPhuKienRow(maPK, chiNhanh);
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName(SHEET_NAMES.PHU_KIEN);
+    const row = findPhuKienRow(maPK, chiNhanh);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SHEET_NAMES.PHU_KIEN);
 
     if (row === -1) {
       if (type === "nhap") {
         // Nếu chưa có ở chi nhánh này, sao chép thông tin từ chi nhánh bất kỳ
-        var details = lookupMultipleValues(
+        const details = lookupMultipleValues(
           SHEET_NAMES.PHU_KIEN,
           COL_PK.MA_PK,
           maPK,
@@ -288,7 +288,7 @@ function updateTonKhoPhuKien(maPK, soLuong, type, chiNhanh) {
           ],
         );
         if (details) {
-          var rowData = [];
+          const rowData = [];
           rowData[COL_PK.MA_PK - 1] = maPK;
           rowData[COL_PK.TEN_SP - 1] = details[COL_PK.TEN_SP] || "";
           rowData[COL_PK.LOAI_PK - 1] = details[COL_PK.LOAI_PK] || "Khác";
@@ -318,14 +318,14 @@ function updateTonKhoPhuKien(maPK, soLuong, type, chiNhanh) {
 
     // Cập nhật dòng có sẵn
     invalidateDropdownCache(SHEET_NAMES.PHU_KIEN);
-    var currentTon =
+    const currentTon =
       Number(sheet.getRange(row, COL_PK.SO_LUONG_TON).getValue()) || 0;
     if (type === "nhap") {
       sheet
         .getRange(row, COL_PK.SO_LUONG_TON)
         .setValue(currentTon + Number(soLuong));
     } else if (type === "xuat") {
-      var newTon = currentTon - Number(soLuong);
+      const newTon = currentTon - Number(soLuong);
       if (newTon < 0) {
         throw new Error(
           "Không đủ tồn kho tại " +
@@ -349,9 +349,9 @@ function updateTonKhoPhuKien(maPK, soLuong, type, chiNhanh) {
  * @return {Object[]}
  */
 function getPhuKienSapHet() {
-  var data = getAllData(SHEET_NAMES.PHU_KIEN);
-  var result = [];
-  var c = _getPhuKienIndices();
+  const data = getAllData(SHEET_NAMES.PHU_KIEN);
+  const result = [];
+  const c = _getPhuKienIndices();
 
   data.forEach(function (row) {
     if (row.length <= c.chiNhanh) return;
@@ -387,14 +387,14 @@ function getPhuKienSapHet() {
  * @return {Object[]}
  */
 function getPhuKienUniqueList() {
-  var data = getAllData(SHEET_NAMES.PHU_KIEN);
-  var result = [];
-  var seen = {};
-  var c = _getPhuKienIndices();
+  const data = getAllData(SHEET_NAMES.PHU_KIEN);
+  const result = [];
+  const seen = {};
+  const c = _getPhuKienIndices();
 
   data.forEach(function (row) {
     if (row.length <= c.chiNhanh) return;
-    var maPK = String(row[c.maPK]).trim();
+    const maPK = String(row[c.maPK]).trim();
     if (maPK && maPK !== "" && String(row[c.trangThai]) !== "Ngừng bán") {
       if (!seen[maPK]) {
         seen[maPK] = true;
@@ -429,11 +429,11 @@ function getPhuKienUniqueList() {
 function getPhuKienStockAtBranch(maPK, chiNhanh) {
   initializeColumnEnums();
   if (!maPK || !chiNhanh) return 0;
-  var row = findPhuKienRow(maPK, chiNhanh);
+  const row = findPhuKienRow(maPK, chiNhanh);
   if (row === -1) return 0;
 
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(SHEET_NAMES.PHU_KIEN);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAMES.PHU_KIEN);
   if (!sheet) return 0;
   return Number(sheet.getRange(row, COL_PK.SO_LUONG_TON).getValue()) || 0;
 }
@@ -443,9 +443,9 @@ function getPhuKienStockAtBranch(maPK, chiNhanh) {
  * @private
  */
 function _buildPhuKienDropdownCache() {
-  var data = getAllData(SHEET_NAMES.PHU_KIEN);
-  var result = [];
-  var c = _getPhuKienIndices();
+  const data = getAllData(SHEET_NAMES.PHU_KIEN);
+  const result = [];
+  const c = _getPhuKienIndices();
 
   data.forEach(function (row) {
     if (row.length <= c.chiNhanh) return;
@@ -455,7 +455,7 @@ function _buildPhuKienDropdownCache() {
       String(row[c.trangThai]) !== "Ngừng bán" &&
       Number(row[c.soLuongTon]) > 0
     ) {
-      var cn = String(row[c.chiNhanh] || "");
+      const cn = String(row[c.chiNhanh] || "");
       result.push({
         v: String(row[c.maPK]),
         t:
@@ -483,14 +483,14 @@ function _buildPhuKienDropdownCache() {
  * @private
  */
 function _buildPhuKienUniqueCache() {
-  var data = getAllData(SHEET_NAMES.PHU_KIEN);
-  var result = [];
-  var seen = {};
-  var c = _getPhuKienIndices();
+  const data = getAllData(SHEET_NAMES.PHU_KIEN);
+  const result = [];
+  const seen = {};
+  const c = _getPhuKienIndices();
 
   data.forEach(function (row) {
     if (row.length <= c.chiNhanh) return;
-    var maPK = String(row[c.maPK]).trim();
+    const maPK = String(row[c.maPK]).trim();
     if (maPK && maPK !== "" && String(row[c.trangThai]) !== "Ngừng bán") {
       if (!seen[maPK]) {
         seen[maPK] = true;
@@ -525,17 +525,17 @@ function _buildPhuKienUniqueCache() {
  * @return {Object[]}
  */
 function getPhuKienDropdownSearch(chiNhanh, keyword) {
-  var kw = String(keyword).trim().toLowerCase();
+  const kw = String(keyword).trim().toLowerCase();
 
-  var allItems = getChunkedCache("dd_pk");
+  let allItems = getChunkedCache("dd_pk");
   if (!allItems) {
     allItems = _buildPhuKienDropdownCache();
     setChunkedCache("dd_pk", allItems);
   }
 
-  var result = [];
-  for (var i = 0; i < allItems.length; i++) {
-    var item = allItems[i];
+  const result = [];
+  for (let i = 0; i < allItems.length; i++) {
+    const item = allItems[i];
     if (chiNhanh && item.cn !== chiNhanh) continue;
     if (item._s.indexOf(kw) !== -1) {
       result.push({
@@ -562,16 +562,16 @@ function getPhuKienDropdownSearch(chiNhanh, keyword) {
  * @return {Object[]}
  */
 function getPhuKienUniqueListSearch(keyword) {
-  var kw = String(keyword).trim().toLowerCase();
+  const kw = String(keyword).trim().toLowerCase();
 
-  var allItems = getChunkedCache("dd_pku");
+  let allItems = getChunkedCache("dd_pku");
   if (!allItems) {
     allItems = _buildPhuKienUniqueCache();
     setChunkedCache("dd_pku", allItems);
   }
 
-  var result = [];
-  for (var i = 0; i < allItems.length; i++) {
+  const result = [];
+  for (let i = 0; i < allItems.length; i++) {
     if (allItems[i]._s.indexOf(kw) !== -1) {
       result.push({
         value: allItems[i].v,

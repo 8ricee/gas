@@ -29,8 +29,8 @@ function _getNhanVienIndices() {
  * @return {Object[]} Mảng objects nhân viên
  */
 function getAllNhanVien() {
-  var activeRows = _getActiveNhanVienRows();
-  var c = _getNhanVienIndices();
+  const activeRows = _getActiveNhanVienRows();
+  const c = _getNhanVienIndices();
   
   return activeRows.map(function(row) {
     return {
@@ -52,8 +52,8 @@ function getAllNhanVien() {
  * @return {Object[]} [{value: 'NV001', text: 'NV001 - Nguyễn Văn A'}, ...]
  */
 function getNhanVienDropdown() {
-  var activeRows = _getActiveNhanVienRows();
-  var c = _getNhanVienIndices();
+  const activeRows = _getActiveNhanVienRows();
+  const c = _getNhanVienIndices();
   
   return activeRows.map(function(row) {
     return {
@@ -73,9 +73,9 @@ function getNhanVienDropdown() {
  */
 function addNhanVien(data) {
   initializeColumnEnums();
-  var maNV = generateId("NV", SHEET_NAMES.NHAN_VIEN);
+  const maNV = generateId("NV", SHEET_NAMES.NHAN_VIEN);
 
-  var rowData = [];
+  const rowData = [];
   rowData[COL_NV.MA_NV - 1] = maNV;
   rowData[COL_NV.HO_TEN - 1] = data.hoTen || "";
   rowData[COL_NV.SO_DIEN_THOAI - 1] = data.soDienThoai || "";
@@ -99,13 +99,13 @@ function addNhanVien(data) {
  */
 function updateNhanVien(maNV, data) {
   initializeColumnEnums();
-  var row = findRow(SHEET_NAMES.NHAN_VIEN, COL_NV.MA_NV, maNV);
+  const row = findRow(SHEET_NAMES.NHAN_VIEN, COL_NV.MA_NV, maNV);
   if (row === -1) {
     showAlert("❌ Lỗi", "Không tìm thấy nhân viên: " + maNV);
     return false;
   }
 
-  var updates = {};
+  const updates = {};
   if (data.hoTen !== undefined) updates[COL_NV.HO_TEN] = data.hoTen;
   if (data.soDienThoai !== undefined) updates[COL_NV.SO_DIEN_THOAI] = data.soDienThoai;
   if (data.email !== undefined) updates[COL_NV.EMAIL] = data.email;
@@ -127,7 +127,7 @@ function updateNhanVien(maNV, data) {
  */
 function getNhanVienByMa(maNV) {
   initializeColumnEnums();
-  var result = lookupMultipleValues(
+  const result = lookupMultipleValues(
     SHEET_NAMES.NHAN_VIEN,
     COL_NV.MA_NV,
     maNV,
@@ -144,7 +144,7 @@ function getNhanVienByMa(maNV) {
   );
   if (!result) return null;
 
-  var obj = {
+  const obj = {
     MaNV: String(result[COL_NV.MA_NV]),
     HoTen: String(result[COL_NV.HO_TEN]),
     SoDienThoai: String(result[COL_NV.SO_DIEN_THOAI]),
@@ -166,7 +166,7 @@ function getNhanVienByMa(maNV) {
  */
 function kiemTraQuyenXuatMay(maNV) {
   initializeColumnEnums();
-  var quyen = lookupValue(SHEET_NAMES.NHAN_VIEN, COL_NV.MA_NV, maNV, COL_NV.QUYEN_XUAT);
+  const quyen = lookupValue(SHEET_NAMES.NHAN_VIEN, COL_NV.MA_NV, maNV, COL_NV.QUYEN_XUAT);
   return String(quyen) === "✓";
 }
 
@@ -175,8 +175,8 @@ function kiemTraQuyenXuatMay(maNV) {
  * @private
  */
 function _getActiveNhanVienRows() {
-  var data = getAllData(SHEET_NAMES.NHAN_VIEN);
-  var c = _getNhanVienIndices();
+  const data = getAllData(SHEET_NAMES.NHAN_VIEN);
+  const c = _getNhanVienIndices();
   
   return data.filter(function (row) {
     if (row.length <= c.trangThai) return false;
