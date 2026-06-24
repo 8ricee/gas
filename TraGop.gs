@@ -13,7 +13,6 @@
  * @return {string} Mã trả góp mới
  */
 function taoHopDongTraGop(data) {
-  initializeColumnEnums();
   const maTG = generateId("TG", SHEET_NAMES.TRA_GOP);
 
   const tongTien = Number(data.tongTien) || 0;
@@ -137,7 +136,6 @@ function taoHopDongTraGop(data) {
 function ghiNhanThanhToan(data) {
   return withDocumentLock(function () {
     clearSheetCache();
-    initializeColumnEnums();
     const ss = SpreadsheetApp.getActiveSpreadsheet();
 
     const soTien = Number(data.soTien) || 0;
@@ -241,7 +239,6 @@ function _capNhatTongTraGop(maTG) {
     });
 
     // Tìm dòng trả góp
-    initializeColumnEnums();
     const tgRow = findRow(SHEET_NAMES.TRA_GOP, COL_TG.MA_TG, maTG);
     if (tgRow === -1) return;
 
@@ -286,7 +283,6 @@ function _capNhatTongTraGop(maTG) {
  */
 function huyHopDongTraGop(maDH) {
   return withDocumentLock(function () {
-    initializeColumnEnums();
     const maTG = lookupValue(SHEET_NAMES.TRA_GOP, COL_TG.MA_DH, maDH, COL_TG.MA_TG);
     if (maTG) {
       const tgRow = findRow(SHEET_NAMES.TRA_GOP, COL_TG.MA_TG, maTG);

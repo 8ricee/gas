@@ -475,7 +475,6 @@ function _onEditBaoCaoDoanhSo(sheet, row, col, e) {
  * Tự động cập nhật khi sửa trực tiếp trên sheet Lịch sử trả góp
  */
 function _onEditLichSuTraGop(sheet, row, col, e) {
-  initializeColumnEnums();
   
   // Lắng nghe thay đổi Số tiền đã trả hoặc Trạng thái
   if (col !== COL_LSTG.SO_TIEN_DA_TRA && col !== COL_LSTG.TRANG_THAI) return;
@@ -515,7 +514,6 @@ function _onEditLichSuTraGop(sheet, row, col, e) {
  * Tự động cập nhật khi sửa trực tiếp trên sheet Trả góp
  */
 function _onEditTraGop(sheet, row, col, e) {
-  initializeColumnEnums();
   // Lắng nghe thay đổi Trạng thái hợp đồng
   if (col === COL_TG.TRANG_THAI) {
     const statusVal = String(e.value).trim();
@@ -577,7 +575,6 @@ function _onEditTraGop(sheet, row, col, e) {
  * Auto-calculate cho sheet DonHang (Đơn hàng)
  */
 function _onEditDonHang(sheet, row, col, e) {
-  initializeColumnEnums();
 
   // Auto tính ThanhTien khi SoLuong hoặc DonGia hoặc TienGiamGia thay đổi
   if (col === COL_DH.SO_LUONG || col === COL_DH.DON_GIA || col === COL_DH.TIEN_GIAM_GIA) {
@@ -700,7 +697,6 @@ function _onEditDonHang(sheet, row, col, e) {
  * Auto-calculate cho sheet NhapKho (Nhập kho)
  */
 function _onEditNhapKho(sheet, row, col, e) {
-  initializeColumnEnums();
 
   // Auto tính ThanhTien khi SoLuong hoặc GiaNhap thay đổi
   if (col === COL_NK.SO_LUONG || col === COL_NK.GIA_NHAP) {
@@ -734,7 +730,6 @@ function _onEditNhapKho(sheet, row, col, e) {
  * @param {Spreadsheet} [ss] - Active spreadsheet
  */
 function rebuildTonKhoSheet(ss) {
-  initializeColumnEnums();
   if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
 
   const tonKhoSheet = ss.getSheetByName(SHEET_NAMES.TON_KHO);
@@ -1159,7 +1154,6 @@ function getPreloadData() {
  * @return {Object} Chứa preloadData, branches, staff, financeCompanies, brands
  */
 function getInitialSidebarData() {
-  initializeColumnEnums();
   return {
     preloadData: getPreloadData(),
     branches: getBranchesDropdown(),

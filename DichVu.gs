@@ -19,7 +19,6 @@
  */
 function taoDichVu(data) {
   return withDocumentLock(function () {
-    initializeColumnEnums();
     const maDV = generateId("DV", SHEET_NAMES.DICH_VU);
     const chiNhanh = data.chiNhanh;
 
@@ -96,7 +95,6 @@ function taoDichVu(data) {
  * @return {Object[]}
  */
 function getDichVuTheoThang(thang, nam) {
-  initializeColumnEnums();
   const data = getAllData(SHEET_NAMES.DICH_VU);
   const result = [];
 

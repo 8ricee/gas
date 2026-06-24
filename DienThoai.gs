@@ -10,7 +10,6 @@
  * @private
  */
 function _getDienThoaiIndices() {
-  initializeColumnEnums();
   return {
     maDT: COL_DT.MA_DT - 1,
     tenSP: COL_DT.TEN_SP - 1,
@@ -136,7 +135,6 @@ function getDienThoaiDropdown(chiNhanh) {
  * @return {string} Mã DT mới
  */
 function addDienThoai(data) {
-  initializeColumnEnums();
   // Kiểm tra IMEI trùng
   if (data.imei) {
     const existing = lookupValue(
@@ -189,7 +187,6 @@ function addDienThoai(data) {
  * @return {boolean}
  */
 function updateDienThoai(maDT, data) {
-  initializeColumnEnums();
   const row = findRow(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maDT);
   if (row === -1) {
     showAlert("Lỗi", "Không tìm thấy điện thoại: " + maDT);
@@ -278,7 +275,6 @@ function updateDienThoai(maDT, data) {
  * @return {boolean}
  */
 function updateTrangThaiKhoDT(maDT_or_imei, trangThai) {
-  initializeColumnEnums();
   let row = findRow(SHEET_NAMES.DIEN_THOAI, COL_DT.IMEI, maDT_or_imei); // Tìm theo IMEI trước
   if (row === -1 && COL_DT.IMEI_2) {
     row = findRow(SHEET_NAMES.DIEN_THOAI, COL_DT.IMEI_2, maDT_or_imei); // Fallback tìm theo IMEI 2
@@ -365,7 +361,6 @@ function searchDienThoai(keyword) {
  * Chuẩn hóa và tự động điền Ngày nhập & Ngày xuất cho các dữ liệu điện thoại đã có sẵn
  */
 function backfillDienThoaiDates(silent) {
-  initializeColumnEnums();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const dtSheet = ss.getSheetByName(SHEET_NAMES.DIEN_THOAI);
   if (!dtSheet) return;

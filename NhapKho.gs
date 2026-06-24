@@ -23,7 +23,6 @@
  */
 function nhapKho(data) {
   return withDocumentLock(function () {
-    initializeColumnEnums();
     const maNK = generateId("NK", SHEET_NAMES.NHAP_KHO);
     const nguonNhap = data.nguonNhap || "Điện thoại";
     let maSP = "";

@@ -13,7 +13,6 @@
  */
 function chuyenKho(data) {
   return withDocumentLock(function () {
-    initializeColumnEnums();
     const nguonSP = data.nguonSP || "Điện thoại";
     const maSP = data.maSP;
     const cnNguon = data.chiNhanhNguon;

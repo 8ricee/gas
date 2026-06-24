@@ -134,7 +134,6 @@ function isDateHeader(name) {
  * Đổ màu có điều kiện cho tất cả các dropdown trên bảng tính
  */
 function applyConditionalFormatting(ss) {
-  initializeColumnEnums();
   const branches = getBranchesList();
   const brands = getBrandsList();
   const colorMap = _buildColorMap(branches, brands);

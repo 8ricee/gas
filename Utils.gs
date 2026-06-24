@@ -29,8 +29,34 @@ function clearSheetCache(sheetName) {
   }
 }
 
-// Các Enum cột mặc định (sẽ được cập nhật động bằng initializeColumnEnums)
-const COL_DT = {
+let _columnEnumsInitialized = false;
+let _loadingColumnEnums = false;
+
+function createEnumProxy(defaultValues) {
+  return new Proxy(defaultValues, {
+    get(target, prop) {
+      if (typeof prop === "string" && !prop.startsWith("_") && prop !== "toString" && prop !== "toJSON") {
+        initializeColumnEnums();
+      }
+      return target[prop];
+    },
+    set(target, prop, value) {
+      target[prop] = value;
+      return true;
+    },
+    ownKeys(target) {
+      initializeColumnEnums();
+      return Reflect.ownKeys(target);
+    },
+    getOwnPropertyDescriptor(target, prop) {
+      initializeColumnEnums();
+      return Reflect.getOwnPropertyDescriptor(target, prop);
+    }
+  });
+}
+
+// Các Enum cột mặc định (sẽ được cập nhật động bằng initializeColumnEnums qua Proxy)
+const COL_DT = createEnumProxy({
   MA_DT: 1,
   TEN_SP: 2,
   THUONG_HIEU: 3,
@@ -47,9 +73,9 @@ const COL_DT = {
   CHI_NHANH: 14,
   NGAY_NHAP: 15,
   NGAY_XUAT: 16,
-};
+});
 
-const COL_PK = {
+const COL_PK = createEnumProxy({
   MA_PK: 1,
   TEN_SP: 2,
   LOAI_PK: 3,
@@ -60,9 +86,9 @@ const COL_PK = {
   MO_TA: 8,
   TRANG_THAI: 9,
   CHI_NHANH: 10,
-};
+});
 
-const COL_DH = {
+const COL_DH = createEnumProxy({
   MA_DH: 1,
   NGAY_BAN: 2,
   MA_KH: 3,
@@ -90,9 +116,9 @@ const COL_DH = {
   TIEN_GIAM_GIA: 25,
   TIEN_MAT: 26,
   CHUYEN_KHOAN: 27,
-};
+});
 
-const COL_TM = {
+const COL_TM = createEnumProxy({
   MA_TM: 1,
   NGAY_TM: 2,
   MA_KH: 3,
@@ -114,9 +140,9 @@ const COL_TM = {
   GHI_CHU: 19,
   TIEN_MAT: 20,
   CHUYEN_KHOAN: 21,
-};
+});
 
-const COL_NK = {
+const COL_NK = createEnumProxy({
   MA_NK: 1,
   NGAY_NHAP: 2,
   NGUON_NHAP: 3,
@@ -128,9 +154,9 @@ const COL_NK = {
   NHA_CUNG_CAP: 9,
   GHI_CHU: 10,
   CHI_NHANH: 11,
-};
+});
 
-const COL_TG = {
+const COL_TG = createEnumProxy({
   MA_TG: 1,
   MA_DH: 2,
   MA_KH: 3,
@@ -150,9 +176,9 @@ const COL_TG = {
   CHI_NHANH: 17,
   TIEN_MAT: 18,
   CHUYEN_KHOAN: 19,
-};
+});
 
-const COL_LSTG = {
+const COL_LSTG = createEnumProxy({
   MA_LS: 1,
   MA_TG: 2,
   KY_SO: 3,
@@ -165,9 +191,9 @@ const COL_LSTG = {
   GHI_CHU: 10,
   TIEN_MAT: 11,
   CHUYEN_KHOAN: 12,
-};
+});
 
-const COL_DV = {
+const COL_DV = createEnumProxy({
   MA_DV: 1,
   NGAY_GD: 2,
   LOAI_DV: 3,
@@ -183,9 +209,9 @@ const COL_DV = {
   CHI_NHANH: 13,
   TIEN_MAT: 14,
   CHUYEN_KHOAN: 15,
-};
+});
 
-const COL_DT_TRA = {
+const COL_DT_TRA = createEnumProxy({
   MA_DT: 1,
   NGAY_DT: 2,
   MA_DH: 3,
@@ -207,18 +233,18 @@ const COL_DT_TRA = {
   GHI_CHU: 19,
   TIEN_MAT: 20,
   CHUYEN_KHOAN: 21,
-};
+});
 
-const COL_KH = {
+const COL_KH = createEnumProxy({
   MA_KH: 1,
   HO_TEN: 2,
   CCCD: 3,
   DIA_CHI: 4,
   NGAY_TAO: 5,
   GHI_CHU: 6,
-};
+});
 
-const COL_BH = {
+const COL_BH = createEnumProxy({
   MA_BH: 1,
   NGAY_NHAN: 2,
   MA_KH: 3,
@@ -235,9 +261,9 @@ const COL_BH = {
   CHI_NHANH: 14,
   TIEN_MAT: 15,
   CHUYEN_KHOAN: 16,
-};
+});
 
-const COL_NV = {
+const COL_NV = createEnumProxy({
   MA_NV: 1,
   HO_TEN: 2,
   SO_DIEN_THOAI: 3,
@@ -246,9 +272,7 @@ const COL_NV = {
   QUYEN_XUAT: 6,
   NGAY_VAO: 7,
   TRANG_THAI: 8,
-};
-
-let _columnEnumsInitialized = false;
+});
 
 /**
  * Xóa cache column enums của hệ thống

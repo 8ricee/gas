@@ -13,7 +13,6 @@
  */
 function taoBaoHanh(data) {
   return withDocumentLock(function () {
-    initializeColumnEnums();
     const maBH = generateId("BH", SHEET_NAMES.BAO_HANH);
     const chiNhanh = data.chiNhanh;
 
@@ -76,7 +75,6 @@ function capNhatTrangThaiBaoHanh(maBH, trangThaiMoi, ghiChuMoi) {
  * Lấy danh sách bảo hành theo tháng năm
  */
 function getBaoHanhTheoThang(thang, nam) {
-  initializeColumnEnums();
   const data = getAllData(SHEET_NAMES.BAO_HANH);
   const result = [];
 

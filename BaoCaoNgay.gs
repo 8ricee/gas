@@ -44,7 +44,6 @@ function updateDailyReportFromSheet() {
  * @param {Date} targetDate - Ngày cần báo cáo
  */
 function generateDailyReport(targetDate) {
-  initializeColumnEnums();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let reportSheet = ss.getSheetByName(SHEET_NAMES.BAO_CAO_NGAY);
   if (!reportSheet) {

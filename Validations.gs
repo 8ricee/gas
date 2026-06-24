@@ -9,7 +9,6 @@
  * Thiết lập Data Validation cho các sheet
  */
 function _setupDataValidations(ss) {
-  initializeColumnEnums();
 
   const branches = getBranchesList();
   const brands = getBrandsList();
@@ -39,15 +38,6 @@ function _setupDataValidations(ss) {
   _setupBaoHanhValidations(ss, chiNhanhRule);
 }
 
-function _clearSheetDataValidations(sheet) {
-  if (!sheet) return;
-  const maxRows = sheet.getMaxRows();
-  const maxCols = sheet.getMaxColumns();
-  if (maxRows > 1 && maxCols > 0) {
-    sheet.getRange(2, 1, maxRows - 1, maxCols).clearDataValidations();
-  }
-}
-
 /**
  * Áp dụng quy tắc dữ liệu danh sách cho một cột cụ thể của sheet (DRY Compliance)
  * 
@@ -67,7 +57,6 @@ function setColumnListValidation(sheet, colIndex, listValues) {
 function _setupNhanVienValidations(ss, chiNhanhRule) {
   const nvSheet = ss.getSheetByName(SHEET_NAMES.NHAN_VIEN);
   if (!nvSheet) return;
-  _clearSheetDataValidations(nvSheet);
 
   setColumnListValidation(nvSheet, COL_NV.VAI_TRO, ["Bán hàng", "Kế toán", "Kỹ thuật"]);
   setColumnListValidation(nvSheet, COL_NV.QUYEN_XUAT, ["✓", "✗"]);
@@ -77,7 +66,6 @@ function _setupNhanVienValidations(ss, chiNhanhRule) {
 function _setupDienThoaiValidations(ss, chiNhanhRule, thuongHieuRule) {
   const dtSheet = ss.getSheetByName(SHEET_NAMES.DIEN_THOAI);
   if (!dtSheet) return;
-  _clearSheetDataValidations(dtSheet);
 
   const colTinhTrangLetter = columnToLetter(COL_DT.TINH_TRANG);
   dtSheet.getRange(colTinhTrangLetter + "2:" + colTinhTrangLetter).clearDataValidations();
@@ -90,10 +78,9 @@ function _setupDienThoaiValidations(ss, chiNhanhRule, thuongHieuRule) {
 function _setupPhuKienValidations(ss, chiNhanhRule, thuongHieuRule) {
   const pkSheet = ss.getSheetByName(SHEET_NAMES.PHU_KIEN);
   if (!pkSheet) return;
-  _clearSheetDataValidations(pkSheet);
 
-  // Cột Loại PK (cột C - cột 3)
-  setColumnListValidation(pkSheet, 3, ["Sạc", "Ốp lưng", "Tai nghe", "Cường lực", "Cáp", "Khác"]);
+  // Cột Loại PK
+  setColumnListValidation(pkSheet, COL_PK.LOAI_PK, ["Sạc", "Ốp lưng", "Tai nghe", "Cường lực", "Cáp", "Khác"]);
   setColumnListValidation(pkSheet, COL_PK.TRANG_THAI, ["Đang bán", "Ngừng bán"]);
   pkSheet.getRange(columnToLetter(COL_PK.THUONG_HIEU) + "2:" + columnToLetter(COL_PK.THUONG_HIEU)).setDataValidation(thuongHieuRule);
   pkSheet.getRange(columnToLetter(COL_PK.CHI_NHANH) + "2:" + columnToLetter(COL_PK.CHI_NHANH)).setDataValidation(chiNhanhRule);
@@ -102,7 +89,6 @@ function _setupPhuKienValidations(ss, chiNhanhRule, thuongHieuRule) {
 function _setupDonHangValidations(ss, chiNhanhRule) {
   const dhSheet = ss.getSheetByName(SHEET_NAMES.DON_HANG);
   if (!dhSheet) return;
-  _clearSheetDataValidations(dhSheet);
 
   setColumnListValidation(dhSheet, COL_DH.HINH_THUC_BAN, ["Bán thẳng", "Trả góp"]);
   setColumnListValidation(dhSheet, COL_DH.HINH_THUC_TT, ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Hỗn hợp"]);
@@ -115,7 +101,6 @@ function _setupDonHangValidations(ss, chiNhanhRule) {
 function _setupDichVuValidations(ss, chiNhanhRule) {
   const dvSheet = ss.getSheetByName(SHEET_NAMES.DICH_VU);
   if (!dvSheet) return;
-  _clearSheetDataValidations(dvSheet);
 
   setColumnListValidation(dvSheet, COL_DV.LOAI_DV, ["Chuyển khoản hộ", "Rút tiền mặt", "Nạp thẻ điện thoại"]);
   setColumnListValidation(dvSheet, COL_DV.HINH_THUC_TT, ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Hỗn hợp"]);
@@ -126,7 +111,6 @@ function _setupDichVuValidations(ss, chiNhanhRule) {
 function _setupTraGopValidations(ss, chiNhanhRule) {
   const tgSheet = ss.getSheetByName(SHEET_NAMES.TRA_GOP);
   if (!tgSheet) return;
-  _clearSheetDataValidations(tgSheet);
 
   setColumnListValidation(tgSheet, COL_TG.LOAI_TRA_GOP, ["Cửa hàng", "Công ty tài chính"]);
   setColumnListValidation(tgSheet, COL_TG.TRANG_THAI, ["Đang trả", "Hoàn tất", "Quá hạn", "Đã huỷ"]);
@@ -136,7 +120,6 @@ function _setupTraGopValidations(ss, chiNhanhRule) {
 function _setupLichSuTraGopValidations(ss) {
   const lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
   if (!lstgSheet) return;
-  _clearSheetDataValidations(lstgSheet);
 
   setColumnListValidation(lstgSheet, COL_LSTG.HINH_THUC_TT, ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Hỗn hợp"]);
   setColumnListValidation(lstgSheet, COL_LSTG.TRANG_THAI, ["Đã trả", "Chưa trả", "Quá hạn", "Đã huỷ"]);
@@ -145,16 +128,15 @@ function _setupLichSuTraGopValidations(ss) {
 function _setupNhapKhoValidations(ss, chiNhanhRule) {
   const nkSheet = ss.getSheetByName(SHEET_NAMES.NHAP_KHO);
   if (!nkSheet) return;
-  _clearSheetDataValidations(nkSheet);
 
-  setColumnListValidation(nkSheet, 3, ["Điện thoại", "Phụ kiện"]); // Cột C là loại sản phẩm
-  nkSheet.getRange("K2:K").setDataValidation(chiNhanhRule);
+  setColumnListValidation(nkSheet, COL_NK.NGUON_NHAP, ["Điện thoại", "Phụ kiện"]); // Cột nguồn nhập là loại sản phẩm
+  const colBranchLetter = columnToLetter(COL_NK.CHI_NHANH);
+  nkSheet.getRange(colBranchLetter + "2:" + colBranchLetter).setDataValidation(chiNhanhRule);
 }
 
 function _setupDoiTraValidations(ss, chiNhanhRule) {
   const doiTraSheet = ss.getSheetByName(SHEET_NAMES.DOI_TRA);
   if (!doiTraSheet) return;
-  _clearSheetDataValidations(doiTraSheet);
 
   setColumnListValidation(doiTraSheet, COL_DT_TRA.LOAI_GD, ["Trả máy", "Đổi máy"]);
   setColumnListValidation(doiTraSheet, COL_DT_TRA.HINH_THUC_TT, ["Tiền mặt", "Chuyển khoản", "Hỗn hợp"]);
@@ -165,7 +147,6 @@ function _setupDoiTraValidations(ss, chiNhanhRule) {
 function _setupThuMuaValidations(ss, chiNhanhRule, thuongHieuRule) {
   const thuMuaSheet = ss.getSheetByName(SHEET_NAMES.THU_MUA);
   if (!thuMuaSheet) return;
-  _clearSheetDataValidations(thuMuaSheet);
 
   const colTMTinhTrang = columnToLetter(COL_TM.TINH_TRANG_THU);
   thuMuaSheet.getRange(colTMTinhTrang + "2:" + colTMTinhTrang).clearDataValidations();
@@ -183,7 +164,6 @@ function _setupBaoCaoDoanhSoValidations(ss) {
   const staffList = ["Tất cả"];
   const nvSheet = ss.getSheetByName(SHEET_NAMES.NHAN_VIEN);
   if (nvSheet) {
-    initializeColumnEnums();
     const lastRow = nvSheet.getLastRow();
     if (lastRow > 1) {
       const nvData = nvSheet.getRange(2, 1, lastRow - 1, 8).getValues();
@@ -225,16 +205,12 @@ function _setupBaoCaoDoanhSoValidations(ss) {
 }
 
 function _setupDoanhSoValidations(ss) {
-  const dsSheet = ss.getSheetByName(SHEET_NAMES.DOANH_SO);
-  if (dsSheet) {
-    _clearSheetDataValidations(dsSheet);
-  }
+  // Doanh số sheet does not require data validation setup
 }
 
 function _setupBaoHanhValidations(ss, chiNhanhRule) {
   const bhSheet = ss.getSheetByName(SHEET_NAMES.BAO_HANH);
   if (!bhSheet) return;
-  _clearSheetDataValidations(bhSheet);
 
   setColumnListValidation(bhSheet, COL_BH.LOAI_DICH_VU, ["Sửa chữa", "Bảo hành"]);
   setColumnListValidation(bhSheet, COL_BH.HINH_THUC_TT, ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Hỗn hợp"]);

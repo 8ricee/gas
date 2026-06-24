@@ -21,7 +21,6 @@
 function thucHienThuMua(data) {
   return withDocumentLock(function () {
     clearSheetCache();
-    initializeColumnEnums();
     const maTM = generateId("TM", SHEET_NAMES.THU_MUA);
     const chiNhanh = data.chiNhanh;
     const loaiGD = data.loaiGiaoDich;

@@ -10,7 +10,6 @@
  * @private
  */
 function _getPhuKienIndices() {
-  initializeColumnEnums();
   return {
     maPK: COL_PK.MA_PK - 1,
     tenSP: COL_PK.TEN_SP - 1,
@@ -116,7 +115,6 @@ function getPhuKienDropdown(chiNhanh) {
  * @return {string} Mã PK mới
  */
 function addPhuKien(data) {
-  initializeColumnEnums();
   const maPK = generateId("PK", SHEET_NAMES.PHU_KIEN);
 
   const rowData = [];
@@ -144,7 +142,6 @@ function addPhuKien(data) {
  * @return {boolean}
  */
 function updatePhuKien(maPK, data) {
-  initializeColumnEnums();
   const chiNhanh = data.chiNhanh;
   if (!chiNhanh) {
     showAlert("❌ Lỗi", "Cần cung cấp chi nhánh để cập nhật phụ kiện: " + maPK);
@@ -222,7 +219,6 @@ function clearPhuKienCompositeIndex() {
  * @return {number} Row index (1-indexed) hoặc -1
  */
 function findPhuKienRow(maPK, chiNhanh) {
-  initializeColumnEnums();
   if (!_phuKienCompositeIndex) {
     _phuKienCompositeIndex = {};
     const data = getAllData(SHEET_NAMES.PHU_KIEN);
@@ -262,7 +258,6 @@ function findPhuKienRow(maPK, chiNhanh) {
  */
 function updateTonKhoPhuKien(maPK, soLuong, type, chiNhanh) {
   return withDocumentLock(function () {
-    initializeColumnEnums();
     if (!chiNhanh) {
       throw new Error("Thiếu chi nhánh khi cập nhật tồn kho phụ kiện!");
     }
@@ -427,7 +422,6 @@ function getPhuKienUniqueList() {
  * @return {number} Số lượng tồn
  */
 function getPhuKienStockAtBranch(maPK, chiNhanh) {
-  initializeColumnEnums();
   if (!maPK || !chiNhanh) return 0;
   const row = findPhuKienRow(maPK, chiNhanh);
   if (row === -1) return 0;

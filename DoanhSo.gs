@@ -423,7 +423,6 @@ function updateSalesReportFromSheet() {
  * @param {string} gdFilterVal - Lọc loại giao dịch (VD: "Tất cả", "Đơn hàng (Bán máy)", v.v.)
  */
 function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
-  initializeColumnEnums();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(SHEET_NAMES.BAO_CAO_DOANH_SO);
   if (!sheet) {
@@ -1120,7 +1119,6 @@ function _tinhDoanhSoTuNgayDenNgay(startDate, endDate) {
  * @return {Object} Báo cáo doanh số
  */
 function getBaoCaoDoanhSoDong(params) {
-  initializeColumnEnums();
   const loaiTG = params.loaiThoiGian || "thang";
   const targetMaNV = params.maNV || "tat_ca";
   const result = {

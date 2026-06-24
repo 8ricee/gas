@@ -18,7 +18,6 @@
  */
 function thucHienDoiTra(data) {
   return withDocumentLock(function () {
-    initializeColumnEnums();
 
     // Backend validation for Hỗn hợp payments
     let expectedPaid = 0;

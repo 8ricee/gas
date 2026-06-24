@@ -11,7 +11,6 @@
  * @return {Object[]}
  */
 function getAllKhachHang() {
-  initializeColumnEnums();
   const data = getAllData(SHEET_NAMES.KHACH_HANG);
   const headers = SHEET_HEADERS[SHEET_NAMES.KHACH_HANG];
   const result = [];
@@ -33,7 +32,6 @@ function getAllKhachHang() {
  * @return {Object[]} [{value: 'KH001', text: 'KH001 - Nguyễn Văn A (0901234567)'}, ...]
  */
 function getKhachHangDropdown() {
-  initializeColumnEnums();
   const data = getAllData(SHEET_NAMES.KHACH_HANG);
   const result = [];
 
@@ -59,7 +57,6 @@ function getKhachHangDropdown() {
  * @return {string} Mã KH mới
  */
 function addKhachHang(data) {
-  initializeColumnEnums();
   const phone = String(data.soDienThoai || "").trim();
   const maKH = phone ? phone : generateId("KH", SHEET_NAMES.KHACH_HANG);
 
@@ -101,7 +98,6 @@ function addKhachHang(data) {
  * @return {boolean}
  */
 function updateKhachHang(maKH, data) {
-  initializeColumnEnums();
   const row = findRow(SHEET_NAMES.KHACH_HANG, COL_KH.MA_KH, maKH);
   if (row === -1) {
     showAlert("Lỗi", "Không tìm thấy khách hàng: " + maKH);
@@ -130,7 +126,6 @@ function updateKhachHang(maKH, data) {
  * @return {Object[]}
  */
 function searchKhachHang(keyword) {
-  initializeColumnEnums();
   const data = getAllData(SHEET_NAMES.KHACH_HANG);
   const headers = SHEET_HEADERS[SHEET_NAMES.KHACH_HANG];
   const result = [];
@@ -162,7 +157,6 @@ function searchKhachHang(keyword) {
  * @private
  */
 function _buildKhachHangDropdownCache() {
-  initializeColumnEnums();
   const data = getAllData(SHEET_NAMES.KHACH_HANG);
   const result = [];
 
@@ -225,7 +219,6 @@ function getKhachHangDropdownSearch(keyword) {
 function ensureKhachHangExists(maKH, hoTen, soDienThoai) {
   if (!maKH) return "";
   
-  initializeColumnEnums();
   
   // Kiểm tra xem mã khách hàng đã có trong DB chưa
   const existingRow = findRow(SHEET_NAMES.KHACH_HANG, COL_KH.MA_KH, maKH);
