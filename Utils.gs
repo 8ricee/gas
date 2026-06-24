@@ -1073,3 +1073,48 @@ function isSameMonthYear(date, month, year) {
     date.getFullYear() === year
   );
 }
+
+/**
+ * Lấy đối tượng enum chỉ số cột theo tên sheet
+ * @param {string} sheetName Tên sheet
+ * @return {Object} Đối tượng enum COL_* (1-indexed)
+ */
+function getColEnum(sheetName) {
+  switch (sheetName) {
+    case SHEET_NAMES.DIEN_THOAI: return COL_DT;
+    case SHEET_NAMES.PHU_KIEN: return COL_PK;
+    case SHEET_NAMES.DON_HANG: return COL_DH;
+    case SHEET_NAMES.THU_MUA: return COL_TM;
+    case SHEET_NAMES.NHAP_KHO: return COL_NK;
+    case SHEET_NAMES.TRA_GOP: return COL_TG;
+    case SHEET_NAMES.LICH_SU_TRA_GOP: return COL_LSTG;
+    case SHEET_NAMES.DICH_VU: return COL_DV;
+    case SHEET_NAMES.DOI_TRA: return COL_DT_TRA;
+    case SHEET_NAMES.KHACH_HANG: return COL_KH;
+    case SHEET_NAMES.BAO_HANH: return COL_BH;
+    case SHEET_NAMES.NHAN_VIEN: return COL_NV;
+    default: return null;
+  }
+}
+
+/**
+ * Ánh xạ dòng thô từ Google Sheets thành Object có key là CODE trong SCHEMA (uppercase snake_case)
+ * 
+ * @param {Array} row Dòng dữ liệu thô
+ * @param {string} sheetName Tên sheet
+ * @return {Object} Đối tượng ánh xạ { CODE: value }
+ */
+function mapRowToObject(row, sheetName) {
+  const colEnum = getColEnum(sheetName);
+  if (!colEnum || !row) return {};
+  const obj = {};
+  for (const code in colEnum) {
+    const colIdx = colEnum[code] - 1;
+    if (colIdx >= 0 && colIdx < row.length) {
+      obj[code] = row[colIdx];
+    } else {
+      obj[code] = undefined;
+    }
+  }
+  return obj;
+}

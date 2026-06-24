@@ -30,7 +30,7 @@ function taoHopDongTraGop(data) {
     ? Number(data.tienMoiKy) || 0
     : Math.ceil(conLai / soKy) + Math.round(conLai * (interestRate / 100));
 
-  const tenKH = lookupValue(SHEET_NAMES.KHACH_HANG, 1, data.maKH, 2) || "";
+  const tenKH = lookupValue(SHEET_NAMES.KHACH_HANG, COL_KH.MA_KH, data.maKH, COL_KH.HO_TEN) || "";
 
   const ngayBatDau = new Date();
   const ngayKetThuc = new Date();
@@ -156,13 +156,15 @@ function ghiNhanThanhToan(data) {
       return false;
     }
 
-    const allData = lstgSheet.getRange(2, 1, lastRow - 1, 10).getValues();
+    const lastCol = lstgSheet.getLastColumn();
+    const allData = lstgSheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
     let targetRow = -1;
 
     for (let i = 0; i < allData.length; i++) {
+      const obj = mapRowToObject(allData[i], SHEET_NAMES.LICH_SU_TRA_GOP);
       if (
-        String(allData[i][1]) === data.maTG &&
-        Number(allData[i][2]) === Number(data.kySo)
+        String(obj.MA_TG) === data.maTG &&
+        Number(obj.KY_SO) === Number(data.kySo)
       ) {
         targetRow = i + 2;
         break;
@@ -178,7 +180,6 @@ function ghiNhanThanhToan(data) {
     }
 
     // Cập nhật lịch sử hàng loạt trong 1 range
-    const lastCol = lstgSheet.getLastColumn();
     const range = lstgSheet.getRange(targetRow, 1, 1, lastCol);
     const rowValues = range.getValues()[0];
 
@@ -227,14 +228,16 @@ function _capNhatTongTraGop(maTG) {
     const lastRow = lstgSheet.getLastRow();
     if (lastRow <= 1) return;
 
-    const allData = lstgSheet.getRange(2, 1, lastRow - 1, 9).getValues();
+    const lastCol = lstgSheet.getLastColumn();
+    const allData = lstgSheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
     let daTraSoKy = 0;
     let daTraSoTien = 0;
 
     allData.forEach(function (row) {
-      if (String(row[1]) === maTG && String(row[8]) === "Đã trả") {
+      const obj = mapRowToObject(row, SHEET_NAMES.LICH_SU_TRA_GOP);
+      if (String(obj.MA_TG) === maTG && String(obj.TRANG_THAI) === "Đã trả") {
         daTraSoKy++;
-        daTraSoTien += parseAmountVal(row[4]);
+        daTraSoTien += parseAmountVal(obj.SO_TIEN_DA_TRA);
       }
     });
 
@@ -243,8 +246,8 @@ function _capNhatTongTraGop(maTG) {
     if (tgRow === -1) return;
 
     const tgSheet = ss.getSheetByName(SHEET_NAMES.TRA_GOP);
-    const lastCol = tgSheet.getLastColumn();
-    const range = tgSheet.getRange(tgRow, 1, 1, lastCol);
+    const tgLastCol = tgSheet.getLastColumn();
+    const range = tgSheet.getRange(tgRow, 1, 1, tgLastCol);
     const rowValues = range.getValues()[0];
 
     const traTruoc = parseAmountVal(rowValues[COL_TG.TRA_TRUOC - 1]);
@@ -332,42 +335,44 @@ function getTraGopQuaHan() {
   const lastRow = lstgSheet.getLastRow();
   if (lastRow <= 1) return [];
 
-  const allData = lstgSheet.getRange(2, 1, lastRow - 1, 10).getValues();
+  const lastCol = lstgSheet.getLastColumn();
+  const allData = lstgSheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const result = [];
 
   allData.forEach(function (row, index) {
-    const trangThai = String(row[8]);
-    const ngayCanTra = row[5];
+    const obj = mapRowToObject(row, SHEET_NAMES.LICH_SU_TRA_GOP);
+    const trangThai = String(obj.TRANG_THAI);
+    const ngayCanTra = obj.NGAY_CAN_TRA;
 
     if (trangThai === "Chưa trả" && ngayCanTra instanceof Date) {
       ngayCanTra.setHours(0, 0, 0, 0);
       if (ngayCanTra < today) {
         // Đánh dấu quá hạn
-        lstgSheet.getRange(index + 2, 9).setValue("Quá hạn");
+        lstgSheet.getRange(index + 2, COL_LSTG.TRANG_THAI).setValue("Quá hạn");
 
-        const obj = {
-          MaLS: String(row[0]),
-          MaTG: String(row[1]),
-          KySo: Number(row[2]),
-          SoTienCanTra: Number(row[3]),
-          SoTienDaTra: Number(row[4]),
-          NgayCanTra: row[5],
-          NgayThucTra: row[6],
-          HinhThucThanhToan: String(row[7]),
+        const overdueObj = {
+          MaLS: String(obj.MA_LS),
+          MaTG: String(obj.MA_TG),
+          KySo: Number(obj.KY_SO),
+          SoTienCanTra: Number(obj.SO_TIEN_CAN_TRA),
+          SoTienDaTra: Number(obj.SO_TIEN_DA_TRA),
+          NgayCanTra: obj.NGAY_CAN_TRA,
+          NgayThucTra: obj.NGAY_THUC_TRA,
+          HinhThucThanhToan: String(obj.HINH_THUC_TT),
           TrangThai: "Quá hạn",
-          GhiChu: String(row[9]),
+          GhiChu: String(obj.GHI_CHU),
         };
 
         // Thêm thông tin KH
-        const maTG = String(row[1]);
-        obj.TenKH = lookupValue(SHEET_NAMES.TRA_GOP, 1, maTG, 4) || "";
-        obj.SoNgayQuaHan = Math.floor(
+        const maTG = String(obj.MA_TG);
+        overdueObj.TenKH = lookupValue(SHEET_NAMES.TRA_GOP, COL_TG.MA_TG, maTG, COL_TG.TEN_KH) || "";
+        overdueObj.SoNgayQuaHan = Math.floor(
           (today - ngayCanTra) / (1000 * 60 * 60 * 24),
         );
 
-        result.push(obj);
+        result.push(overdueObj);
       }
     }
   });
@@ -382,31 +387,32 @@ function getTraGopQuaHan() {
  * @return {Object|null}
  */
 function getTrangThaiTraGop(maTG) {
-  const row = findRow(SHEET_NAMES.TRA_GOP, 1, maTG);
+  const row = findRow(SHEET_NAMES.TRA_GOP, COL_TG.MA_TG, maTG);
   if (row === -1) return null;
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEET_NAMES.TRA_GOP);
-  const r = sheet.getRange(row, 1, 1, 17).getValues()[0];
+  const r = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const obj = mapRowToObject(r, SHEET_NAMES.TRA_GOP);
 
   const result = {
-    MaTG: String(r[0]),
-    MaDH: String(r[1]),
-    MaKH: String(r[2]),
-    TenKH: String(r[3]),
-    TongTien: Number(r[4]) || 0,
-    TraTruoc: Number(r[5]) || 0,
-    ConLai: Number(r[6]) || 0,
-    SoKy: Number(r[7]) || 0,
-    TienMoiKy: Number(r[8]) || 0,
-    NgayBatDau: r[9],
-    NgayKetThuc: r[10],
-    DaTraSoKy: Number(r[11]) || 0,
-    DaTraSoTien: Number(r[12]) || 0,
-    LoaiTraGop: String(r[13]),
-    CongTyTC: String(r[14]),
-    TrangThai: String(r[15]),
-    ChiNhanh: String(r[16] || ""),
+    MaTG: String(obj.MA_TG),
+    MaDH: String(obj.MA_DH),
+    MaKH: String(obj.MA_KH),
+    TenKH: String(obj.TEN_KH),
+    TongTien: Number(obj.TONG_TIEN) || 0,
+    TraTruoc: Number(obj.TRA_TRUOC) || 0,
+    ConLai: Number(obj.CON_LAI) || 0,
+    SoKy: Number(obj.SO_KY) || 0,
+    TienMoiKy: Number(obj.TIEN_MOI_KY) || 0,
+    NgayBatDau: obj.NGAY_BAT_DAU,
+    NgayKetThuc: obj.NGAY_KET_THUC,
+    DaTraSoKy: Number(obj.DA_TRA_SO_KY) || 0,
+    DaTraSoTien: Number(obj.DA_TRA_SO_TIEN) || 0,
+    LoaiTraGop: String(obj.LOAI_TRA_GOP),
+    CongTyTC: String(obj.CONG_TY_TC),
+    TrangThai: String(obj.TRANG_THAI),
+    ChiNhanh: String(obj.CHI_NHANH || ""),
   };
 
   // Lấy lịch sử thanh toán
@@ -414,18 +420,19 @@ function getTrangThaiTraGop(maTG) {
   result.lichSu = [];
 
   allLSTG.forEach(function (rowVals) {
-    if (String(rowVals[1]) === maTG) {
+    const lsObj = mapRowToObject(rowVals, SHEET_NAMES.LICH_SU_TRA_GOP);
+    if (String(lsObj.MA_TG) === maTG) {
       result.lichSu.push({
-        MaLS: String(rowVals[0]),
-        MaTG: String(rowVals[1]),
-        KySo: Number(rowVals[2]),
-        SoTienCanTra: Number(rowVals[3]),
-        SoTienDaTra: Number(rowVals[4]),
-        NgayCanTra: rowVals[5],
-        NgayThucTra: rowVals[6],
-        HinhThucThanhToan: String(rowVals[7]),
-        TrangThai: String(rowVals[8]),
-        GhiChu: String(rowVals[9]),
+        MaLS: String(lsObj.MA_LS),
+        MaTG: String(lsObj.MA_TG),
+        KySo: Number(lsObj.KY_SO),
+        SoTienCanTra: Number(lsObj.SO_TIEN_CAN_TRA),
+        SoTienDaTra: Number(lsObj.SO_TIEN_DA_TRA),
+        NgayCanTra: lsObj.NGAY_CAN_TRA,
+        NgayThucTra: lsObj.NGAY_THUC_TRA,
+        HinhThucThanhToan: String(lsObj.HINH_THUC_TT),
+        TrangThai: String(lsObj.TRANG_THAI),
+        GhiChu: String(lsObj.GHI_CHU),
       });
     }
   });
@@ -443,26 +450,27 @@ function getTraGopDropdown() {
   const result = [];
 
   data.forEach(function (row) {
+    const obj = mapRowToObject(row, SHEET_NAMES.TRA_GOP);
     if (
-      row[0] &&
-      String(row[0]).trim() !== "" &&
-      String(row[15]) === "Đang trả" &&
-      String(row[13]) === "Cửa hàng"
+      obj.MA_TG &&
+      String(obj.MA_TG).trim() !== "" &&
+      String(obj.TRANG_THAI) === "Đang trả" &&
+      String(obj.LOAI_TRA_GOP) === "Cửa hàng"
     ) {
       result.push({
-        value: String(row[0]),
+        value: String(obj.MA_TG),
         text:
-          row[0] +
+          obj.MA_TG +
           " - " +
-          row[3] +
+          obj.TEN_KH +
           " - Đang trả (" +
-          row[11] +
+          obj.DA_TRA_SO_KY +
           "/" +
-          row[7] +
+          obj.SO_KY +
           " kỳ)",
-        soKy: Number(row[7]),
-        daTraSoKy: Number(row[11]),
-        tienMoiKy: Number(row[8]),
+        soKy: Number(obj.SO_KY),
+        daTraSoKy: Number(obj.DA_TRA_SO_KY),
+        tienMoiKy: Number(obj.TIEN_MOI_KY),
       });
     }
   });
@@ -481,18 +489,19 @@ function getKyChuaTra(maTG) {
   const result = [];
 
   allLSTG.forEach(function (row) {
-    if (String(row[1]) === maTG && String(row[8]) !== "Đã trả") {
+    const obj = mapRowToObject(row, SHEET_NAMES.LICH_SU_TRA_GOP);
+    if (String(obj.MA_TG) === maTG && String(obj.TRANG_THAI) !== "Đã trả") {
       result.push({
-        value: Number(row[2]),
+        value: Number(obj.KY_SO),
         text:
           "Kỳ " +
-          row[2] +
+          obj.KY_SO +
           " - " +
-          formatCurrency(row[3]) +
+          formatCurrency(obj.SO_TIEN_CAN_TRA) +
           "đ - Hạn: " +
-          formatDate(row[5]),
-        soTienCanTra: Number(row[3]),
-        trangThai: String(row[8]),
+          formatDate(obj.NGAY_CAN_TRA),
+        soTienCanTra: Number(obj.SO_TIEN_CAN_TRA),
+        trangThai: String(obj.TRANG_THAI),
       });
     }
   });
@@ -509,27 +518,28 @@ function _buildTraGopDropdownCache() {
   const result = [];
 
   data.forEach(function (row) {
+    const obj = mapRowToObject(row, SHEET_NAMES.TRA_GOP);
     if (
-      row[0] &&
-      String(row[0]).trim() !== "" &&
-      String(row[15]) === "Đang trả" &&
-      String(row[13]) === "Cửa hàng"
+      obj.MA_TG &&
+      String(obj.MA_TG).trim() !== "" &&
+      String(obj.TRANG_THAI) === "Đang trả" &&
+      String(obj.LOAI_TRA_GOP) === "Cửa hàng"
     ) {
       result.push({
-        v: String(row[0]),
+        v: String(obj.MA_TG),
         t:
-          row[0] +
+          obj.MA_TG +
           " - " +
-          row[3] +
+          obj.TEN_KH +
           " - Đang trả (" +
-          row[11] +
+          obj.DA_TRA_SO_KY +
           "/" +
-          row[7] +
+          obj.SO_KY +
           " kỳ)",
-        sk: Number(row[7]),
-        dtsk: Number(row[11]),
-        tmk: Number(row[8]),
-        _s: (String(row[0]) + " " + String(row[3])).toLowerCase(),
+        sk: Number(obj.SO_KY),
+        dtsk: Number(obj.DA_TRA_SO_KY),
+        tmk: Number(obj.TIEN_MOI_KY),
+        _s: (String(obj.MA_TG) + " " + String(obj.TEN_KH)).toLowerCase(),
       });
     }
   });

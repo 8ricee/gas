@@ -433,39 +433,39 @@ function _taoDonHangSingle(data, rollbackActions, ss) {
  * @return {Object[]}
  */
 function getDonHangTheoThang(thang, nam) {
-  const c = _getDonHangIndices();
   const data = getAllData(SHEET_NAMES.DON_HANG);
   const result = [];
 
   data.forEach(function (row) {
-    const ngayBan = row[c.ngayBan];
+    const obj = mapRowToObject(row, SHEET_NAMES.DON_HANG);
+    const ngayBan = obj.NGAY_BAN;
     if (isSameMonthYear(ngayBan, thang, nam)) {
       result.push({
-        MaDH: String(row[c.maDH]),
-        NgayBan: row[c.ngayBan],
-        MaKH: String(row[c.maKH]),
-        TenKH: String(row[c.tenKH]),
-        MaSP: String(row[c.maSP]),
-        TenSP: String(row[c.tenSP]),
-        NguonSP: String(row[c.nguonSP]),
-        ThuongHieu: String(row[c.thuongHieu]),
-        SoLuong: Number(row[c.soLuong]) || 0,
-        DonGia: Number(row[c.donGia]) || 0,
-        ThanhTien: Number(row[c.thanhTien]) || 0,
-        HinhThucBan: String(row[c.hinhThucBan]),
-        HinhThucThanhToan: String(row[c.hinhThucTT]),
-        NguoiBan: String(row[c.nguoiBan]),
-        TenNguoiBan: String(row[c.tenNguoiBan]),
-        CoQuyenXuatMay: String(row[c.coQuyenXuatMay]),
-        NguoiHoTro: String(row[c.nguoiHoTro]),
-        TenNguoiHoTro: String(row[c.tenNguoiHoTro]),
-        TrangThai: String(row[c.trangThai]),
-        GhiChu: String(row[c.ghiChu]),
-        ChiNhanh: String(row[c.chiNhanh] || ""),
-        MaQuaTang: String(row[c.maQuaTang] || ""),
-        TenQuaTang: String(row[c.tenQuaTang] || ""),
-        CoNhanQua: String(row[c.coNhanQua] || "✗"),
-        TienGiamGia: Number(row[c.tienGiamGia] || 0),
+        MaDH: String(obj.MA_DH),
+        NgayBan: obj.NGAY_BAN,
+        MaKH: String(obj.MA_KH),
+        TenKH: String(obj.TEN_KH),
+        MaSP: String(obj.MA_SP),
+        TenSP: String(obj.TEN_SP),
+        NguonSP: String(obj.NGUON_SP),
+        ThuongHieu: String(obj.THUONG_HIEU),
+        SoLuong: Number(obj.SO_LUONG) || 0,
+        DonGia: Number(obj.DON_GIA) || 0,
+        ThanhTien: Number(obj.THANH_TIEN) || 0,
+        HinhThucBan: String(obj.HINH_THUC_BAN),
+        HinhThucThanhToan: String(obj.HINH_THUC_TT),
+        NguoiBan: String(obj.NGUOI_BAN),
+        TenNguoiBan: String(obj.TEN_NGUOI_BAN),
+        CoQuyenXuatMay: String(obj.QUYEN_XUAT),
+        NguoiHoTro: String(obj.NGUOI_HO_TRO),
+        TenNguoiHoTro: String(obj.TEN_NGUOI_HO_TRO),
+        TrangThai: String(obj.TRANG_THAI),
+        GhiChu: String(obj.GHI_CHU),
+        ChiNhanh: String(obj.CHI_NHANH || ""),
+        MaQuaTang: String(obj.MA_QUA_TANG || ""),
+        TenQuaTang: String(obj.TEN_QUA_TANG || ""),
+        CoNhanQua: String(obj.CO_NHAN_QUA || "✗"),
+        TienGiamGia: Number(obj.TIEN_GIAM_GIA || 0),
       });
     }
   });
@@ -694,41 +694,41 @@ function getTongKetDonHang(thang, nam) {
  */
 function getDonHangDetails(maDH) {
   if (!maDH) return null;
-  const c = _getDonHangIndices();
   const row = findRow(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH);
   if (row === -1) return null;
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEET_NAMES.DON_HANG);
-  const values = sheet.getRange(row, 1, 1, COL_DH.CHUYEN_KHOAN).getValues()[0];
+  const values = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const obj = mapRowToObject(values, SHEET_NAMES.DON_HANG);
 
   return {
-    maDH: String(values[c.maDH]),
+    maDH: String(obj.MA_DH),
     ngayBan: formatDate(
-      values[c.ngayBan] instanceof Date ? values[c.ngayBan] : new Date(values[c.ngayBan]),
+      obj.NGAY_BAN instanceof Date ? obj.NGAY_BAN : new Date(obj.NGAY_BAN),
     ),
-    maKH: String(values[c.maKH]),
-    tenKH: String(values[c.tenKH]),
-    maSP: String(values[c.maSP]),
-    tenSP: String(values[c.tenSP]),
-    nguonSP: String(values[c.nguonSP]),
-    thuongHieu: String(values[c.thuongHieu]),
-    soLuong: Number(values[c.soLuong]) || 0,
-    donGia: Number(values[c.donGia]) || 0,
-    thanhTien: Number(values[c.thanhTien]) || 0,
-    hinhThucBan: String(values[c.hinhThucBan]),
-    hinhThucThanhToan: String(values[c.hinhThucTT]),
-    nguoiBan: String(values[c.nguoiBan]),
-    tenNguoiBan: String(values[c.tenNguoiBan]),
-    coQuyenXuatMay: String(values[c.coQuyenXuatMay]),
-    nguoiHoTro: String(values[c.nguoiHoTro]),
-    tenNguoiHoTro: String(values[c.tenNguoiHoTro]),
-    trangThai: String(values[c.trangThai]),
-    ghiChu: String(values[c.ghiChu]),
-    chiNhanh: String(values[c.chiNhanh] || ""),
-    maQuaTang: String(values[c.maQuaTang] || ""),
-    tenQuaTang: String(values[c.tenQuaTang] || ""),
-    coNhanQua: String(values[c.coNhanQua] || "✗"),
-    tienGiamGia: Number(values[c.tienGiamGia] || 0),
+    maKH: String(obj.MA_KH),
+    tenKH: String(obj.TEN_KH),
+    maSP: String(obj.MA_SP),
+    tenSP: String(obj.TEN_SP),
+    nguonSP: String(obj.NGUON_SP),
+    thuongHieu: String(obj.THUONG_HIEU),
+    soLuong: Number(obj.SO_LUONG) || 0,
+    donGia: Number(obj.DON_GIA) || 0,
+    thanhTien: Number(obj.THANH_TIEN) || 0,
+    hinhThucBan: String(obj.HINH_THUC_BAN),
+    hinhThucThanhToan: String(obj.HINH_THUC_TT),
+    nguoiBan: String(obj.NGUOI_BAN),
+    tenNguoiBan: String(obj.TEN_NGUOI_BAN),
+    coQuyenXuatMay: String(obj.QUYEN_XUAT),
+    nguoiHoTro: String(obj.NGUOI_HO_TRO),
+    tenNguoiHoTro: String(obj.TEN_NGUOI_HO_TRO),
+    trangThai: String(obj.TRANG_THAI),
+    ghiChu: String(obj.GHI_CHU),
+    chiNhanh: String(obj.CHI_NHANH || ""),
+    maQuaTang: String(obj.MA_QUA_TANG || ""),
+    tenQuaTang: String(obj.TEN_QUA_TANG || ""),
+    coNhanQua: String(obj.CO_NHAN_QUA || "✗"),
+    tienGiamGia: Number(obj.TIEN_GIAM_GIA || 0),
   };
 }
