@@ -630,7 +630,8 @@ function getDonHangTheoThang(thang, nam) {
  */
 function huyDonHang(maDH) {
   return withDocumentLock(function () {
-    var row = findRow(SHEET_NAMES.DON_HANG, 1, maDH);
+    initializeColumnEnums();
+    var row = findRow(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH);
     if (row === -1) {
       showAlert("❌ Lỗi", "Không tìm thấy đơn hàng: " + maDH);
       return false;
@@ -638,7 +639,7 @@ function huyDonHang(maDH) {
 
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName(SHEET_NAMES.DON_HANG);
-    var currentTT = sheet.getRange(row, 19).getValue();
+    var currentTT = sheet.getRange(row, COL_DH.TRANG_THAI).getValue();
 
     if (currentTT === "Huỷ") {
       showAlert("⚠️ Cảnh báo", "Đơn hàng " + maDH + " đã bị huỷ trước đó.");
@@ -646,13 +647,13 @@ function huyDonHang(maDH) {
     }
 
     // Hoàn kho sản phẩm chính
-    var nguonSP = sheet.getRange(row, 7).getValue();
-    var maSP = sheet.getRange(row, 5).getValue();
-    var soLuong = Number(sheet.getRange(row, 9).getValue());
-    var chiNhanh = sheet.getRange(row, 21).getValue();
+    var nguonSP = sheet.getRange(row, COL_DH.NGUON_SP).getValue();
+    var maSP = sheet.getRange(row, COL_DH.MA_SP).getValue();
+    var soLuong = Number(sheet.getRange(row, COL_DH.SO_LUONG).getValue());
+    var chiNhanh = sheet.getRange(row, COL_DH.CHI_NHANH).getValue();
 
     if (nguonSP === "Điện thoại") {
-      var ghiChu = sheet.getRange(row, 20).getValue() || "";
+      var ghiChu = sheet.getRange(row, COL_DH.GHI_CHU).getValue() || "";
       var imeiMatch = ghiChu.match(/\[IMEI:\s*([^\s\]]+)\]/);
       var imei = imeiMatch ? imeiMatch[1] : "";
       updateTrangThaiKhoDT(imei || maSP, "Còn hàng");
@@ -661,8 +662,8 @@ function huyDonHang(maDH) {
     }
 
     // Hoàn kho quà tặng nếu có nhận quà
-    var maQuaTang = sheet.getRange(row, 22).getValue();
-    var coNhanQua = sheet.getRange(row, 24).getValue();
+    var maQuaTang = sheet.getRange(row, COL_DH.MA_QUA_TANG).getValue();
+    var coNhanQua = sheet.getRange(row, COL_DH.CO_NHAN_QUA).getValue();
     if (coNhanQua === "✓" && maQuaTang) {
       var maQuaList = String(maQuaTang).split(",");
       for (var i = 0; i < maQuaList.length; i++) {
@@ -674,10 +675,10 @@ function huyDonHang(maDH) {
     }
 
     // Đánh dấu huỷ
-    sheet.getRange(row, 19).setValue("Huỷ");
+    sheet.getRange(row, COL_DH.TRANG_THAI).setValue("Huỷ");
 
     // Kiểm tra nếu có trả góp → cập nhật trạng thái hợp đồng và các kỳ liên quan
-    var hinhThuc = sheet.getRange(row, 12).getValue();
+    var hinhThuc = sheet.getRange(row, COL_DH.HINH_THUC_BAN).getValue();
     if (hinhThuc === "Trả góp") {
       huyHopDongTraGop(maDH);
     }
