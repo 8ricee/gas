@@ -128,7 +128,7 @@ function chotDoanhSoThang(thang, nam) {
     // Doanh thu dịch vụ
     var doanhThuDV = getTongPhiDichVu(maNV, thang, nam);
     baoHanhs.forEach(function(bh) {
-      if (String(bh.NguoiTiepNhan) === maNV && bh.TrangThai !== "Huỷ") {
+      if (String(bh.NguoiSua) === maNV && bh.TrangThai !== "Huỷ") {
         doanhThuDV += Number(bh.PhiSuaChua) || 0;
       }
     });
@@ -845,25 +845,25 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
       var tenSP = String(row[COL_BH.TEN_SP - 1]);
       var loaiDV = String(row[COL_BH.LOAI_DICH_VU - 1]);
       var phiSuaChua = Number(row[COL_BH.PHI_SUA_CHUA - 1]) || 0;
-      var nguoiTiepNhan = String(row[COL_BH.NGUOI_TIEP_NHAN - 1]);
+      var nguoiSua = String(row[COL_BH.NGUOI_SUA - 1] || "").trim();
       var branch = String(row[COL_BH.CHI_NHANH - 1] || "");
       var ghiChu = String(row[COL_BH.GHI_CHU - 1] || "");
 
       if (
-        nguoiTiepNhan &&
-        (targetMaNV === "tat_ca" || nguoiTiepNhan === targetMaNV)
+        nguoiSua &&
+        (targetMaNV === "tat_ca" || nguoiSua === targetMaNV)
       ) {
-        var nvInfo = nvMap[nguoiTiepNhan] || {
-          tenNV: nguoiTiepNhan,
+        var nvInfo = nvMap[nguoiSua] || {
+          tenNV: nguoiSua,
           vaiTro: "Kỹ thuật",
           coQuyenXuatMay: false,
         };
         txList.push({
           time: ngayNhan,
           maGD: maBH,
-          maNV: nguoiTiepNhan,
+          maNV: nguoiSua,
           tenNV: nvInfo.tenNV,
-          vaiTro: "Tiếp nhận",
+          vaiTro: "Kỹ thuật",
           loaiGD: "Dịch vụ: " + (loaiDV || "Sửa chữa"),
           detail: (loaiDV || "Sửa chữa") + " máy " + tenSP + " (Phí: " + formatCurrency(phiSuaChua) + "đ)",
           revenue: phiSuaChua,
@@ -1081,7 +1081,7 @@ function _tinhDoanhSoTuNgayDenNgay(startDate, endDate) {
     if (!(ngayNhan instanceof Date)) return;
     var status = String(row[COL_BH.TRANG_THAI - 1]);
     if (ngayNhan >= startDate && ngayNhan <= endDate && status !== "Huỷ") {
-      var maNV = String(row[COL_BH.NGUOI_TIEP_NHAN - 1]);
+      var maNV = String(row[COL_BH.NGUOI_SUA - 1] || "").trim();
       var phiSuaChua = Number(row[COL_BH.PHI_SUA_CHUA - 1]) || 0;
       if (maNV && nvDoanhSo[maNV]) {
         nvDoanhSo[maNV].doanhThuDV += phiSuaChua;

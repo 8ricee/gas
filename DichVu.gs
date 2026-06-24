@@ -34,7 +34,7 @@ function taoDichVu(data) {
     }
 
     // Auto lookup tên KH nếu có mã KH
-    var tenKH = ensureKhachHangExists(data.maKH, data.tenKH, data.soDienThoaiKH);
+    var tenKH = ensureKhachHangExists(data.maKH, data.tenKH);
     if (!tenKH && data.maKH) {
       tenKH = lookupValue(SHEET_NAMES.KHACH_HANG, 1, data.maKH, 2) || "";
     }
@@ -90,7 +90,6 @@ function taoDichVu(data) {
     rowData[COL_DV.LOAI_DV - 1] = data.loaiDichVu || "";
     rowData[COL_DV.MA_KH - 1] = data.maKH || "";
     rowData[COL_DV.TEN_KH - 1] = tenKH;
-    rowData[COL_DV.SDT_KH - 1] = data.soDienThoaiKH || "";
     rowData[COL_DV.SO_TIEN_GD - 1] = soTienGiaoDich;
     rowData[COL_DV.PHI_DV - 1] = phiDichVu;
     rowData[COL_DV.HINH_THUC_TT - 1] = hinhThucTTDisplay;
@@ -125,28 +124,29 @@ function taoDichVu(data) {
  * @return {Object[]}
  */
 function getDichVuTheoThang(thang, nam) {
+  initializeColumnEnums();
   var data = getAllData(SHEET_NAMES.DICH_VU);
   var result = [];
 
   data.forEach(function (row) {
-    var ngay = row[1];
+    var ngay = row[COL_DV.NGAY_GD - 1];
     if (ngay instanceof Date) {
       if (ngay.getMonth() + 1 === thang && ngay.getFullYear() === nam) {
         result.push({
-          MaDV: String(row[0]),
-          NgayGiaoDich: row[1],
-          LoaiDichVu: String(row[2]),
-          MaKH: String(row[3]),
-          TenKH: String(row[4]),
-          SoDienThoaiKH: String(row[5]),
-          SoTienGiaoDich: Number(row[6]) || 0,
-          PhiDichVu: Number(row[7]) || 0,
-          HinhThucThanhToan: String(row[8]),
-          NguoiThucHien: String(row[9]),
-          TenNguoiThucHien: String(row[10]),
-          TrangThai: String(row[11]),
-          GhiChu: String(row[12]),
-          ChiNhanh: String(row[13] || ""),
+          MaDV: String(row[COL_DV.MA_DV - 1] || ""),
+          NgayGiaoDich: row[COL_DV.NGAY_GD - 1],
+          LoaiDichVu: String(row[COL_DV.LOAI_DV - 1] || ""),
+          MaKH: String(row[COL_DV.MA_KH - 1] || ""),
+          TenKH: String(row[COL_DV.TEN_KH - 1] || ""),
+          SoDienThoaiKH: String(row[COL_DV.MA_KH - 1] || ""), // Mã KH là SĐT
+          SoTienGiaoDich: Number(row[COL_DV.SO_TIEN_GD - 1]) || 0,
+          PhiDichVu: Number(row[COL_DV.PHI_DV - 1]) || 0,
+          HinhThucThanhToan: String(row[COL_DV.HINH_THUC_TT - 1] || ""),
+          NguoiThucHien: String(row[COL_DV.NGUOI_THUC_HIEN - 1] || ""),
+          TenNguoiThucHien: String(row[COL_DV.TEN_NGUOI_THUC_HIEN - 1] || ""),
+          TrangThai: String(row[COL_DV.TRANG_THAI - 1] || ""),
+          GhiChu: String(row[COL_DV.GHI_CHU - 1] || ""),
+          ChiNhanh: String(row[COL_DV.CHI_NHANH - 1] || ""),
         });
       }
     }

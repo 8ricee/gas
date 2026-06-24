@@ -118,9 +118,35 @@
         localCache.dienThoai = data.dienThoai || [];
         localCache.phuKien = data.phuKien || [];
         localCache.phuKienUnique = data.phuKienUnique || [];
+        window.storeInterestRate = data.storeInterestRate || 0;
       }
       if (callback) callback();
     }).getPreloadData();
+  }
+
+  function refreshSystemData(e) {
+    if (e) e.stopPropagation();
+    var btn = e ? e.target : null;
+    var originalHTML = btn ? btn.innerHTML : "Làm mới";
+    if (btn) {
+      btn.innerHTML = 'Đang nạp';
+      btn.style.pointerEvents = 'none';
+      btn.style.opacity = '0.6';
+    }
+    showAlertMsg('info', 'Đang làm mới bộ nhớ đệm hệ thống...');
+    google.script.run.withSuccessHandler(function() {
+      preloadInventoryData(function() {
+        if (btn) {
+          btn.innerHTML = originalHTML;
+          btn.style.pointerEvents = 'auto';
+          btn.style.opacity = '1';
+        }
+        showAlertMsg('success', 'Đã làm mới bộ nhớ đệm thành công!');
+        if (typeof onDonHangBranchOrNguonChange === 'function') {
+          onDonHangBranchOrNguonChange();
+        }
+      });
+    }).clearAllCaches();
   }
 
   var originalOrderPrice = 0;
@@ -128,13 +154,6 @@
 
   // ==================== INIT — LOAD DATA ====================
   function init() {
-    preloadInventoryData();
-    // Preload khách hàng trong background sau 1.5 giây để tìm kiếm nhanh
-    setTimeout(function() {
-      google.script.run.withSuccessHandler(function(items) {
-        localCache.khachHang = items || [];
-      }).getKhachHangDropdown();
-    }, 1500);
     // Set default month/year for Doanh số
     var now = new Date();
     var curMonth = now.getMonth() + 1;
@@ -144,53 +163,72 @@
     var dsNam = document.getElementById('ds-nam');
     if (dsNam) dsNam.value = curYear;
 
-    // Load branches
-    google.script.run.withSuccessHandler(function(items) {
-      branchesCached = items;
-      populateSelect('dh-chiNhanh', items);
-      populateSelect('nk-chiNhanh', items);
-      populateSelect('dv-chiNhanh', items);
-      populateSelect('ck-cnNguon', items);
-      populateSelect('ck-cnDich', items);
-      populateSelect('dt-chiNhanh', items);
-      populateSelect('tm-chiNhanh', items);
-      populateSelect('bh-chiNhanh', items);
-    }).getBranchesDropdown();
+    // Load all initial metadata and inventory preloads in a single combined request
+    google.script.run.withSuccessHandler(function(data) {
+      if (!data) return;
 
-    // Load branches
-
-    // Load staff
-    google.script.run.withSuccessHandler(function(items) {
-      populateDatalist('dh-nguoiBan', 'dh-nguoiBan-list', items);
-      populateDatalist('dh-nguoiHoTro', 'dh-nguoiHoTro-list', items, true);
-      populateDatalist('dv-nguoiThucHien', 'dv-nguoiThucHien-list', items);
-      populateDatalist('dt-nguoiThucHien', 'dt-nguoiThucHien-list', items);
-      populateDatalist('tm-nguoiThucHien', 'tm-nguoiThucHien-list', items);
-      populateDatalist('bh-nguoiTiepNhan', 'bh-nguoiTiepNhan-list', items);
-      populateDatalist('bh-nguoiSua', 'bh-nguoiSua-list', items);
-    }).getNhanVienDropdown();
-
-    // Load finance companies
-    google.script.run.withSuccessHandler(function(items) {
-      populateSelect('tg-congTyTC', items);
-      populateSelect('tm-tg-congTyTC', items);
-    }).getFinanceCompaniesDropdown();
-
-    // Load phone brands
-    google.script.run.withSuccessHandler(function(items) {
-      populateSelect('nk-thuongHieu', items);
-      populateSelect('tm-thuongHieu-Thu', items);
-    }).getBrandsDropdown();
-
-    // Removed preloads for dynamic search (Khach hang, Phu kien cu, Tra gop)
-
-    // Load initial mode tab
-    if (typeof initialMode !== 'undefined' && initialMode) {
-      var activeTab = document.querySelector('.nav-tab[data-section="' + initialMode + '"]');
-      if (activeTab) {
-        activeTab.click();
+      // 1. Inventory preload data
+      if (data.preloadData) {
+        localCache.dienThoai = data.preloadData.dienThoai || [];
+        localCache.phuKien = data.preloadData.phuKien || [];
+        localCache.phuKienUnique = data.preloadData.phuKienUnique || [];
       }
-    }
+
+      // Lưu trữ lãi suất trả góp cửa hàng
+      window.storeInterestRate = data.storeInterestRate || 0;
+
+      // 2. Branches
+      if (data.branches) {
+        branchesCached = data.branches;
+        populateSelect('dh-chiNhanh', data.branches);
+        populateSelect('nk-chiNhanh', data.branches);
+        populateSelect('dv-chiNhanh', data.branches);
+        populateSelect('ck-cnNguon', data.branches);
+        populateSelect('ck-cnDich', data.branches);
+        populateSelect('dt-chiNhanh', data.branches);
+        populateSelect('tm-chiNhanh', data.branches);
+        populateSelect('bh-chiNhanh', data.branches);
+      }
+
+      // 3. Staff (Employees)
+      if (data.staff) {
+        populateDatalist('dh-nguoiBan', 'dh-nguoiBan-list', data.staff);
+        populateDatalist('dh-nguoiHoTro', 'dh-nguoiHoTro-list', data.staff, true);
+        populateDatalist('dv-nguoiThucHien', 'dv-nguoiThucHien-list', data.staff);
+        populateDatalist('dt-nguoiThucHien', 'dt-nguoiThucHien-list', data.staff);
+        populateDatalist('tm-nguoiThucHien', 'tm-nguoiThucHien-list', data.staff);
+        populateDatalist('tm-nguoiHoTro', 'tm-nguoiHoTro-list', data.staff, true);
+        populateDatalist('bh-nguoiTiepNhan', 'bh-nguoiTiepNhan-list', data.staff);
+        populateDatalist('bh-nguoiSua', 'bh-nguoiSua-list', data.staff);
+      }
+
+      // 4. Finance companies
+      if (data.financeCompanies) {
+        populateSelect('tg-congTyTC', data.financeCompanies);
+        populateSelect('tm-tg-congTyTC', data.financeCompanies);
+      }
+
+      // 5. Brands
+      if (data.brands) {
+        populateSelect('nk-thuongHieu', data.brands);
+        populateSelect('tm-thuongHieu-Thu', data.brands);
+      }
+
+      // Load initial mode tab (needs to run after populate select/datalists)
+      if (typeof initialMode !== 'undefined' && initialMode) {
+        var activeTab = document.querySelector('.nav-tab[data-section="' + initialMode + '"]');
+        if (activeTab) {
+          activeTab.click();
+        }
+      }
+    }).getInitialSidebarData();
+
+    // Preload khách hàng trong background sau 1.5 giây để tìm kiếm nhanh
+    setTimeout(function() {
+      google.script.run.withSuccessHandler(function(items) {
+        localCache.khachHang = items || [];
+      }).getKhachHangDropdown();
+    }, 1500);
 
     // Set up dynamic search (>= 4 characters, or local search if cached) for large datasets
     setupDatalistSearch('dh-maKH', 'dh-maKH-list', function(query, callback) {
@@ -207,7 +245,14 @@
         google.script.run.withSuccessHandler(callback).getKhachHangDropdownSearch(query);
       }
     });
-    setupDatalistSearch('bh-khachHang', 'bh-khachHang-list', function(query, callback) {
+    setupDatalistSearch('bh-maKH', 'bh-maKH-list', function(query, callback) {
+      if (localCache.khachHang) {
+        callback(searchKhachHangLocal(query));
+      } else {
+        google.script.run.withSuccessHandler(callback).getKhachHangDropdownSearch(query);
+      }
+    });
+    setupDatalistSearch('dv-maKH', 'dv-maKH-list', function(query, callback) {
       if (localCache.khachHang) {
         callback(searchKhachHangLocal(query));
       } else {
@@ -258,7 +303,6 @@
 
     setupMultiSelectDatalist('dh-maQuaTang', 'dh-maQuaTang-list');
     setupMultiSelectDatalist('tm-maQuaTang', 'tm-maQuaTang-list');
-    setupMultiSelectDatalist('dh-nguoiHoTro', 'dh-nguoiHoTro-list');
   }
 
   function loadPhuKienCuDropdown() {
@@ -508,7 +552,7 @@
       var dl = document.getElementById(listId);
       if (!dl) return;
 
-      var isKhachHang = (inputId === 'dh-maKH' || inputId === 'tm-maKH' || inputId === 'bh-khachHang');
+      var isKhachHang = (inputId === 'dh-maKH' || inputId === 'tm-maKH' || inputId === 'bh-maKH' || inputId === 'dv-maKH');
       var isLocal = (inputId === 'dh-maSP' || inputId === 'ck-maSP' || inputId === 'dt-maSP-Nhan' || inputId === 'tm-maSP-Moi' || inputId === 'nk-pkCu-maSP') || (isKhachHang && localCache.khachHang);
       var minLength = isLocal ? 1 : 4;
 
@@ -1113,25 +1157,32 @@
   }
 
   function getThuMuaGiaMayMoi() {
-    var phoneInput = document.getElementById('tm-maSP-Moi');
-    if (phoneInput && phoneInput.dataset.selectedGiaBan) {
-      var g = Number(phoneInput.dataset.selectedGiaBan);
-      if (g > 0) return g;
+    var donGiaInput = document.getElementById('tm-donGia-Moi');
+    if (donGiaInput) {
+      return Number(donGiaInput.value) || 0;
     }
-    
+    return 0;
+  }
+
+  function onThuMuaSanPhamMoiChange() {
     var val = document.getElementById('tm-maSP-Moi').value.trim();
+    if (!val) return;
+
+    var matchedItem = null;
     var items = localCache.dienThoai || [];
-    var giaMoi = 0;
     for (var i = 0; i < items.length; i++) {
       if (items[i].text === val || items[i].value === val) {
-        giaMoi = Number(items[i].giaBan) || 0;
+        matchedItem = items[i];
         break;
       }
     }
-    if (phoneInput && giaMoi > 0) {
-      phoneInput.dataset.selectedGiaBan = giaMoi;
+    if (matchedItem) {
+      var price = Number(matchedItem.giaBan) || 0;
+      document.getElementById('tm-donGia-Moi').value = price;
+      tinhThuMuaChenhLech();
+      var dl = document.getElementById('tm-maSP-Moi-list');
+      if (dl) dl.innerHTML = '';
     }
-    return giaMoi;
   }
 
   function tinhThuMuaTraGop(customChenhLech) {
@@ -1170,7 +1221,10 @@
     if (isCTTC) {
       tienMoiKy = Number(document.getElementById('tm-tg-tienMoiKyInput').value) || 0;
     } else {
-      tienMoiKy = Math.ceil(conLai / soKy);
+      var rate = window.storeInterestRate || 0;
+      var laiMoiThang = Math.round(conLai * (rate / 100));
+      var gocMoiThang = Math.ceil(conLai / soKy);
+      tienMoiKy = gocMoiThang + laiMoiThang;
       document.getElementById('tm-tg-tienMoiKyInput').value = tienMoiKy;
     }
 
@@ -1186,7 +1240,18 @@
     if (isCTTC) {
       html += '<div class="summary-row summary-total"><span>Mỗi kỳ (thực đóng):</span><span>' + formatNumber(tienMoiKy) + ' đ</span></div>';
     } else {
-      html += '<div class="summary-row summary-total"><span>Mỗi kỳ:</span><span>' + formatNumber(tienMoiKy) + ' đ</span></div>';
+      var rate = window.storeInterestRate || 0;
+      if (rate > 0) {
+        var laiMoiThang = Math.round(conLai * (rate / 100));
+        var gocMoiThang = Math.ceil(conLai / soKy);
+        html += 
+          '<div class="summary-row"><span>Lãi suất cửa hàng:</span><span>' + rate + '% / tháng</span></div>' +
+          '<div class="summary-row"><span>Tiền gốc / kỳ:</span><span>' + formatNumber(gocMoiThang) + ' đ</span></div>' +
+          '<div class="summary-row"><span>Tiền lãi / kỳ:</span><span>' + formatNumber(laiMoiThang) + ' đ</span></div>' +
+          '<div class="summary-row summary-total"><span>Mỗi kỳ (Gốc + Lãi):</span><span>' + formatNumber(tienMoiKy) + ' đ</span></div>';
+      } else {
+        html += '<div class="summary-row summary-total"><span>Mỗi kỳ:</span><span>' + formatNumber(tienMoiKy) + ' đ</span></div>';
+      }
     }
     summary.innerHTML = html;
     updateSplitPaymentAmounts('tm');
@@ -1331,7 +1396,10 @@
     if (isCTTC) {
       tienMoiKy = Number(document.getElementById('tg-tienMoiKyInput').value) || 0;
     } else {
-      tienMoiKy = Math.ceil(conLai / soKy);
+      var rate = window.storeInterestRate || 0;
+      var laiMoiThang = Math.round(conLai * (rate / 100));
+      var gocMoiThang = Math.ceil(conLai / soKy);
+      tienMoiKy = gocMoiThang + laiMoiThang;
       document.getElementById('tg-tienMoiKyInput').value = tienMoiKy;
     }
 
@@ -1341,13 +1409,24 @@
     var html =
       '<div class="summary-row"><span>Tổng tiền:</span><span>' + formatNumber(thanhTien) + ' đ</span></div>' +
       '<div class="summary-row"><span>Trả trước:</span><span>' + formatNumber(traTruoc) + ' đ</span></div>' +
-      '<div class="summary-row"><span>Còn lại:</span><span>' + formatNumber(conLai) + ' đ</span></div>' +
+      '<div class="summary-row"><span>Còn lại (Tiền vay):</span><span>' + formatNumber(conLai) + ' đ</span></div>' +
       '<div class="summary-row"><span>Số kỳ:</span><span>' + soKy + ' kỳ</span></div>';
 
     if (isCTTC) {
       html += '<div class="summary-row summary-total"><span>Mỗi kỳ (thực đóng):</span><span>' + formatNumber(tienMoiKy) + ' đ</span></div>';
     } else {
-      html += '<div class="summary-row summary-total"><span>Mỗi kỳ:</span><span>' + formatNumber(tienMoiKy) + ' đ</span></div>';
+      var rate = window.storeInterestRate || 0;
+      if (rate > 0) {
+        var laiMoiThang = Math.round(conLai * (rate / 100));
+        var gocMoiThang = Math.ceil(conLai / soKy);
+        html += 
+          '<div class="summary-row"><span>Lãi suất cửa hàng:</span><span>' + rate + '% / tháng</span></div>' +
+          '<div class="summary-row"><span>Tiền gốc / kỳ:</span><span>' + formatNumber(gocMoiThang) + ' đ</span></div>' +
+          '<div class="summary-row"><span>Tiền lãi / kỳ:</span><span>' + formatNumber(laiMoiThang) + ' đ</span></div>' +
+          '<div class="summary-row summary-total"><span>Mỗi kỳ (Gốc + Lãi):</span><span>' + formatNumber(tienMoiKy) + ' đ</span></div>';
+      } else {
+        html += '<div class="summary-row summary-total"><span>Mỗi kỳ:</span><span>' + formatNumber(tienMoiKy) + ' đ</span></div>';
+      }
     }
     summary.innerHTML = html;
     updateSplitPaymentAmounts('dh');
@@ -1503,6 +1582,8 @@
           localCache.khachHang = items || [];
           populateDatalist('dh-maKH', 'dh-maKH-list', items);
           populateDatalist('tm-maKH', 'tm-maKH-list', items);
+          populateDatalist('dv-maKH', 'dv-maKH-list', items);
+          populateDatalist('bh-maKH', 'bh-maKH-list', items);
         }).getKhachHangDropdown();
       })
       .withFailureHandler(function(err) {
@@ -1647,12 +1728,20 @@
       return;
     }
 
+    var maKH = extractId(document.getElementById('dv-maKH').value);
+    var tenKH = extractCustomerName(document.getElementById('dv-maKH').value);
+
+    if (!maKH || !tenKH) {
+      showAlertMsg('error', 'Vui lòng chọn hoặc nhập Khách hàng!');
+      return;
+    }
+
     var httt = getPaymentMethodString('dv');
     var data = {
       chiNhanh: chiNhanh,
       loaiDichVu: document.getElementById('dv-loaiDV').value,
-      tenKH: document.getElementById('dv-tenKH').value.trim(),
-      soDienThoaiKH: document.getElementById('dv-sdtKH').value.trim(),
+      maKH: maKH,
+      tenKH: tenKH,
       soTienGiaoDich: soTien,
       phiDichVu: Number(document.getElementById('dv-phi').value) || 0,
       hinhThucThanhToan: httt,
@@ -1670,8 +1759,7 @@
       .withSuccessHandler(function(maDV) {
         setLoading('btnTaoDV', false);
         showAlertMsg('success', 'Đã tạo dịch vụ: <strong>' + maDV + '</strong>');
-        document.getElementById('dv-tenKH').value = '';
-        document.getElementById('dv-sdtKH').value = '';
+        document.getElementById('dv-maKH').value = '';
         document.getElementById('dv-soTien').value = 0;
         document.getElementById('dv-phi').value = 0;
         document.getElementById('dv-ghiChu').value = '';
@@ -1840,6 +1928,7 @@
     var imei = document.getElementById('tm-imei-Thu').value.trim();
     var chiNhanh = document.getElementById('tm-chiNhanh').value;
     var nguoiTH = extractId(document.getElementById('tm-nguoiThucHien').value);
+    var nguoiHT = extractId(document.getElementById('tm-nguoiHoTro').value);
 
     if (!maKH || !tenSP || !imei || !chiNhanh || !nguoiTH) {
       showAlertMsg('error', 'Vui lòng chọn Khách hàng, nhập Tên SP, IMEI, Chi nhánh và Người thực hiện!');
@@ -1862,6 +1951,7 @@
       giaThuMua: Number(document.getElementById('tm-giaThuMua').value) || 0,
       chiNhanh: chiNhanh,
       nguoiThucHien: nguoiTH,
+      nguoiHoTro: nguoiHT,
       hinhThucThanhToan: htttThu,
       ghiChu: document.getElementById('tm-ghiChu').value.trim()
     };
@@ -1875,6 +1965,7 @@
       var htttMoi = getPaymentMethodString('tm-Moi');
       data.maSP_Moi = extractId(document.getElementById('tm-maSP-Moi').value);
       data.imei_Moi = extractImei(document.getElementById('tm-maSP-Moi').value);
+      data.donGia_Moi = Number(document.getElementById('tm-donGia-Moi').value) || 0;
       data.tienHoTro = Number(document.getElementById('tm-tienHoTro').value) || 0;
       data.coNhanQua = document.getElementById('tm-coNhanQua').value;
       data.maQuaTang = extractId(document.getElementById('tm-maQuaTang').value, true);
@@ -1931,12 +2022,14 @@
         document.getElementById('tm-dungLuong-Thu').value = '';
         document.getElementById('tm-giaThuMua').value = 0;
         document.getElementById('tm-maSP-Moi').value = '';
+        document.getElementById('tm-donGia-Moi').value = 0;
         document.getElementById('tm-tienHoTro').value = 0;
         document.getElementById('tm-coNhanQua').value = '✗';
         document.getElementById('tm-maQuaTang').value = '';
         document.getElementById('tm-tienGiamGia').value = 0;
         document.getElementById('tm-maQuaTangGroup').style.display = 'none';
         document.getElementById('tm-ghiChu').value = '';
+        document.getElementById('tm-nguoiHoTro').value = '';
         document.getElementById('tm-tradeInFields').style.display = 'none';
         document.getElementById('tm-hinhThucBanGroup').style.display = 'none';
         document.getElementById('tm-hinhThucBan').value = 'Bán thẳng';
@@ -2434,12 +2527,14 @@
   }
 
   function submitBaoHanh() {
+    var maKH = extractId(document.getElementById('bh-maKH').value);
+    var tenKH = extractCustomerName(document.getElementById('bh-maKH').value);
+
     var data = {
       chiNhanh: document.getElementById('bh-chiNhanh').value,
       loaiDichVu: document.getElementById('bh-loaiDichVu').value,
-      tenKH: extractCustomerName(document.getElementById('bh-khachHang').value),
-      maKH: document.getElementById('bh-maKH').value || extractId(document.getElementById('bh-khachHang').value),
-      soDienThoaiKH: document.getElementById('bh-sdtKH').value,
+      maKH: maKH,
+      tenKH: tenKH,
       tenSP: document.getElementById('bh-tenSP').value,
       tinhTrangLoi: document.getElementById('bh-tinhTrangLoi').value,
       phiSuaChua: Number(document.getElementById('bh-phiSuaChua').value) || 0,
@@ -2468,9 +2563,7 @@
       .withSuccessHandler(function(res) {
         setLoading('btnTaoBH', false);
         showAlertMsg('success', 'Tạo Phiếu Tiếp Nhận thành công: ' + res);
-        document.getElementById('bh-khachHang').value = '';
         document.getElementById('bh-maKH').value = '';
-        document.getElementById('bh-sdtKH').value = '';
         document.getElementById('bh-tenSP').value = '';
         document.getElementById('bh-tinhTrangLoi').value = '';
         document.getElementById('bh-phiSuaChua').value = '0';

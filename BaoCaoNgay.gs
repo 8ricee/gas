@@ -817,7 +817,9 @@ function generateDailyReport(targetDate) {
         thuCK = Number(cellCK) || 0;
       } else {
         var hinhThucTT = String(row[COL_BH.HINH_THUC_TT - 1]);
-        var hybrid = parseHybridAmount(hinhThucTT === "Hỗn hợp" ? rawPhiSuaChua : "");
+        var hybrid = parseHybridAmount(
+          hinhThucTT === "Hỗn hợp" ? rawPhiSuaChua : "",
+        );
         if (hybrid) {
           thuTM = hybrid.tm;
           thuCK = hybrid.ck;
@@ -828,7 +830,7 @@ function generateDailyReport(targetDate) {
         }
       }
 
-      var loiNhuan = phiSuaChua; 
+      var loiNhuan = phiSuaChua;
 
       var brKey = branch || fallbackBranch;
       if (!branchMetrics[brKey]) {
@@ -844,7 +846,7 @@ function generateDailyReport(targetDate) {
       branchMetrics[brKey].thuTM += thuTM;
       branchMetrics[brKey].thuCK += thuCK;
       branchMetrics[brKey].loiNhuan += loiNhuan;
-      branchMetrics[brKey].doanhSo += phiSuaChua; 
+      branchMetrics[brKey].doanhSo += phiSuaChua;
 
       transactions.push({
         maGD: maBH,
@@ -857,7 +859,13 @@ function generateDailyReport(targetDate) {
         thuCK: thuCK,
         chiCK: chiCK,
         loiNhuan: loiNhuan,
-        detail: (loaiDichVu || "Sửa chữa") + " máy " + tenSP + " (Phí: " + formatCurrency(phiSuaChua) + "đ)",
+        detail:
+          (loaiDichVu || "Sửa chữa") +
+          " máy " +
+          tenSP +
+          " (Phí: " +
+          formatCurrency(phiSuaChua) +
+          "đ)",
       });
     }
   });

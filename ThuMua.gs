@@ -12,7 +12,7 @@
  *   maKH, soDienThoaiKH, loaiGiaoDich ('Bán thẳng'/'Thu cũ đổi mới'),
  *   tenSP_Thu, thuongHieu_Thu, imei_Thu, mauSac_Thu, dungLuong_Thu, tinhTrang_Thu,
  *   giaThuMua, tienHoTro, hinhThucThanhToan ('Tiền mặt'/'Chuyển khoản'),
- *   chiNhanh, nguoiThucHien (MaNV), ghiChu,
+ *   chiNhanh, nguoiThucHien (MaNV), nguoiHoTro (MaNV), ghiChu,
  *   // Nếu Thu cũ đổi mới:
  *   maSP_Moi
  * }
@@ -53,7 +53,7 @@ function thucHienThuMua(data) {
           throw new Error("Vui lòng chọn máy mới để đổi lên đời!");
         }
 
-        var giaBanMoi =
+        var giaBanMoi = Number(data.donGia_Moi) ||
           Number(
             lookupValue(
               SHEET_NAMES.DIEN_THOAI,
@@ -90,6 +90,7 @@ function thucHienThuMua(data) {
           splitChuyenKhoan: donHangSplitCK,
           splitTienMat: donHangSplitTM,
           nguoiBan: data.nguoiThucHien,
+          nguoiHoTro: data.nguoiHoTro,
           chiNhanh: chiNhanh,
           ghiChu:
             "Đơn hàng Thu cũ đổi mới, liên kết tới giao dịch thu mua " + maTM,
@@ -130,7 +131,6 @@ function thucHienThuMua(data) {
       rowData[COL_TM.NGAY_TM - 1] = new Date();
       rowData[COL_TM.MA_KH - 1] = data.maKH;
       rowData[COL_TM.TEN_KH - 1] = tenKH;
-      rowData[COL_TM.SDT_KH - 1] = data.soDienThoaiKH || "";
       rowData[COL_TM.TEN_SP_THU - 1] = data.tenSP_Thu || "";
       rowData[COL_TM.THUONG_HIEU_THU - 1] = data.thuongHieu_Thu || "";
       rowData[COL_TM.IMEI_THU - 1] = data.imei_Thu;

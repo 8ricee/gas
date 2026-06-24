@@ -34,7 +34,8 @@ function createCustomMenu() {
       ui
         .createMenu("Hệ thống")
         .addItem("Khởi tạo hệ thống", "setupSheets")
-        .addItem("Đồng bộ & Chuẩn hóa toàn bộ hệ thống", "menuNormalizeSystem"),
+        .addItem("Đồng bộ & Chuẩn hóa toàn bộ hệ thống", "menuNormalizeSystem")
+        .addItem("Làm mới bộ nhớ đệm", "menuClearAllCaches"),
     )
     .addToUi();
 }
@@ -47,8 +48,12 @@ function createCustomMenu() {
 function showSidebar() {
   var html = HtmlService.createTemplateFromFile("Sidebar");
   html.mode = "donHang"; // Mặc định mở phần Đơn hàng
-  var output = html.evaluate().setWidth(700).setHeight(500);
-  SpreadsheetApp.getUi().showModelessDialog(output, "Bà xã hay hờn");
+  var output = html
+    .evaluate()
+    .setWidth(900)
+    .setHeight(950)
+    .setTitle("BichLoan");
+  SpreadsheetApp.getUi().showSidebar(output);
 }
 
 // ======================== MENU ACTION FUNCTIONS ========================
@@ -134,10 +139,22 @@ function menuFormatAllSheets() {
  */
 function menuNormalizeSystem() {
   try {
+    // Xoá cache cấu trúc cột cũ để nạp lại cấu trúc mới nhất
+    clearColumnEnumsCache();
+
     var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    // Tự động bổ sung các cấu hình mặc định còn thiếu
+    ensureDefaultConfigsExist(ss);
 
     // 1. Chuẩn hóa cấu trúc cột và điền Ngày nhập/xuất cho Điện thoại (chạy ẩn, không show alert riêng)
     backfillDienThoaiDates(true);
+
+    // 1.5. Xóa cột số điện thoại khách hàng thừa (nếu có) và đồng bộ lại headers
+    migrateDeletePhoneColumns(ss);
+
+    // 1.6. Làm sạch và thiết lập lại toàn bộ Data Validation (dropdown) chính xác cho tất cả các sheet
+    _setupDataValidations(ss);
 
     // 2. Tái xây dựng báo cáo Tồn kho chi nhánh
     rebuildTonKhoSheet(ss);
@@ -158,5 +175,20 @@ function menuNormalizeSystem() {
     );
   } catch (e) {
     showAlert("Lỗi", "Không thể chuẩn hóa hệ thống: " + e.message);
+  }
+}
+
+/**
+ * Menu action to clear all caches manually
+ */
+function menuClearAllCaches() {
+  try {
+    clearAllCaches();
+    showAlert(
+      "Thành công",
+      "Đã xóa toàn bộ bộ nhớ đệm (cache) và làm mới hệ thống!",
+    );
+  } catch (e) {
+    showAlert("Lỗi", "Không thể xóa bộ nhớ đệm: " + e.message);
   }
 }

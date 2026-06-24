@@ -582,7 +582,9 @@ function getPhuKienDropdownSearch(chiNhanh, keyword) {
         soLuongTon: item.sl,
         chiNhanh: item.cn,
       });
-      if (result.length >= 100) break;
+      // Nếu tìm kiếm cụ thể (có keyword) thì giới hạn 100; nếu là preload (không keyword) thì giới hạn 5000
+      if (kw && result.length >= 100) break;
+      if (!kw && result.length >= 5000) break;
     }
   }
 
@@ -614,7 +616,9 @@ function getPhuKienUniqueListSearch(keyword) {
         giaBan: allItems[i].gb,
         chiNhanh: allItems[i].cn,
       });
-      if (result.length >= 100) break;
+      // Nếu tìm kiếm cụ thể (có keyword) thì giới hạn 100; nếu là preload (không keyword) thì giới hạn 5000
+      if (kw && result.length >= 100) break;
+      if (!kw && result.length >= 5000) break;
     }
   }
 

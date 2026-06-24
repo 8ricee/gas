@@ -11,7 +11,29 @@
     font-size: 13px;
     color: #202124;
     background: #f8f9fa;
-    padding: 16px;
+    overflow-x: hidden;
+    padding-bottom: 8px;
+    padding-top: 4px;
+    padding-left: 0px;
+    padding-right: 2px;
+  }
+
+  /* Định dạng thanh cuộn (scrollbar) siêu mỏng, bo tròn hiện đại */
+  ::-webkit-scrollbar {
+    width: 2px;
+    height: 2px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
   }
 
   /* ==================== TYPOGRAPHY ==================== */

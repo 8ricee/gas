@@ -97,24 +97,23 @@ var COL_TM = {
   NGAY_TM: 2,
   MA_KH: 3,
   TEN_KH: 4,
-  SDT_KH: 5,
-  TEN_SP_THU: 6,
-  THUONG_HIEU_THU: 7,
-  IMEI_THU: 8,
-  MAU_SAC_THU: 9,
-  DUNG_LUONG_THU: 10,
-  TINH_TRANG_THU: 11,
-  GIA_THU_MUA: 12,
-  LOAI_GD: 13,
-  MA_DH_MOI: 14,
-  TIEN_HO_TRO: 15,
-  TONG_TIEN_TRA: 16,
-  HINH_THUC_TT: 17,
-  CHI_NHANH: 18,
-  NGUOI_THUC_HIEN: 19,
-  GHI_CHU: 20,
-  TIEN_MAT: 21,
-  CHUYEN_KHOAN: 22,
+  TEN_SP_THU: 5,
+  THUONG_HIEU_THU: 6,
+  IMEI_THU: 7,
+  MAU_SAC_THU: 8,
+  DUNG_LUONG_THU: 9,
+  TINH_TRANG_THU: 10,
+  GIA_THU_MUA: 11,
+  LOAI_GD: 12,
+  MA_DH_MOI: 13,
+  TIEN_HO_TRO: 14,
+  TONG_TIEN_TRA: 15,
+  HINH_THUC_TT: 16,
+  CHI_NHANH: 17,
+  NGUOI_THUC_HIEN: 18,
+  GHI_CHU: 19,
+  TIEN_MAT: 20,
+  CHUYEN_KHOAN: 21,
 };
 
 var COL_TG = {
@@ -160,17 +159,16 @@ var COL_DV = {
   LOAI_DV: 3,
   MA_KH: 4,
   TEN_KH: 5,
-  SDT_KH: 6,
-  SO_TIEN_GD: 7,
-  PHI_DV: 8,
-  HINH_THUC_TT: 9,
-  NGUOI_THUC_HIEN: 10,
-  TEN_NGUOI_THUC_HIEN: 11,
-  TRANG_THAI: 12,
-  GHI_CHU: 13,
-  CHI_NHANH: 14,
-  TIEN_MAT: 15,
-  CHUYEN_KHOAN: 16,
+  SO_TIEN_GD: 6,
+  PHI_DV: 7,
+  HINH_THUC_TT: 8,
+  NGUOI_THUC_HIEN: 9,
+  TEN_NGUOI_THUC_HIEN: 10,
+  TRANG_THAI: 11,
+  GHI_CHU: 12,
+  CHI_NHANH: 13,
+  TIEN_MAT: 14,
+  CHUYEN_KHOAN: 15,
 };
 
 var COL_DT_TRA = {
@@ -212,25 +210,60 @@ var COL_BH = {
   NGAY_NHAN: 2,
   MA_KH: 3,
   TEN_KH: 4,
-  SDT_KH: 5,
-  TEN_SP: 6,
-  TINH_TRANG_LOI: 7,
-  LOAI_DICH_VU: 8,
-  PHI_SUA_CHUA: 9,
-  HINH_THUC_TT: 10,
-  NGUOI_TIEP_NHAN: 11,
-  NGUOI_SUA: 12,
-  TRANG_THAI: 13,
-  GHI_CHU: 14,
-  CHI_NHANH: 15,
-  TIEN_MAT: 16,
-  CHUYEN_KHOAN: 17,
+  TEN_SP: 5,
+  TINH_TRANG_LOI: 6,
+  LOAI_DICH_VU: 7,
+  PHI_SUA_CHUA: 8,
+  HINH_THUC_TT: 9,
+  NGUOI_TIEP_NHAN: 10,
+  NGUOI_SUA: 11,
+  TRANG_THAI: 12,
+  GHI_CHU: 13,
+  CHI_NHANH: 14,
+  TIEN_MAT: 15,
+  CHUYEN_KHOAN: 16,
 };
 
 var _columnEnumsInitialized = false;
 
+/**
+ * Xóa cache column enums của hệ thống
+ */
+function clearColumnEnumsCache() {
+  try {
+    var cache = CacheService.getScriptCache();
+    cache.remove("system_column_enums_cache");
+    _columnEnumsInitialized = false;
+  } catch (e) {
+    Logger.log("Error clearing column enums cache: " + e.message);
+  }
+}
+
 function initializeColumnEnums() {
   if (_columnEnumsInitialized) return;
+
+  // Sử dụng bộ nhớ đệm CacheService để tối ưu hiệu năng đọc (tránh 10 cuộc gọi Sheet API)
+  var cache = CacheService.getScriptCache();
+  var cached = cache.get("system_column_enums_cache");
+  if (cached) {
+    try {
+      var data = JSON.parse(cached);
+      Object.assign(COL_DT, data.COL_DT);
+      Object.assign(COL_PK, data.COL_PK);
+      Object.assign(COL_DH, data.COL_DH);
+      Object.assign(COL_TM, data.COL_TM);
+      Object.assign(COL_TG, data.COL_TG);
+      Object.assign(COL_LSTG, data.COL_LSTG);
+      Object.assign(COL_DV, data.COL_DV);
+      Object.assign(COL_DT_TRA, data.COL_DT_TRA);
+      Object.assign(COL_KH, data.COL_KH);
+      Object.assign(COL_BH, data.COL_BH);
+      _columnEnumsInitialized = true;
+      return;
+    } catch (e) {
+      Logger.log("Error parsing cached column enums: " + e.message);
+    }
+  }
 
   var mapDT = getColMapFromSheet(SHEET_NAMES.DIEN_THOAI);
   if (mapDT) {
@@ -304,7 +337,7 @@ function initializeColumnEnums() {
     COL_TM.NGAY_TM = mapTM["ngày thu mua"] || COL_TM.NGAY_TM;
     COL_TM.MA_KH = mapTM["mã khách hàng"] || COL_TM.MA_KH;
     COL_TM.TEN_KH = mapTM["tên khách hàng"] || COL_TM.TEN_KH;
-    COL_TM.SDT_KH = mapTM["số điện thoại khách"] || COL_TM.SDT_KH;
+    // COL_TM.SDT_KH = mapTM["số điện thoại khách"] || COL_TM.SDT_KH;
     COL_TM.TEN_SP_THU = mapTM["tên sản phẩm thu"] || COL_TM.TEN_SP_THU;
     COL_TM.THUONG_HIEU_THU = mapTM["thương hiệu thu"] || COL_TM.THUONG_HIEU_THU;
     COL_TM.IMEI_THU = mapTM["imei thu"] || COL_TM.IMEI_THU;
@@ -373,7 +406,7 @@ function initializeColumnEnums() {
     COL_DV.LOAI_DV = mapDV["loại dịch vụ"] || COL_DV.LOAI_DV;
     COL_DV.MA_KH = mapDV["mã khách hàng"] || COL_DV.MA_KH;
     COL_DV.TEN_KH = mapDV["tên khách hàng"] || COL_DV.TEN_KH;
-    COL_DV.SDT_KH = mapDV["số điện thoại khách"] || COL_DV.SDT_KH;
+    // COL_DV.SDT_KH = mapDV["số điện thoại khách"] || COL_DV.SDT_KH;
     COL_DV.SO_TIEN_GD = mapDV["số tiền giao dịch"] || COL_DV.SO_TIEN_GD;
     COL_DV.PHI_DV = mapDV["phí dịch vụ"] || COL_DV.PHI_DV;
     COL_DV.HINH_THUC_TT = mapDV["hình thức thanh toán"] || COL_DV.HINH_THUC_TT;
@@ -436,7 +469,7 @@ function initializeColumnEnums() {
     COL_BH.NGAY_NHAN = mapBH["ngày nhận"] || COL_BH.NGAY_NHAN;
     COL_BH.MA_KH = mapBH["mã khách hàng"] || COL_BH.MA_KH;
     COL_BH.TEN_KH = mapBH["tên khách hàng"] || COL_BH.TEN_KH;
-    COL_BH.SDT_KH = mapBH["số điện thoại"] || COL_BH.SDT_KH;
+    // COL_BH.SDT_KH = mapBH["số điện thoại"] || COL_BH.SDT_KH;
     COL_BH.TEN_SP = mapBH["tên sản phẩm"] || COL_BH.TEN_SP;
     COL_BH.TINH_TRANG_LOI = mapBH["tình trạng lỗi"] || COL_BH.TINH_TRANG_LOI;
     COL_BH.LOAI_DICH_VU = mapBH["loại dịch vụ"] || COL_BH.LOAI_DICH_VU;
@@ -449,6 +482,25 @@ function initializeColumnEnums() {
     COL_BH.CHI_NHANH = mapBH["chi nhánh"] || COL_BH.CHI_NHANH;
     COL_BH.TIEN_MAT = mapBH["tiền mặt"] || COL_BH.TIEN_MAT;
     COL_BH.CHUYEN_KHOAN = mapBH["chuyển khoản"] || COL_BH.CHUYEN_KHOAN;
+  }
+
+  // Lưu cấu trúc cột vào Cache
+  var dataToCache = {
+    COL_DT: COL_DT,
+    COL_PK: COL_PK,
+    COL_DH: COL_DH,
+    COL_TM: COL_TM,
+    COL_TG: COL_TG,
+    COL_LSTG: COL_LSTG,
+    COL_DV: COL_DV,
+    COL_DT_TRA: COL_DT_TRA,
+    COL_KH: COL_KH,
+    COL_BH: COL_BH
+  };
+  try {
+    cache.put("system_column_enums_cache", JSON.stringify(dataToCache), 21600);
+  } catch (e) {
+    Logger.log("Error writing column enums cache: " + e.message);
   }
 
   _columnEnumsInitialized = true;
@@ -836,10 +888,10 @@ function appendRow(sheetName, rowData) {
   range.setFontFamily("Times New Roman");
   range.setFontSize(12);
 
-  // Auto-resize columns
-  for (var i = 1; i <= rowData.length; i++) {
-    sheet.autoResizeColumn(i);
-  }
+  // Auto-resize columns - Đã lược bỏ để tối ưu hiệu năng ghi (giảm ~3-5 giây mỗi lần ghi)
+  // for (var i = 1; i <= rowData.length; i++) {
+  //   sheet.autoResizeColumn(i);
+  // }
 
   return lastRow;
 }
@@ -873,7 +925,8 @@ function updateCell(sheetName, row, col, value) {
   cell.setValue(value);
   cell.setFontFamily("Times New Roman");
   cell.setFontSize(12);
-  sheet.autoResizeColumn(col);
+  // Auto-resize column - Đã lược bỏ để tối ưu hiệu năng ghi
+  // sheet.autoResizeColumn(col);
 }
 
 /**
@@ -1126,4 +1179,44 @@ function parseAmountVal(val) {
     return parsed.ck + parsed.tm;
   }
   return Number(val) || 0;
+}
+
+/**
+ * Xoá toàn bộ bộ nhớ đệm (cache) hệ thống ở máy chủ
+ */
+function clearAllCaches() {
+  clearColumnEnumsCache();
+  clearSheetCache();
+
+  // Xoá tất cả cache của dropdown
+  var cache = CacheService.getScriptCache();
+  var keys = ["dd_kh", "dd_dt", "dd_pk", "dd_pku", "dd_tg"];
+  keys.forEach(function (key) {
+    var meta = cache.get(key + "_m");
+    if (meta) {
+      try {
+        var metaObj = JSON.parse(meta);
+        var removeKeys = [key + "_m"];
+        for (var i = 0; i < metaObj.c; i++) {
+          removeKeys.push(key + "_" + i);
+        }
+        cache.removeAll(removeKeys);
+      } catch (ex) {
+        cache.remove(key + "_m");
+      }
+    }
+  });
+  return true;
+}
+
+/**
+ * Lấy phần trăm lãi suất trả góp cửa hàng từ cấu hình
+ * @return {number} Phần trăm lãi suất (VD: 2 nếu là 2%)
+ */
+function getInterestRateConfig() {
+  var val = getConfig("Lãi suất trả góp cửa hàng (%)");
+  if (!val) return 0;
+  var cleanVal = val.replace("%", "").trim();
+  var num = parseFloat(cleanVal);
+  return isNaN(num) ? 0 : num;
 }

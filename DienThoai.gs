@@ -43,7 +43,10 @@ function getAllDienThoai(filter) {
         TenSP: String(row[c.tenSP]),
         ThuongHieu: String(row[c.thuongHieu]),
         IMEI: String(row[c.imei]),
-        IMEI2: (c.imei2 !== undefined && row.length > c.imei2) ? String(row[c.imei2] || "") : "",
+        IMEI2:
+          c.imei2 !== undefined && row.length > c.imei2
+            ? String(row[c.imei2] || "")
+            : "",
         MauSac: String(row[c.mauSac]),
         DungLuong: String(row[c.dungLuong]),
         TinhTrang: String(row[c.tinhTrang]),
@@ -97,7 +100,10 @@ function getDienThoaiDropdown(chiNhanh) {
       var rowChiNhanh = String(row[c.chiNhanh] || "");
       if (!chiNhanh || rowChiNhanh === chiNhanh) {
         var imeiVal = String(row[c.imei] || "");
-        var imei2Val = (c.imei2 !== undefined && row.length > c.imei2) ? String(row[c.imei2] || "") : "";
+        var imei2Val =
+          c.imei2 !== undefined && row.length > c.imei2
+            ? String(row[c.imei2] || "")
+            : "";
         var imeiText = imeiVal;
         if (imei2Val) {
           imeiText += " / " + imei2Val;
@@ -342,7 +348,10 @@ function searchDienThoai(keyword) {
     var tenSP = String(row[c.tenSP]).toLowerCase();
     var thuongHieu = String(row[c.thuongHieu]).toLowerCase();
     var imei = String(row[c.imei]).toLowerCase();
-    var imei2 = (c.imei2 !== undefined && row.length > c.imei2) ? String(row[c.imei2]).toLowerCase() : "";
+    var imei2 =
+      c.imei2 !== undefined && row.length > c.imei2
+        ? String(row[c.imei2]).toLowerCase()
+        : "";
 
     if (
       tenSP.indexOf(kw) !== -1 ||
@@ -355,7 +364,10 @@ function searchDienThoai(keyword) {
         TenSP: String(row[c.tenSP]),
         ThuongHieu: String(row[c.thuongHieu]),
         IMEI: String(row[c.imei]),
-        IMEI2: (c.imei2 !== undefined && row.length > c.imei2) ? String(row[c.imei2] || "") : "",
+        IMEI2:
+          c.imei2 !== undefined && row.length > c.imei2
+            ? String(row[c.imei2] || "")
+            : "",
         MauSac: String(row[c.mauSac]),
         DungLuong: String(row[c.dungLuong]),
         TinhTrang: String(row[c.tinhTrang]),
@@ -392,17 +404,28 @@ function backfillDienThoaiDates(silent) {
 
   // 2. Kiểm tra và ghi tiêu đề cột Ngày nhập và Ngày xuất nếu chưa có hoặc sai tiêu đề
   var needsHeaderStyle = false;
-  if (String(dtSheet.getRange(1, COL_DT.NGAY_NHAP).getValue()).trim() !== "Ngày nhập") {
+  if (
+    String(dtSheet.getRange(1, COL_DT.NGAY_NHAP).getValue()).trim() !==
+    "Ngày nhập"
+  ) {
     dtSheet.getRange(1, COL_DT.NGAY_NHAP).setValue("Ngày nhập");
     needsHeaderStyle = true;
   }
-  if (String(dtSheet.getRange(1, COL_DT.NGAY_XUAT).getValue()).trim() !== "Ngày xuất") {
+  if (
+    String(dtSheet.getRange(1, COL_DT.NGAY_XUAT).getValue()).trim() !==
+    "Ngày xuất"
+  ) {
     dtSheet.getRange(1, COL_DT.NGAY_XUAT).setValue("Ngày xuất");
     needsHeaderStyle = true;
   }
 
   if (needsHeaderStyle) {
-    var newHeadersRange = dtSheet.getRange(1, Math.min(COL_DT.NGAY_NHAP, COL_DT.NGAY_XUAT), 1, 2);
+    var newHeadersRange = dtSheet.getRange(
+      1,
+      Math.min(COL_DT.NGAY_NHAP, COL_DT.NGAY_XUAT),
+      1,
+      2,
+    );
     newHeadersRange.setBackground("#1a73e8");
     newHeadersRange.setFontColor("#ffffff");
     newHeadersRange.setFontWeight("bold");
@@ -498,21 +521,33 @@ function backfillDienThoaiDates(silent) {
   }
 
   // 4. Ghi ngược kết quả bằng Batch Write để tối ưu hóa hiệu suất
-  var ngayNhapVals = dtData.map(function(row) {
-    return [row[COL_DT.NGAY_NHAP - 1] ? new Date(row[COL_DT.NGAY_NHAP - 1]) : ""];
+  var ngayNhapVals = dtData.map(function (row) {
+    return [
+      row[COL_DT.NGAY_NHAP - 1] ? new Date(row[COL_DT.NGAY_NHAP - 1]) : "",
+    ];
   });
-  var ngayXuatVals = dtData.map(function(row) {
-    return [row[COL_DT.NGAY_XUAT - 1] ? new Date(row[COL_DT.NGAY_XUAT - 1]) : ""];
+  var ngayXuatVals = dtData.map(function (row) {
+    return [
+      row[COL_DT.NGAY_XUAT - 1] ? new Date(row[COL_DT.NGAY_XUAT - 1]) : "",
+    ];
   });
-  
+
   dtSheet.getRange(2, COL_DT.NGAY_NHAP, lastRow - 1, 1).setValues(ngayNhapVals);
   dtSheet.getRange(2, COL_DT.NGAY_XUAT, lastRow - 1, 1).setValues(ngayXuatVals);
 
   // 5. Định dạng lại cột hiển thị
   var rangeNgayNhap = dtSheet.getRange(2, COL_DT.NGAY_NHAP, lastRow - 1, 1);
   var rangeNgayXuat = dtSheet.getRange(2, COL_DT.NGAY_XUAT, lastRow - 1, 1);
-  rangeNgayNhap.setNumberFormat("dd/MM/yyyy").setFontFamily("Times New Roman").setFontSize(12).setHorizontalAlignment("left");
-  rangeNgayXuat.setNumberFormat("dd/MM/yyyy").setFontFamily("Times New Roman").setFontSize(12).setHorizontalAlignment("left");
+  rangeNgayNhap
+    .setNumberFormat("dd/MM/yyyy")
+    .setFontFamily("Times New Roman")
+    .setFontSize(12)
+    .setHorizontalAlignment("left");
+  rangeNgayXuat
+    .setNumberFormat("dd/MM/yyyy")
+    .setFontFamily("Times New Roman")
+    .setFontSize(12)
+    .setHorizontalAlignment("left");
 
   // Tự động căn chỉnh lại độ rộng cột N & O
   dtSheet.autoResizeColumn(COL_DT.NGAY_NHAP);
@@ -560,7 +595,10 @@ function _buildDienThoaiDropdownCache() {
     ) {
       var cn = String(row[c.chiNhanh] || "");
       var imeiVal = String(row[c.imei] || "");
-      var imei2Val = (c.imei2 !== undefined && row.length > c.imei2) ? String(row[c.imei2] || "") : "";
+      var imei2Val =
+        c.imei2 !== undefined && row.length > c.imei2
+          ? String(row[c.imei2] || "")
+          : "";
       var imeiText = imeiVal;
       if (imei2Val) {
         imeiText += " / " + imei2Val;
@@ -631,7 +669,9 @@ function getDienThoaiDropdownSearch(chiNhanh, keyword) {
         giaTraGop: item.gtg,
         chiNhanh: item.cn,
       });
-      if (result.length >= 100) break;
+      // Nếu tìm kiếm cụ thể (có keyword) thì giới hạn 100; nếu là preload (không keyword) thì giới hạn 5000
+      if (kw && result.length >= 100) break;
+      if (!kw && result.length >= 5000) break;
     }
   }
 
