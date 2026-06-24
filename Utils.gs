@@ -29,268 +29,12 @@ function clearSheetCache(sheetName) {
   }
 }
 
-let _columnEnumsInitialized = false;
-let _loadingColumnEnums = false;
-
-function createEnumProxy(defaultValues) {
-  return new Proxy(defaultValues, {
-    get(target, prop) {
-      if (typeof prop === "string" && !prop.startsWith("_") && prop !== "toString" && prop !== "toJSON") {
-        initializeColumnEnums();
-      }
-      return target[prop];
-    },
-    set(target, prop, value) {
-      target[prop] = value;
-      return true;
-    },
-    ownKeys(target) {
-      initializeColumnEnums();
-      return Reflect.ownKeys(target);
-    },
-    getOwnPropertyDescriptor(target, prop) {
-      initializeColumnEnums();
-      return Reflect.getOwnPropertyDescriptor(target, prop);
-    }
-  });
-}
-
-// Các Enum cột mặc định (sẽ được cập nhật động bằng initializeColumnEnums qua Proxy)
-const COL_DT = createEnumProxy({
-  MA_DT: 1,
-  TEN_SP: 2,
-  THUONG_HIEU: 3,
-  IMEI: 4,
-  IMEI_2: 5,
-  MAU_SAC: 6,
-  DUNG_LUONG: 7,
-  TINH_TRANG: 8,
-  GIA_NHAP: 9,
-  GIA_BAN: 10,
-  GIA_TRA_GOP: 11,
-  TRANG_THAI_KHO: 12,
-  GHI_CHU: 13,
-  CHI_NHANH: 14,
-  NGAY_NHAP: 15,
-  NGAY_XUAT: 16,
-});
-
-const COL_PK = createEnumProxy({
-  MA_PK: 1,
-  TEN_SP: 2,
-  LOAI_PK: 3,
-  THUONG_HIEU: 4,
-  GIA_NHAP: 5,
-  GIA_BAN: 6,
-  SO_LUONG_TON: 7,
-  MO_TA: 8,
-  TRANG_THAI: 9,
-  CHI_NHANH: 10,
-});
-
-const COL_DH = createEnumProxy({
-  MA_DH: 1,
-  NGAY_BAN: 2,
-  MA_KH: 3,
-  TEN_KH: 4,
-  MA_SP: 5,
-  TEN_SP: 6,
-  NGUON_SP: 7,
-  THUONG_HIEU: 8,
-  SO_LUONG: 9,
-  DON_GIA: 10,
-  THANH_TIEN: 11,
-  HINH_THUC_BAN: 12,
-  HINH_THUC_TT: 13,
-  NGUOI_BAN: 14,
-  TEN_NGUOI_BAN: 15,
-  QUYEN_XUAT: 16,
-  NGUOI_HO_TRO: 17,
-  TEN_NGUOI_HO_TRO: 18,
-  TRANG_THAI: 19,
-  GHI_CHU: 20,
-  CHI_NHANH: 21,
-  MA_QUA_TANG: 22,
-  TEN_QUA_TANG: 23,
-  CO_NHAN_QUA: 24,
-  TIEN_GIAM_GIA: 25,
-  TIEN_MAT: 26,
-  CHUYEN_KHOAN: 27,
-});
-
-const COL_TM = createEnumProxy({
-  MA_TM: 1,
-  NGAY_TM: 2,
-  MA_KH: 3,
-  TEN_KH: 4,
-  TEN_SP_THU: 5,
-  THUONG_HIEU_THU: 6,
-  IMEI_THU: 7,
-  MAU_SAC_THU: 8,
-  DUNG_LUONG_THU: 9,
-  TINH_TRANG_THU: 10,
-  GIA_THU_MUA: 11,
-  LOAI_GD: 12,
-  MA_DH_MOI: 13,
-  TIEN_HO_TRO: 14,
-  TONG_TIEN_TRA: 15,
-  HINH_THUC_TT: 16,
-  CHI_NHANH: 17,
-  NGUOI_THUC_HIEN: 18,
-  GHI_CHU: 19,
-  TIEN_MAT: 20,
-  CHUYEN_KHOAN: 21,
-});
-
-const COL_NK = createEnumProxy({
-  MA_NK: 1,
-  NGAY_NHAP: 2,
-  NGUON_NHAP: 3,
-  MA_SP: 4,
-  TEN_SP: 5,
-  SO_LUONG: 6,
-  GIA_NHAP: 7,
-  THANH_TIEN: 8,
-  NHA_CUNG_CAP: 9,
-  GHI_CHU: 10,
-  CHI_NHANH: 11,
-});
-
-const COL_TG = createEnumProxy({
-  MA_TG: 1,
-  MA_DH: 2,
-  MA_KH: 3,
-  TEN_KH: 4,
-  TONG_TIEN: 5,
-  TRA_TRUOC: 6,
-  CON_LAI: 7,
-  SO_KY: 8,
-  TIEN_MOI_KY: 9,
-  NGAY_BAT_DAU: 10,
-  NGAY_KET_THUC: 11,
-  DA_TRA_SO_KY: 12,
-  DA_TRA_SO_TIEN: 13,
-  LOAI_TRA_GOP: 14,
-  CONG_TY_TC: 15,
-  TRANG_THAI: 16,
-  CHI_NHANH: 17,
-  TIEN_MAT: 18,
-  CHUYEN_KHOAN: 19,
-});
-
-const COL_LSTG = createEnumProxy({
-  MA_LS: 1,
-  MA_TG: 2,
-  KY_SO: 3,
-  SO_TIEN_CAN_TRA: 4,
-  SO_TIEN_DA_TRA: 5,
-  NGAY_CAN_TRA: 6,
-  NGAY_THUC_TRA: 7,
-  HINH_THUC_TT: 8,
-  TRANG_THAI: 9,
-  GHI_CHU: 10,
-  TIEN_MAT: 11,
-  CHUYEN_KHOAN: 12,
-});
-
-const COL_DV = createEnumProxy({
-  MA_DV: 1,
-  NGAY_GD: 2,
-  LOAI_DV: 3,
-  MA_KH: 4,
-  TEN_KH: 5,
-  SO_TIEN_GD: 6,
-  PHI_DV: 7,
-  HINH_THUC_TT: 8,
-  NGUOI_THUC_HIEN: 9,
-  TEN_NGUOI_THUC_HIEN: 10,
-  TRANG_THAI: 11,
-  GHI_CHU: 12,
-  CHI_NHANH: 13,
-  TIEN_MAT: 14,
-  CHUYEN_KHOAN: 15,
-});
-
-const COL_DT_TRA = createEnumProxy({
-  MA_DT: 1,
-  NGAY_DT: 2,
-  MA_DH: 3,
-  MA_KH: 4,
-  TEN_KH: 5,
-  LOAI_GD: 6,
-  MA_SP_TRA: 7,
-  TEN_SP_TRA: 8,
-  IMEI_TRA: 9,
-  MA_SP_NHAN: 10,
-  TEN_SP_NHAN: 11,
-  IMEI_NHAN: 12,
-  TIEN_HOAN_TRA: 13,
-  PHI_DOI_TRA: 14,
-  HINH_THUC_TT: 15,
-  CHI_NHANH: 16,
-  NGUOI_THUC_HIEN: 17,
-  TRANG_THAI: 18,
-  GHI_CHU: 19,
-  TIEN_MAT: 20,
-  CHUYEN_KHOAN: 21,
-});
-
-const COL_KH = createEnumProxy({
-  MA_KH: 1,
-  HO_TEN: 2,
-  CCCD: 3,
-  DIA_CHI: 4,
-  NGAY_TAO: 5,
-  GHI_CHU: 6,
-});
-
-const COL_BH = createEnumProxy({
-  MA_BH: 1,
-  NGAY_NHAN: 2,
-  MA_KH: 3,
-  TEN_KH: 4,
-  TEN_SP: 5,
-  TINH_TRANG_LOI: 6,
-  LOAI_DICH_VU: 7,
-  PHI_SUA_CHUA: 8,
-  HINH_THUC_TT: 9,
-  NGUOI_TIEP_NHAN: 10,
-  NGUOI_SUA: 11,
-  TRANG_THAI: 12,
-  GHI_CHU: 13,
-  CHI_NHANH: 14,
-  TIEN_MAT: 15,
-  CHUYEN_KHOAN: 16,
-});
-
-const COL_NV = createEnumProxy({
-  MA_NV: 1,
-  HO_TEN: 2,
-  SO_DIEN_THOAI: 3,
-  EMAIL: 4,
-  VAI_TRO: 5,
-  QUYEN_XUAT: 6,
-  NGAY_VAO: 7,
-  TRANG_THAI: 8,
-});
-
-/**
- * Xóa cache column enums của hệ thống
- */
-function clearColumnEnumsCache() {
-  try {
-    const cache = CacheService.getScriptCache();
-    cache.remove("system_column_enums_cache");
-    _columnEnumsInitialized = false;
-  } catch (e) {
-    Logger.log("Error clearing column enums cache: " + e.message);
-  }
-}
+// NOTE: Global column enums (COL_*), proxy (createEnumProxy), and init flags are now declared globally in SchemaDef.gs
 
 function initializeColumnEnums() {
-  if (_columnEnumsInitialized) return;
+  if (_columnEnumsInitialized || _loadingColumnEnums) return;
+  _loadingColumnEnums = true;
 
-  // Sử dụng bộ nhớ đệm CacheService để tối ưu hiệu năng đọc (tránh 10 cuộc gọi Sheet API)
   const cache = CacheService.getScriptCache();
   const cached = cache.get("system_column_enums_cache");
   if (cached) {
@@ -309,256 +53,62 @@ function initializeColumnEnums() {
       Object.assign(COL_BH, data.COL_BH);
       Object.assign(COL_NV, data.COL_NV || {});
       _columnEnumsInitialized = true;
+      _loadingColumnEnums = false;
       return;
     } catch (e) {
       Logger.log("Error parsing cached column enums: " + e.message);
     }
   }
 
-  const mapDT = getColMapFromSheet(SHEET_NAMES.DIEN_THOAI);
-  if (mapDT) {
-    COL_DT.MA_DT = mapDT["mã điện thoại"] || COL_DT.MA_DT;
-    COL_DT.TEN_SP = mapDT["tên sản phẩm"] || COL_DT.TEN_SP;
-    COL_DT.THUONG_HIEU = mapDT["thương hiệu"] || COL_DT.THUONG_HIEU;
-    COL_DT.IMEI = mapDT["imei"] || COL_DT.IMEI;
-    COL_DT.IMEI_2 = mapDT["imei 2"] || COL_DT.IMEI_2;
-    COL_DT.MAU_SAC = mapDT["màu sắc"] || COL_DT.MAU_SAC;
-    COL_DT.DUNG_LUONG = mapDT["dung lượng"] || COL_DT.DUNG_LUONG;
-    COL_DT.TINH_TRANG = mapDT["tình trạng"] || COL_DT.TINH_TRANG;
-    COL_DT.GIA_NHAP = mapDT["giá nhập"] || COL_DT.GIA_NHAP;
-    COL_DT.GIA_BAN = mapDT["giá bán"] || COL_DT.GIA_BAN;
-    COL_DT.GIA_TRA_GOP = mapDT["giá trả góp"] || COL_DT.GIA_TRA_GOP;
-    COL_DT.TRANG_THAI_KHO = mapDT["trạng thái kho"] || COL_DT.TRANG_THAI_KHO;
-    COL_DT.GHI_CHU = mapDT["ghi chú"] || COL_DT.GHI_CHU;
-    COL_DT.CHI_NHANH = mapDT["chi nhánh"] || COL_DT.CHI_NHANH;
-    COL_DT.NGAY_NHAP = mapDT["ngày nhập"] || COL_DT.NGAY_NHAP;
-    COL_DT.NGAY_XUAT = mapDT["ngày xuất"] || COL_DT.NGAY_XUAT;
+  try {
+    reconcileAllSchemas();
+    _columnEnumsInitialized = true;
+  } finally {
+    _loadingColumnEnums = false;
   }
+}
 
-  const mapPK = getColMapFromSheet(SHEET_NAMES.PHU_KIEN);
-  if (mapPK) {
-    COL_PK.MA_PK = mapPK["mã phụ kiện"] || COL_PK.MA_PK;
-    COL_PK.TEN_SP = mapPK["tên sản phẩm"] || COL_PK.TEN_SP;
-    COL_PK.LOAI_PK = mapPK["loại phụ kiện"] || COL_PK.LOAI_PK;
-    COL_PK.THUONG_HIEU = mapPK["thương hiệu"] || COL_PK.THUONG_HIEU;
-    COL_PK.GIA_NHAP = mapPK["giá nhập"] || COL_PK.GIA_NHAP;
-    COL_PK.GIA_BAN = mapPK["giá bán"] || COL_PK.GIA_BAN;
-    COL_PK.SO_LUONG_TON = mapPK["số lượng tồn"] || COL_PK.SO_LUONG_TON;
-    COL_PK.MO_TA = mapPK["mô tả"] || COL_PK.MO_TA;
-    COL_PK.TRANG_THAI = mapPK["trạng thái"] || COL_PK.TRANG_THAI;
-    COL_PK.CHI_NHANH = mapPK["chi nhánh"] || COL_PK.CHI_NHANH;
+function reconcileAllSchemas() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  // Mapping of sheet name to its corresponding global COL_XXX object
+  const enumMapping = {};
+  enumMapping[SHEET_NAMES.DIEN_THOAI] = COL_DT;
+  enumMapping[SHEET_NAMES.PHU_KIEN] = COL_PK;
+  enumMapping[SHEET_NAMES.DON_HANG] = COL_DH;
+  enumMapping[SHEET_NAMES.THU_MUA] = COL_TM;
+  enumMapping[SHEET_NAMES.NHAP_KHO] = COL_NK;
+  enumMapping[SHEET_NAMES.TRA_GOP] = COL_TG;
+  enumMapping[SHEET_NAMES.LICH_SU_TRA_GOP] = COL_LSTG;
+  enumMapping[SHEET_NAMES.DICH_VU] = COL_DV;
+  enumMapping[SHEET_NAMES.DOI_TRA] = COL_DT_TRA;
+  enumMapping[SHEET_NAMES.KHACH_HANG] = COL_KH;
+  enumMapping[SHEET_NAMES.BAO_HANH] = COL_BH;
+  enumMapping[SHEET_NAMES.NHAN_VIEN] = COL_NV;
+
+  for (const sheetName in SCHEMA) {
+    const colEnum = enumMapping[sheetName];
+    if (!colEnum) continue;
+
+    // Load actual column map from the sheet
+    const actualMap = getColMapFromSheet(sheetName);
+    const schemaList = SCHEMA[sheetName];
+
+    if (actualMap && Object.keys(actualMap).length > 0) {
+      // Reconcile index based on current sheet header label
+      schemaList.forEach(function (colDef) {
+        const code = colDef[0];
+        const label = colDef[1].toLowerCase();
+        
+        if (actualMap[label] !== undefined) {
+          colEnum[code] = actualMap[label];
+        }
+      });
+    }
   }
-
-  const mapDH = getColMapFromSheet(SHEET_NAMES.DON_HANG);
-  if (mapDH) {
-    COL_DH.MA_DH = mapDH["mã đơn hàng"] || COL_DH.MA_DH;
-    COL_DH.NGAY_BAN = mapDH["ngày bán"] || COL_DH.NGAY_BAN;
-    COL_DH.MA_KH = mapDH["mã khách hàng"] || COL_DH.MA_KH;
-    COL_DH.TEN_KH = mapDH["tên khách hàng"] || COL_DH.TEN_KH;
-    COL_DH.MA_SP = mapDH["mã sản phẩm"] || COL_DH.MA_SP;
-    COL_DH.TEN_SP = mapDH["tên sản phẩm"] || COL_DH.TEN_SP;
-    COL_DH.NGUON_SP = mapDH["nguồn sản phẩm"] || COL_DH.NGUON_SP;
-    COL_DH.THUONG_HIEU = mapDH["thương hiệu"] || COL_DH.THUONG_HIEU;
-    COL_DH.SO_LUONG = mapDH["số lượng"] || COL_DH.SO_LUONG;
-    COL_DH.DON_GIA = mapDH["đơn giá"] || COL_DH.DON_GIA;
-    COL_DH.THANH_TIEN = mapDH["thành tiền"] || COL_DH.THANH_TIEN;
-    COL_DH.HINH_THUC_BAN = mapDH["hình thức bán"] || COL_DH.HINH_THUC_BAN;
-    COL_DH.HINH_THUC_TT = mapDH["hình thức thanh toán"] || COL_DH.HINH_THUC_TT;
-    COL_DH.NGUOI_BAN = mapDH["người bán"] || COL_DH.NGUOI_BAN;
-    COL_DH.TEN_NGUOI_BAN = mapDH["tên người bán"] || COL_DH.TEN_NGUOI_BAN;
-    COL_DH.QUYEN_XUAT = mapDH["có quyền xuất máy"] || COL_DH.QUYEN_XUAT;
-    COL_DH.NGUOI_HO_TRO = mapDH["người hỗ trợ"] || COL_DH.NGUOI_HO_TRO;
-    COL_DH.TEN_NGUOI_HO_TRO =
-      mapDH["tên người hỗ trợ"] || COL_DH.TEN_NGUOI_HO_TRO;
-    COL_DH.TRANG_THAI = mapDH["trạng thái"] || COL_DH.TRANG_THAI;
-    COL_DH.GHI_CHU = mapDH["ghi chú"] || COL_DH.GHI_CHU;
-    COL_DH.CHI_NHANH = mapDH["chi nhánh"] || COL_DH.CHI_NHANH;
-    COL_DH.MA_QUA_TANG = mapDH["mã quà tặng"] || COL_DH.MA_QUA_TANG;
-    COL_DH.TEN_QUA_TANG = mapDH["tên quà tặng"] || COL_DH.TEN_QUA_TANG;
-    COL_DH.CO_NHAN_QUA = mapDH["có nhận quà"] || COL_DH.CO_NHAN_QUA;
-    COL_DH.TIEN_GIAM_GIA = mapDH["tiền giảm giá"] || COL_DH.TIEN_GIAM_GIA;
-    COL_DH.TIEN_MAT = mapDH["tiền mặt"] || COL_DH.TIEN_MAT;
-    COL_DH.CHUYEN_KHOAN = mapDH["chuyển khoản"] || COL_DH.CHUYEN_KHOAN;
-  }
-
-  const mapTM = getColMapFromSheet(SHEET_NAMES.THU_MUA);
-  if (mapTM) {
-    COL_TM.MA_TM = mapTM["mã thu mua"] || COL_TM.MA_TM;
-    COL_TM.NGAY_TM = mapTM["ngày thu mua"] || COL_TM.NGAY_TM;
-    COL_TM.MA_KH = mapTM["mã khách hàng"] || COL_TM.MA_KH;
-    COL_TM.TEN_KH = mapTM["tên khách hàng"] || COL_TM.TEN_KH;
-    COL_TM.TEN_SP_THU = mapTM["tên sản phẩm thu"] || COL_TM.TEN_SP_THU;
-    COL_TM.THUONG_HIEU_THU = mapTM["thương hiệu thu"] || COL_TM.THUONG_HIEU_THU;
-    COL_TM.IMEI_THU = mapTM["imei thu"] || COL_TM.IMEI_THU;
-    COL_TM.MAU_SAC_THU = mapTM["màu sắc thu"] || COL_TM.MAU_SAC_THU;
-    COL_TM.DUNG_LUONG_THU = mapTM["dung lượng thu"] || COL_TM.DUNG_LUONG_THU;
-    COL_TM.TINH_TRANG_THU = mapTM["tình trạng thu"] || COL_TM.TINH_TRANG_THU;
-    COL_TM.GIA_THU_MUA = mapTM["giá thu mua"] || COL_TM.GIA_THU_MUA;
-    COL_TM.LOAI_GD = mapTM["loại giao dịch"] || COL_TM.LOAI_GD;
-    COL_TM.MA_DH_MOI = mapTM["mã đơn hàng mới"] || COL_TM.MA_DH_MOI;
-    COL_TM.TIEN_HO_TRO = mapTM["tiền hỗ trợ"] || COL_TM.TIEN_HO_TRO;
-    COL_TM.TONG_TIEN_TRA = mapTM["tổng tiền trả khách"] || COL_TM.TONG_TIEN_TRA;
-    COL_TM.HINH_THUC_TT = mapTM["hình thức thanh toán"] || COL_TM.HINH_THUC_TT;
-    COL_TM.CHI_NHANH = mapTM["chi nhánh"] || COL_TM.CHI_NHANH;
-    COL_TM.NGUOI_THUC_HIEN = mapTM["người thực hiện"] || COL_TM.NGUOI_THUC_HIEN;
-    COL_TM.GHI_CHU = mapTM["ghi chú"] || COL_TM.GHI_CHU;
-    COL_TM.TIEN_MAT = mapTM["tiền mặt"] || COL_TM.TIEN_MAT;
-    COL_TM.CHUYEN_KHOAN = mapTM["chuyển khoản"] || COL_TM.CHUYEN_KHOAN;
-  }
-
-  const mapNK = getColMapFromSheet(SHEET_NAMES.NHAP_KHO);
-  if (mapNK) {
-    COL_NK.MA_NK = mapNK["mã nhập kho"] || COL_NK.MA_NK;
-    COL_NK.NGAY_NHAP = mapNK["ngày nhập"] || COL_NK.NGAY_NHAP;
-    COL_NK.NGUON_NHAP = mapNK["nguồn nhập"] || COL_NK.NGUON_NHAP;
-    COL_NK.MA_SP = mapNK["mã sản phẩm"] || COL_NK.MA_SP;
-    COL_NK.TEN_SP = mapNK["tên sản phẩm"] || COL_NK.TEN_SP;
-    COL_NK.SO_LUONG = mapNK["số lượng"] || COL_NK.SO_LUONG;
-    COL_NK.GIA_NHAP = mapNK["giá nhập"] || COL_NK.GIA_NHAP;
-    COL_NK.THANH_TIEN = mapNK["thành tiền"] || COL_NK.THANH_TIEN;
-    COL_NK.NHA_CUNG_CAP = mapNK["nhà cung cấp"] || COL_NK.NHA_CUNG_CAP;
-    COL_NK.GHI_CHU = mapNK["ghi chú"] || COL_NK.GHI_CHU;
-    COL_NK.CHI_NHANH = mapNK["chi nhánh"] || COL_NK.CHI_NHANH;
-  }
-
-  const mapTG = getColMapFromSheet(SHEET_NAMES.TRA_GOP);
-  if (mapTG) {
-    COL_TG.MA_TG = mapTG["mã trả góp"] || COL_TG.MA_TG;
-    COL_TG.MA_DH = mapTG["mã đơn hàng"] || COL_TG.MA_DH;
-    COL_TG.MA_KH = mapTG["mã khách hàng"] || COL_TG.MA_KH;
-    COL_TG.TEN_KH = mapTG["tên khách hàng"] || COL_TG.TEN_KH;
-    COL_TG.TONG_TIEN = mapTG["tổng tiền"] || COL_TG.TONG_TIEN;
-    COL_TG.TRA_TRUOC = mapTG["trả trước"] || COL_TG.TRA_TRUOC;
-    COL_TG.CON_LAI = mapTG["còn lại"] || COL_TG.CON_LAI;
-    COL_TG.SO_KY = mapTG["số kỳ"] || COL_TG.SO_KY;
-    COL_TG.TIEN_MOI_KY = mapTG["tiền mỗi kỳ"] || COL_TG.TIEN_MOI_KY;
-    COL_TG.NGAY_BAT_DAU = mapTG["ngày bắt đầu"] || COL_TG.NGAY_BAT_DAU;
-    COL_TG.NGAY_KET_THUC = mapTG["ngày kết thúc"] || COL_TG.NGAY_KET_THUC;
-    COL_TG.DA_TRA_SO_KY = mapTG["đã trả số kỳ"] || COL_TG.DA_TRA_SO_KY;
-    COL_TG.DA_TRA_SO_TIEN = mapTG["đã trả số tiền"] || COL_TG.DA_TRA_SO_TIEN;
-    COL_TG.LOAI_TRA_GOP = mapTG["loại trả góp"] || COL_TG.LOAI_TRA_GOP;
-    COL_TG.CONG_TY_TC = mapTG["công ty tài chính"] || COL_TG.CONG_TY_TC;
-    COL_TG.TRANG_THAI = mapTG["trạng thái"] || COL_TG.TRANG_THAI;
-    COL_TG.CHI_NHANH = mapTG["chi nhánh"] || COL_TG.CHI_NHANH;
-    COL_TG.TIEN_MAT = mapTG["tiền mặt"] || COL_TG.TIEN_MAT;
-    COL_TG.CHUYEN_KHOAN = mapTG["chuyển khoản"] || COL_TG.CHUYEN_KHOAN;
-  }
-
-  const mapLSTG = getColMapFromSheet(SHEET_NAMES.LICH_SU_TRA_GOP);
-  if (mapLSTG) {
-    COL_LSTG.MA_LS = mapLSTG["mã lịch sử"] || COL_LSTG.MA_LS;
-    COL_LSTG.MA_TG = mapLSTG["mã trả góp"] || COL_LSTG.MA_TG;
-    COL_LSTG.KY_SO = mapLSTG["kỳ số"] || COL_LSTG.KY_SO;
-    COL_LSTG.SO_TIEN_CAN_TRA =
-      mapLSTG["số tiền cần trả"] || COL_LSTG.SO_TIEN_CAN_TRA;
-    COL_LSTG.SO_TIEN_DA_TRA =
-      mapLSTG["số tiền đã trả"] || COL_LSTG.SO_TIEN_DA_TRA;
-    COL_LSTG.NGAY_CAN_TRA = mapLSTG["ngày cần trả"] || COL_LSTG.NGAY_CAN_TRA;
-    COL_LSTG.NGAY_THUC_TRA = mapLSTG["ngày thực trả"] || COL_LSTG.NGAY_THUC_TRA;
-    COL_LSTG.HINH_THUC_TT =
-      mapLSTG["hình thức thanh toán"] || COL_LSTG.HINH_THUC_TT;
-    COL_LSTG.TRANG_THAI = mapLSTG["trạng thái"] || COL_LSTG.TRANG_THAI;
-    COL_LSTG.GHI_CHU = mapLSTG["ghi chú"] || COL_LSTG.GHI_CHU;
-    COL_LSTG.TIEN_MAT = mapLSTG["tiền mặt"] || COL_LSTG.TIEN_MAT;
-    COL_LSTG.CHUYEN_KHOAN = mapLSTG["chuyển khoản"] || COL_LSTG.CHUYEN_KHOAN;
-  }
-
-  const mapDV = getColMapFromSheet(SHEET_NAMES.DICH_VU);
-  if (mapDV) {
-    COL_DV.MA_DV = mapDV["mã dịch vụ"] || COL_DV.MA_DV;
-    COL_DV.NGAY_GD = mapDV["ngày giao dịch"] || COL_DV.NGAY_GD;
-    COL_DV.LOAI_DV = mapDV["loại dịch vụ"] || COL_DV.LOAI_DV;
-    COL_DV.MA_KH = mapDV["mã khách hàng"] || COL_DV.MA_KH;
-    COL_DV.TEN_KH = mapDV["tên khách hàng"] || COL_DV.TEN_KH;
-    COL_DV.SO_TIEN_GD = mapDV["số tiền giao dịch"] || COL_DV.SO_TIEN_GD;
-    COL_DV.PHI_DV = mapDV["phí dịch vụ"] || COL_DV.PHI_DV;
-    COL_DV.HINH_THUC_TT = mapDV["hình thức thanh toán"] || COL_DV.HINH_THUC_TT;
-    COL_DV.NGUOI_THUC_HIEN = mapDV["người thực hiện"] || COL_DV.NGUOI_THUC_HIEN;
-    COL_DV.TEN_NGUOI_THUC_HIEN =
-      mapDV["tên người thực hiện"] || COL_DV.TEN_NGUOI_THUC_HIEN;
-    COL_DV.TRANG_THAI = mapDV["trạng thái"] || COL_DV.TRANG_THAI;
-    COL_DV.GHI_CHU = mapDV["ghi chú"] || COL_DV.GHI_CHU;
-    COL_DV.CHI_NHANH = mapDV["chi nhánh"] || COL_DV.CHI_NHANH;
-    COL_DV.TIEN_MAT = mapDV["tiền mặt"] || COL_DV.TIEN_MAT;
-    COL_DV.CHUYEN_KHOAN = mapDV["chuyển khoản"] || COL_DV.CHUYEN_KHOAN;
-  }
-
-  const mapDoiTra = getColMapFromSheet(SHEET_NAMES.DOI_TRA);
-  if (mapDoiTra) {
-    COL_DT_TRA.MA_DT = mapDoiTra["mã đổi trả"] || COL_DT_TRA.MA_DT;
-    COL_DT_TRA.NGAY_DT = mapDoiTra["ngày đổi trả"] || COL_DT_TRA.NGAY_DT;
-    COL_DT_TRA.MA_DH = mapDoiTra["mã đơn hàng"] || COL_DT_TRA.MA_DH;
-    COL_DT_TRA.MA_KH = mapDoiTra["mã khách hàng"] || COL_DT_TRA.MA_KH;
-    COL_DT_TRA.TEN_KH = mapDoiTra["tên khách hàng"] || COL_DT_TRA.TEN_KH;
-    COL_DT_TRA.LOAI_GD = mapDoiTra["loại giao dịch"] || COL_DT_TRA.LOAI_GD;
-    COL_DT_TRA.MA_SP_TRA = mapDoiTra["mã sản phẩm trả"] || COL_DT_TRA.MA_SP_TRA;
-    COL_DT_TRA.TEN_SP_TRA =
-      mapDoiTra["tên sản phẩm trả"] || COL_DT_TRA.TEN_SP_TRA;
-    COL_DT_TRA.IMEI_TRA = mapDoiTra["imei trả"] || COL_DT_TRA.IMEI_TRA;
-    COL_DT_TRA.MA_SP_NHAN =
-      mapDoiTra["mã sản phẩm nhận"] || COL_DT_TRA.MA_SP_NHAN;
-    COL_DT_TRA.TEN_SP_NHAN =
-      mapDoiTra["tên sản phẩm nhận"] || COL_DT_TRA.TEN_SP_NHAN;
-    COL_DT_TRA.IMEI_NHAN = mapDoiTra["imei nhận"] || COL_DT_TRA.IMEI_NHAN;
-    COL_DT_TRA.TIEN_HOAN_TRA =
-      mapDoiTra["tiền hoàn trả"] || COL_DT_TRA.TIEN_HOAN_TRA;
-    COL_DT_TRA.PHI_DOI_TRA = mapDoiTra["phí đổi trả"] || COL_DT_TRA.PHI_DOI_TRA;
-    COL_DT_TRA.HINH_THUC_TT =
-      mapDoiTra["hình thức thanh toán"] || COL_DT_TRA.HINH_THUC_TT;
-    COL_DT_TRA.CHI_NHANH = mapDoiTra["chi nhánh"] || COL_DT_TRA.CHI_NHANH;
-    COL_DT_TRA.NGUOI_THUC_HIEN =
-      mapDoiTra["người thực hiện"] || COL_DT_TRA.NGUOI_THUC_HIEN;
-    COL_DT_TRA.TRANG_THAI = mapDoiTra["trạng thái"] || COL_DT_TRA.TRANG_THAI;
-    COL_DT_TRA.GHI_CHU = mapDoiTra["ghi chú"] || COL_DT_TRA.GHI_CHU;
-    COL_DT_TRA.TIEN_MAT = mapDoiTra["tiền mặt"] || COL_DT_TRA.TIEN_MAT;
-    COL_DT_TRA.CHUYEN_KHOAN =
-      mapDoiTra["chuyển khoản"] || COL_DT_TRA.CHUYEN_KHOAN;
-  }
-
-  const mapKH = getColMapFromSheet(SHEET_NAMES.KHACH_HANG);
-  if (mapKH) {
-    COL_KH.MA_KH = mapKH["mã khách hàng"] || COL_KH.MA_KH;
-    COL_KH.HO_TEN = mapKH["họ tên"] || mapKH["họ và tên"] || COL_KH.HO_TEN;
-    COL_KH.CCCD = mapKH["cccd"] || COL_KH.CCCD;
-    COL_KH.DIA_CHI = mapKH["địa chỉ"] || COL_KH.DIA_CHI;
-    COL_KH.NGAY_TAO = mapKH["ngày tạo"] || COL_KH.NGAY_TAO;
-    COL_KH.GHI_CHU = mapKH["ghi chú"] || COL_KH.GHI_CHU;
-  }
-
-  const mapBH = getColMapFromSheet(SHEET_NAMES.BAO_HANH);
-  if (mapBH) {
-    COL_BH.MA_BH = mapBH["mã bảo hành"] || COL_BH.MA_BH;
-    COL_BH.NGAY_NHAN = mapBH["ngày nhận"] || COL_BH.NGAY_NHAN;
-    COL_BH.MA_KH = mapBH["mã khách hàng"] || COL_BH.MA_KH;
-    COL_BH.TEN_KH = mapBH["tên khách hàng"] || COL_BH.TEN_KH;
-    COL_BH.TEN_SP = mapBH["tên sản phẩm"] || COL_BH.TEN_SP;
-    COL_BH.TINH_TRANG_LOI = mapBH["tình trạng lỗi"] || COL_BH.TINH_TRANG_LOI;
-    COL_BH.LOAI_DICH_VU = mapBH["loại dịch vụ"] || COL_BH.LOAI_DICH_VU;
-    COL_BH.PHI_SUA_CHUA = mapBH["phí sửa chữa"] || COL_BH.PHI_SUA_CHUA;
-    COL_BH.HINH_THUC_TT = mapBH["hình thức thanh toán"] || COL_BH.HINH_THUC_TT;
-    COL_BH.NGUOI_TIEP_NHAN = mapBH["người tiếp nhận"] || COL_BH.NGUOI_TIEP_NHAN;
-    COL_BH.NGUOI_SUA = mapBH["người sửa"] || COL_BH.NGUOI_SUA;
-    COL_BH.TRANG_THAI = mapBH["trạng thái"] || COL_BH.TRANG_THAI;
-    COL_BH.GHI_CHU = mapBH["ghi chú"] || COL_BH.GHI_CHU;
-    COL_BH.CHI_NHANH = mapBH["chi nhánh"] || COL_BH.CHI_NHANH;
-    COL_BH.TIEN_MAT = mapBH["tiền mặt"] || COL_BH.TIEN_MAT;
-    COL_BH.CHUYEN_KHOAN = mapBH["chuyển khoản"] || COL_BH.CHUYEN_KHOAN;
-  }
-
-  const mapNV = getColMapFromSheet(SHEET_NAMES.NHAN_VIEN);
-  if (mapNV) {
-    COL_NV.MA_NV = mapNV["mã nhân viên"] || COL_NV.MA_NV;
-    COL_NV.HO_TEN = mapNV["họ tên"] || COL_NV.HO_TEN;
-    COL_NV.SO_DIEN_THOAI = mapNV["số điện thoại"] || COL_NV.SO_DIEN_THOAI;
-    COL_NV.EMAIL = mapNV["email"] || COL_NV.EMAIL;
-    COL_NV.VAI_TRO = mapNV["vai trò"] || COL_NV.VAI_TRO;
-    COL_NV.QUYEN_XUAT = mapNV["quyền xuất máy"] || COL_NV.QUYEN_XUAT;
-    COL_NV.NGAY_VAO = mapNV["ngày vào làm"] || COL_NV.NGAY_VAO;
-    COL_NV.TRANG_THAI = mapNV["trạng thái"] || COL_NV.TRANG_THAI;
-  }
-
-  // Lưu cấu trúc cột vào Cache
-  const dataToCache = {
+  
+  // Reconstruct exact property structure to preserve compatibility with existing cache consumer logic
+  const cachePayload = {
     COL_DT: COL_DT,
     COL_PK: COL_PK,
     COL_DH: COL_DH,
@@ -572,13 +122,26 @@ function initializeColumnEnums() {
     COL_BH: COL_BH,
     COL_NV: COL_NV
   };
+
+  const cache = CacheService.getScriptCache();
   try {
-    cache.put("system_column_enums_cache", JSON.stringify(dataToCache), 21600);
+    cache.put("system_column_enums_cache", JSON.stringify(cachePayload), 21600);
   } catch (e) {
     Logger.log("Error writing column enums cache: " + e.message);
   }
+}
 
-  _columnEnumsInitialized = true;
+/**
+ * Xóa cache column enums của hệ thống
+ */
+function clearColumnEnumsCache() {
+  try {
+    const cache = CacheService.getScriptCache();
+    cache.remove("system_column_enums_cache");
+    _columnEnumsInitialized = false;
+  } catch (e) {
+    Logger.log("Error clearing column enums cache: " + e.message);
+  }
 }
 
 /**
