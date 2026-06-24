@@ -116,6 +116,20 @@ var COL_TM = {
   CHUYEN_KHOAN: 21,
 };
 
+var COL_NK = {
+  MA_NK: 1,
+  NGAY_NHAP: 2,
+  NGUON_NHAP: 3,
+  MA_SP: 4,
+  TEN_SP: 5,
+  SO_LUONG: 6,
+  GIA_NHAP: 7,
+  THANH_TIEN: 8,
+  NHA_CUNG_CAP: 9,
+  GHI_CHU: 10,
+  CHI_NHANH: 11,
+};
+
 var COL_TG = {
   MA_TG: 1,
   MA_DH: 2,
@@ -224,6 +238,17 @@ var COL_BH = {
   CHUYEN_KHOAN: 16,
 };
 
+var COL_NV = {
+  MA_NV: 1,
+  HO_TEN: 2,
+  SO_DIEN_THOAI: 3,
+  EMAIL: 4,
+  VAI_TRO: 5,
+  QUYEN_XUAT: 6,
+  NGAY_VAO: 7,
+  TRANG_THAI: 8,
+};
+
 var _columnEnumsInitialized = false;
 
 /**
@@ -252,12 +277,14 @@ function initializeColumnEnums() {
       Object.assign(COL_PK, data.COL_PK);
       Object.assign(COL_DH, data.COL_DH);
       Object.assign(COL_TM, data.COL_TM);
+      Object.assign(COL_NK, data.COL_NK);
       Object.assign(COL_TG, data.COL_TG);
       Object.assign(COL_LSTG, data.COL_LSTG);
       Object.assign(COL_DV, data.COL_DV);
       Object.assign(COL_DT_TRA, data.COL_DT_TRA);
       Object.assign(COL_KH, data.COL_KH);
       Object.assign(COL_BH, data.COL_BH);
+      Object.assign(COL_NV, data.COL_NV || {});
       _columnEnumsInitialized = true;
       return;
     } catch (e) {
@@ -355,6 +382,21 @@ function initializeColumnEnums() {
     COL_TM.GHI_CHU = mapTM["ghi chú"] || COL_TM.GHI_CHU;
     COL_TM.TIEN_MAT = mapTM["tiền mặt"] || COL_TM.TIEN_MAT;
     COL_TM.CHUYEN_KHOAN = mapTM["chuyển khoản"] || COL_TM.CHUYEN_KHOAN;
+  }
+
+  var mapNK = getColMapFromSheet(SHEET_NAMES.NHAP_KHO);
+  if (mapNK) {
+    COL_NK.MA_NK = mapNK["mã nhập kho"] || COL_NK.MA_NK;
+    COL_NK.NGAY_NHAP = mapNK["ngày nhập"] || COL_NK.NGAY_NHAP;
+    COL_NK.NGUON_NHAP = mapNK["nguồn nhập"] || COL_NK.NGUON_NHAP;
+    COL_NK.MA_SP = mapNK["mã sản phẩm"] || COL_NK.MA_SP;
+    COL_NK.TEN_SP = mapNK["tên sản phẩm"] || COL_NK.TEN_SP;
+    COL_NK.SO_LUONG = mapNK["số lượng"] || COL_NK.SO_LUONG;
+    COL_NK.GIA_NHAP = mapNK["giá nhập"] || COL_NK.GIA_NHAP;
+    COL_NK.THANH_TIEN = mapNK["thành tiền"] || COL_NK.THANH_TIEN;
+    COL_NK.NHA_CUNG_CAP = mapNK["nhà cung cấp"] || COL_NK.NHA_CUNG_CAP;
+    COL_NK.GHI_CHU = mapNK["ghi chú"] || COL_NK.GHI_CHU;
+    COL_NK.CHI_NHANH = mapNK["chi nhánh"] || COL_NK.CHI_NHANH;
   }
 
   var mapTG = getColMapFromSheet(SHEET_NAMES.TRA_GOP);
@@ -484,18 +526,32 @@ function initializeColumnEnums() {
     COL_BH.CHUYEN_KHOAN = mapBH["chuyển khoản"] || COL_BH.CHUYEN_KHOAN;
   }
 
+  var mapNV = getColMapFromSheet(SHEET_NAMES.NHAN_VIEN);
+  if (mapNV) {
+    COL_NV.MA_NV = mapNV["mã nhân viên"] || COL_NV.MA_NV;
+    COL_NV.HO_TEN = mapNV["họ tên"] || COL_NV.HO_TEN;
+    COL_NV.SO_DIEN_THOAI = mapNV["số điện thoại"] || COL_NV.SO_DIEN_THOAI;
+    COL_NV.EMAIL = mapNV["email"] || COL_NV.EMAIL;
+    COL_NV.VAI_TRO = mapNV["vai trò"] || COL_NV.VAI_TRO;
+    COL_NV.QUYEN_XUAT = mapNV["quyền xuất máy"] || COL_NV.QUYEN_XUAT;
+    COL_NV.NGAY_VAO = mapNV["ngày vào làm"] || COL_NV.NGAY_VAO;
+    COL_NV.TRANG_THAI = mapNV["trạng thái"] || COL_NV.TRANG_THAI;
+  }
+
   // Lưu cấu trúc cột vào Cache
   var dataToCache = {
     COL_DT: COL_DT,
     COL_PK: COL_PK,
     COL_DH: COL_DH,
     COL_TM: COL_TM,
+    COL_NK: COL_NK,
     COL_TG: COL_TG,
     COL_LSTG: COL_LSTG,
     COL_DV: COL_DV,
     COL_DT_TRA: COL_DT_TRA,
     COL_KH: COL_KH,
-    COL_BH: COL_BH
+    COL_BH: COL_BH,
+    COL_NV: COL_NV
   };
   try {
     cache.put("system_column_enums_cache", JSON.stringify(dataToCache), 21600);
@@ -699,20 +755,24 @@ function getSheetDataCached(sheetName) {
  * @param {string} sheetName - Tên sheet để đếm số dòng
  * @return {string} Mã mới
  */
-function generateId(prefix, sheetName) {
+function getRandomLetters() {
+  var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  return chars.charAt(Math.floor(Math.random() * 26)) + chars.charAt(Math.floor(Math.random() * 26));
+}
+
+function getNewIdCounter(prefix, sheetName) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(sheetName);
-  if (!sheet) return prefix + "001";
+  if (!sheet) return 0;
 
   var lastRow = sheet.getLastRow();
-  if (lastRow <= 1) return prefix + "001";
+  if (lastRow <= 1) return 0;
 
-  // Lấy cột mã (cột 1) và tìm số lớn nhất
   var data = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
   var maxNum = 0;
 
   data.forEach(function (row) {
-    var val = String(row[0]);
+    var val = String(row[0]).trim();
     if (val.indexOf(prefix) === 0) {
       var numPart = parseInt(val.substring(prefix.length), 10);
       if (!isNaN(numPart) && numPart > maxNum) {
@@ -721,9 +781,14 @@ function generateId(prefix, sheetName) {
     }
   });
 
+  return maxNum;
+}
+
+function generateId(prefix, sheetName) {
+  var maxNum = getNewIdCounter(prefix, sheetName);
   var nextNum = maxNum + 1;
-  var padded = ("000" + nextNum).slice(-3);
-  return prefix + padded;
+  var padded = ("00000" + nextNum).slice(-5);
+  return prefix + padded + getRandomLetters();
 }
 
 /**
@@ -861,6 +926,65 @@ function getAllData(sheetName) {
  * @param {Array} rowData - Mảng dữ liệu 1 dòng
  * @return {number} Số dòng mới (row number)
  */
+/**
+ * Hàm cập nhật hoặc chèn mới dòng dữ liệu an toàn (DRY Compliance)
+ *
+ * @param {string} sheetName - Tên sheet
+ * @param {number} row - Dòng cần sửa (1-indexed), nếu là -1 sẽ chèn mới vào cuối sheet
+ * @param {Object} columnValueMap - Bản đồ cột và giá trị { [Mã cột enum]: giá trị }
+ * @return {number} Số dòng đã ghi nhận (row number)
+ */
+function saveRowData(sheetName, row, columnValueMap) {
+  clearSheetCache(sheetName);
+  invalidateDropdownCache(sheetName);
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) throw new Error('Sheet "' + sheetName + '" không tồn tại!');
+
+  // Xác định số cột lớn nhất cần thiết
+  var maxColNeeded = 0;
+  Object.keys(columnValueMap).forEach(function(colStr) {
+    var col = parseInt(colStr, 10);
+    if (!isNaN(col) && col > maxColNeeded) {
+      maxColNeeded = col;
+    }
+  });
+
+  // Tự động mở rộng số cột nếu thiếu
+  var maxCols = sheet.getMaxColumns();
+  if (maxCols < maxColNeeded) {
+    sheet.insertColumnsAfter(maxCols, maxColNeeded - maxCols);
+  }
+
+  // Nếu là dòng mới (-1), append dòng trống để lấy số dòng cuối
+  if (row === -1) {
+    sheet.appendRow([]);
+    row = sheet.getLastRow();
+  }
+
+  var range = sheet.getRange(row, 1, 1, maxColNeeded);
+  var rowValues = range.getValues()[0];
+
+  // Áp dụng dữ liệu cập nhật
+  Object.keys(columnValueMap).forEach(function(colStr) {
+    var col = parseInt(colStr, 10);
+    if (isNaN(col)) return;
+    var value = columnValueMap[colStr];
+
+    // Tránh mất số 0 ở đầu đối với chuỗi số điện thoại hoặc mã bắt đầu bằng 0
+    if (typeof value === "string" && value.indexOf("0") === 0 && value.length > 1 && /^\d+$/.test(value)) {
+      value = "'" + value;
+    }
+    rowValues[col - 1] = (value !== undefined && value !== null) ? value : "";
+  });
+
+  range.setValues([rowValues]);
+  range.setFontFamily("Times New Roman");
+  range.setFontSize(12);
+
+  return row;
+}
+
 function appendRow(sheetName, rowData) {
   clearSheetCache(sheetName);
   invalidateDropdownCache(sheetName);
@@ -894,6 +1018,49 @@ function appendRow(sheetName, rowData) {
   // }
 
   return lastRow;
+}
+
+function appendRows(sheetName, rowsData) {
+  if (!rowsData || rowsData.length === 0) return 0;
+  clearSheetCache(sheetName);
+  invalidateDropdownCache(sheetName);
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) throw new Error('Sheet "' + sheetName + '" không tồn tại!');
+
+  // Tìm số cột dữ liệu lớn nhất trong các dòng
+  var maxDataCols = Math.max.apply(null, rowsData.map(function(r) { return r.length; }));
+  var maxCols = sheet.getMaxColumns();
+  if (maxCols < maxDataCols) {
+    sheet.insertColumnsAfter(maxCols, maxDataCols - maxCols);
+  }
+
+  // Tránh mất số 0 ở đầu đối với chuỗi số điện thoại hoặc mã bắt đầu bằng 0
+  rowsData.forEach(function (rowData) {
+    for (var i = 0; i < rowData.length; i++) {
+      var val = rowData[i];
+      if (typeof val === "string" && val.indexOf("0") === 0 && val.length > 1 && /^\d+$/.test(val)) {
+        rowData[i] = "'" + val;
+      }
+    }
+  });
+
+  var lastRow = sheet.getLastRow();
+  // Pad các hàng ngắn để khớp với kích thước mảng 2 chiều
+  var normalizedRows = rowsData.map(function(r) {
+    var arr = r.slice();
+    while (arr.length < maxDataCols) {
+      arr.push("");
+    }
+    return arr;
+  });
+
+  var range = sheet.getRange(lastRow + 1, 1, normalizedRows.length, maxDataCols);
+  range.setValues(normalizedRows);
+  range.setFontFamily("Times New Roman");
+  range.setFontSize(12);
+
+  return lastRow + normalizedRows.length;
 }
 
 /**
@@ -1220,3 +1387,86 @@ function getInterestRateConfig() {
   var num = parseFloat(cleanVal);
   return isNaN(num) ? 0 : num;
 }
+
+/**
+ * Thực thi một hàm an toàn trong môi trường khóa tài liệu (Document Lock)
+ * 
+ * @param {Function} callback Hàm chứa logic nghiệp vụ cần thực hiện trong lock
+ * @return {*} Kết quả trả về của callback
+ */
+function withDocumentLock(callback) {
+  var lock = LockService.getDocumentLock();
+  try {
+    lock.waitLock(15000);
+  } catch (e) {
+    throw new Error("Hệ thống hiện đang bận xử lý giao dịch khác. Vui lòng thử lại sau vài giây!");
+  }
+  
+  try {
+    return callback();
+  } finally {
+    try {
+      lock.releaseLock();
+    } catch (err) {
+      Logger.log("Không thể giải phóng khóa: " + err.message);
+    }
+  }
+}
+
+/**
+ * Tính toán và xác thực phân bổ thanh toán (Tiền mặt / Chuyển khoản / Hỗn hợp)
+ * 
+ * @param {Object} data Đối tượng chứa hinhThucThanhToan, splitTienMat, splitChuyenKhoan
+ * @param {number} totalAmount Tổng số tiền cần thanh toán
+ * @return {Object} { tienMat, chuyenKhoan, hinhThucTTDisplay }
+ */
+function calculatePaymentSplit(data, totalAmount) {
+  var tienMat = 0;
+  var chuyenKhoan = 0;
+  var hinhThucTTDisplay = data.hinhThucThanhToan || "Tiền mặt";
+  
+  if (data.hinhThucThanhToan === "Hỗn hợp") {
+    var splitTienMat = Number(data.splitTienMat) || 0;
+    var splitChuyenKhoan = Number(data.splitChuyenKhoan) || 0;
+    if (Math.abs(splitTienMat + splitChuyenKhoan - totalAmount) > 1) {
+      throw new Error(
+        "Lỗi dữ liệu: Tổng tiền mặt (" +
+          splitTienMat +
+          ") và chuyển khoản (" +
+          splitChuyenKhoan +
+          ") không khớp với số tiền cần thanh toán (" +
+          totalAmount +
+          ")!"
+      );
+    }
+    tienMat = splitTienMat;
+    chuyenKhoan = splitChuyenKhoan;
+  } else if (data.hinhThucThanhToan === "Tiền mặt") {
+    tienMat = totalAmount;
+  } else {
+    chuyenKhoan = totalAmount;
+  }
+  
+  return {
+    tienMat: tienMat,
+    chuyenKhoan: chuyenKhoan,
+    hinhThucTTDisplay: hinhThucTTDisplay
+  };
+}
+
+/**
+ * Kiểm tra xem ngày tháng có khớp với tháng và năm chỉ định không
+ * 
+ * @param {*} date Giá trị ngày cần kiểm tra
+ * @param {number} month Tháng (1-12)
+ * @param {number} year Năm
+ * @return {boolean}
+ */
+function isSameMonthYear(date, month, year) {
+  return (
+    date instanceof Date &&
+    date.getMonth() + 1 === month &&
+    date.getFullYear() === year
+  );
+}
+

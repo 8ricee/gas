@@ -170,11 +170,8 @@ function chotDoanhSoThang(thang, nam) {
     var startRow = sheet.getLastRow() + 1;
     sheet.getRange(startRow, 1, rows.length, rows[0].length).setValues(rows);
 
-    // Format tiền
-    var colsTienStart = 10; // Hoa hồng bán
-    for (var c = colsTienStart; c <= 15; c++) {
-      sheet.getRange(startRow, c, rows.length, 1).setNumberFormat("#,##0");
-    }
+    // Format tiền (Tối ưu: gọi setNumberFormat 1 lần duy nhất cho toàn bộ vùng cột tiền tệ liên tiếp)
+    sheet.getRange(startRow, 10, rows.length, 6).setNumberFormat("#,##0");
   }
 
   showAlert(

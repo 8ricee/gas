@@ -123,23 +123,19 @@ function updateKhachHang(maKH, data) {
     return false;
   }
 
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(SHEET_NAMES.KHACH_HANG);
-
+  var updates = {};
   if (data.soDienThoai !== undefined) {
-    sheet.getRange(row, COL_KH.MA_KH).setValue(data.soDienThoai);
+    updates[COL_KH.MA_KH] = data.soDienThoai;
     if (COL_KH.SO_DIEN_THOAI !== COL_KH.MA_KH) {
-      sheet.getRange(row, COL_KH.SO_DIEN_THOAI).setValue(data.soDienThoai);
+      updates[COL_KH.SO_DIEN_THOAI] = data.soDienThoai;
     }
   }
-  if (data.hoTen !== undefined)
-    sheet.getRange(row, COL_KH.HO_TEN).setValue(data.hoTen);
-  if (data.cccd !== undefined)
-    sheet.getRange(row, COL_KH.CCCD).setValue(data.cccd);
-  if (data.diaChi !== undefined)
-    sheet.getRange(row, COL_KH.DIA_CHI).setValue(data.diaChi);
-  if (data.ghiChu !== undefined)
-    sheet.getRange(row, COL_KH.GHI_CHU).setValue(data.ghiChu);
+  if (data.hoTen !== undefined) updates[COL_KH.HO_TEN] = data.hoTen;
+  if (data.cccd !== undefined) updates[COL_KH.CCCD] = data.cccd;
+  if (data.diaChi !== undefined) updates[COL_KH.DIA_CHI] = data.diaChi;
+  if (data.ghiChu !== undefined) updates[COL_KH.GHI_CHU] = data.ghiChu;
+
+  saveRowData(SHEET_NAMES.KHACH_HANG, row, updates);
 
   showToast("Đã cập nhật KH: " + maKH);
   return true;
@@ -256,7 +252,15 @@ function ensureKhachHangExists(maKH, hoTen, soDienThoai) {
   // Kiểm tra xem mã khách hàng đã có trong DB chưa
   var existingRow = findRow(SHEET_NAMES.KHACH_HANG, COL_KH.MA_KH, maKH);
   
-  if (existingRow === -1 && hoTen && hoTen !== maKH) {
+  if (existingRow !== -1) {
+    // Nếu khách hàng đã tồn tại, trả về tên hiện tại trong hệ thống (nếu hoTen đầu vào trống)
+    if (!hoTen) {
+      return lookupValue(SHEET_NAMES.KHACH_HANG, COL_KH.MA_KH, maKH, COL_KH.HO_TEN) || "";
+    }
+    return hoTen;
+  }
+  
+  if (hoTen && hoTen !== maKH) {
     // Khách hàng chưa tồn tại, tự động thêm mới
     var phone = soDienThoai || (/\d{9,11}/.test(maKH) ? maKH : "");
     var rowData = [];
@@ -274,5 +278,5 @@ function ensureKhachHangExists(maKH, hoTen, soDienThoai) {
     setChunkedCache("dd_kh", null); 
   }
   
-  return hoTen;
+  return hoTen || "";
 }

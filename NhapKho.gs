@@ -168,11 +168,7 @@ function getTongKetNhapKho(thang, nam) {
 
   data.forEach(function (row) {
     var ngay = row[1];
-    if (
-      ngay instanceof Date &&
-      ngay.getMonth() + 1 === thang &&
-      ngay.getFullYear() === nam
-    ) {
+    if (isSameMonthYear(ngay, thang, nam)) {
       result.tongNhap++;
       result.tongTien += Number(row[7]) || 0;
 

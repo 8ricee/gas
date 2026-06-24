@@ -20,35 +20,14 @@ function taoBaoHanh(data) {
     throw new Error("Vui lòng chọn chi nhánh!");
   }
 
-  var tenNguoiTiepNhan = "";
-  if (data.nguoiTiepNhan) {
-    tenNguoiTiepNhan = lookupValue(SHEET_NAMES.NHAN_VIEN, 1, data.nguoiTiepNhan, 2) || "";
-  }
-
+  var tenNguoiTiepNhan = getNhanVienName(data.nguoiTiepNhan);
   var tenKH = ensureKhachHangExists(data.maKH, data.tenKH);
-  if (!tenKH && data.maKH) {
-    tenKH = lookupValue(SHEET_NAMES.KHACH_HANG, 1, data.maKH, 2) || "";
-  }
-
   var phiSuaChua = Number(data.phiSuaChua) || 0;
 
-  var tienMat = 0;
-  var chuyenKhoan = 0;
-  var hinhThucTTDisplay = data.hinhThucThanhToan || "Tiền mặt";
-
-  if (data.hinhThucThanhToan === "Hỗn hợp") {
-    var splitTienMat = Number(data.splitTienMat) || 0;
-    var splitChuyenKhoan = Number(data.splitChuyenKhoan) || 0;
-    if (Math.abs(splitTienMat + splitChuyenKhoan - phiSuaChua) > 1) {
-      throw new Error("Lỗi dữ liệu: Tổng thanh toán không khớp với Phí sửa chữa!");
-    }
-    tienMat = splitTienMat;
-    chuyenKhoan = splitChuyenKhoan;
-  } else if (data.hinhThucThanhToan === "Tiền mặt") {
-    tienMat = phiSuaChua;
-  } else {
-    chuyenKhoan = phiSuaChua;
-  }
+  var splitResult = calculatePaymentSplit(data, phiSuaChua);
+  var tienMat = splitResult.tienMat;
+  var chuyenKhoan = splitResult.chuyenKhoan;
+  var hinhThucTTDisplay = splitResult.hinhThucTTDisplay;
 
   var rowData = [];
   rowData[COL_BH.MA_BH - 1] = maBH;
@@ -99,8 +78,7 @@ function getBaoHanhTheoThang(thang, nam) {
 
   data.forEach(function (row) {
     var ngay = row[COL_BH.NGAY_NHAN - 1];
-    if (ngay instanceof Date) {
-      if (ngay.getMonth() + 1 === thang && ngay.getFullYear() === nam) {
+    if (isSameMonthYear(ngay, thang, nam)) {
         result.push({
           MaBH: String(row[COL_BH.MA_BH - 1] || ""),
           NgayNhan: row[COL_BH.NGAY_NHAN - 1],
@@ -120,7 +98,7 @@ function getBaoHanhTheoThang(thang, nam) {
         });
       }
     }
-  });
+  );
 
   return result;
 }

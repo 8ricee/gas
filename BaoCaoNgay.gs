@@ -56,6 +56,100 @@ function generateDailyReport(targetDate) {
   var fallbackBranch = "Khác/Hệ thống";
 
   // Khởi tạo accumulator tài chính theo từng chi nhánh
+  var branchMetrics = _initBranchMetrics(branches, fallbackBranch);
+  var transactions = [];
+
+  // Thu thập giao dịch theo ngày
+  _collectDonHang(targetDate, branchMetrics, fallbackBranch, transactions, ss);
+  _collectDichVu(targetDate, branchMetrics, fallbackBranch, transactions);
+  _collectRepayments(targetDate, branchMetrics, fallbackBranch, transactions);
+  _collectNhapKho(targetDate, branchMetrics, fallbackBranch, transactions);
+  _collectDoiTra(targetDate, branchMetrics, fallbackBranch, transactions, ss);
+  _collectThuMua(targetDate, branchMetrics, fallbackBranch, transactions);
+  _collectBaoHanh(targetDate, branchMetrics, fallbackBranch, transactions);
+
+  // Sắp xếp tăng dần theo thời gian
+  transactions.sort(function (a, b) {
+    return a.time.getTime() - b.time.getTime();
+  });
+
+  // --- 2. GHI BÁO CÁO LÊN SHEET ---
+  reportSheet.clearContents();
+  reportSheet.getRange("A1:M1000").clearFormat();
+
+  // Tạo tiêu đề
+  reportSheet
+    .getRange(1, 1)
+    .setValue("BÁO CÁO GIAO DỊCH THEO NGÀY")
+    .setFontSize(14)
+    .setFontWeight("bold");
+
+  reportSheet.getRange(3, 1).setValue("Ngày báo cáo:").setFontWeight("bold");
+
+  var dateCell = reportSheet.getRange(3, 2);
+  dateCell
+    .setValue(targetDate)
+    .setNumberFormat("dd/MM/yyyy")
+    .setBackground("#ffffff")
+    .setBorder(
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      "#cccccc",
+      SpreadsheetApp.BorderStyle.SOLID,
+    )
+    .setHorizontalAlignment("left");
+
+  reportSheet
+    .getRange(4, 1)
+    .setValue("Trạng thái cập nhật:")
+    .setFontWeight("bold");
+
+  // Chuẩn bị danh sách các chi nhánh hiển thị ở bảng tổng hợp
+  var activeBranches = branches.slice();
+  var fb = branchMetrics[fallbackBranch];
+  if (
+    fb.doanhSo !== 0 ||
+    fb.loiNhuan !== 0 ||
+    fb.thuTM !== 0 ||
+    fb.chiTM !== 0 ||
+    fb.thuCK !== 0 ||
+    fb.chiCK !== 0
+  ) {
+    activeBranches.push(fallbackBranch);
+  }
+  var numActiveBranches = activeBranches.length;
+  var totalSummaryColIdx = numActiveBranches + 2;
+
+  // Ghi bảng tổng hợp chỉ tiêu tài chính
+  _writeSummaryTableToSheet(reportSheet, branchMetrics, activeBranches, totalSummaryColIdx);
+
+  // Ghi chi tiết giao dịch các chi nhánh
+  _writeDetailedTablesToSheet(reportSheet, transactions, activeBranches, fallbackBranch);
+
+  // Áp dụng font Times New Roman 12 cho toàn sheet
+  var maxRows = reportSheet.getMaxRows();
+  var maxCols = reportSheet.getMaxColumns();
+  reportSheet
+    .getRange(1, 1, maxRows, maxCols)
+    .setFontFamily("Times New Roman")
+    .setFontSize(12);
+
+  // Auto resize các cột hiển thị
+  var colsToResize = Math.max(10, totalSummaryColIdx);
+  for (var col = 1; col <= colsToResize; col++) {
+    reportSheet.autoResizeColumn(col);
+  }
+}
+
+/**
+ * Khởi tạo accumulator tài chính theo từng chi nhánh
+ * @private
+ */
+function _initBranchMetrics(branches, fallbackBranch) {
   var branchMetrics = {};
   branches.forEach(function (b) {
     branchMetrics[b] = {
@@ -75,17 +169,20 @@ function generateDailyReport(targetDate) {
     thuCK: 0,
     chiCK: 0,
   };
+  return branchMetrics;
+}
 
-  // 1. Thu thập giao dịch của ngày targetDate
-  var transactions = [];
-
-  // --- A. ĐƠN HÀNG (DON_HANG) ---
+/**
+ * Thu thập giao dịch ĐƠN HÀNG (DON_HANG)
+ * @private
+ */
+function _collectDonHang(targetDate, branchMetrics, fallbackBranch, transactions, ss) {
   var orders = getAllData(SHEET_NAMES.DON_HANG);
   orders.forEach(function (row) {
     var ngayBan = row[COL_DH.NGAY_BAN - 1];
     if (ngayBan instanceof Date && _isSameDay(ngayBan, targetDate)) {
       var status = String(row[COL_DH.TRANG_THAI - 1]);
-      if (status === "Huỷ" || status === "Đổi trả") return; // Skip canceled/returned orders
+      if (status === "Huỷ" || status === "Đổi trả") return;
 
       var maDH = String(row[COL_DH.MA_DH - 1]);
       var tenKH = String(row[COL_DH.TEN_KH - 1]);
@@ -100,7 +197,6 @@ function generateDailyReport(targetDate) {
       var branch = String(row[COL_DH.CHI_NHANH - 1] || "").trim();
       var maQua = String(row[COL_DH.MA_QUA_TANG - 1] || "");
       var coNhanQua = String(row[COL_DH.CO_NHAN_QUA - 1] || "✗");
-      var giamGia = Number(row[COL_DH.TIEN_GIAM_GIA - 1] || 0);
 
       // Tra cứu giá nhập sản phẩm chính
       var giaNhapSP = 0;
@@ -273,8 +369,13 @@ function generateDailyReport(targetDate) {
       });
     }
   });
+}
 
-  // --- B. DỊCH VỤ (DICH_VU) ---
+/**
+ * Thu thập giao dịch DỊCH VỤ (DICH_VU)
+ * @private
+ */
+function _collectDichVu(targetDate, branchMetrics, fallbackBranch, transactions) {
   var services = getAllData(SHEET_NAMES.DICH_VU);
   services.forEach(function (row) {
     var ngayGD = row[COL_DV.NGAY_GD - 1];
@@ -384,8 +485,13 @@ function generateDailyReport(targetDate) {
       });
     }
   });
+}
 
-  // --- C. TRẢ GÓP (LICH_SU_TRA_GOP - repayments) ---
+/**
+ * Thu thập giao dịch TRẢ GÓP (LICH_SU_TRA_GOP - repayments)
+ * @private
+ */
+function _collectRepayments(targetDate, branchMetrics, fallbackBranch, transactions) {
   var repayments = getAllData(SHEET_NAMES.LICH_SU_TRA_GOP);
   repayments.forEach(function (row) {
     var ngayTra = row[COL_LSTG.NGAY_THUC_TRA - 1];
@@ -474,8 +580,13 @@ function generateDailyReport(targetDate) {
       });
     }
   });
+}
 
-  // --- D. NHẬP KHO (NHAP_KHO) ---
+/**
+ * Thu thập giao dịch NHẬP KHO (NHAP_KHO)
+ * @private
+ */
+function _collectNhapKho(targetDate, branchMetrics, fallbackBranch, transactions) {
   var imports = getAllData(SHEET_NAMES.NHAP_KHO);
   imports.forEach(function (row) {
     var ngayNhap = row[1];
@@ -518,8 +629,13 @@ function generateDailyReport(targetDate) {
       });
     }
   });
+}
 
-  // --- E. ĐỔI TRẢ (DOI_TRA) ---
+/**
+ * Thu thập giao dịch ĐỔI TRẢ (DOI_TRA)
+ * @private
+ */
+function _collectDoiTra(targetDate, branchMetrics, fallbackBranch, transactions, ss) {
   var returns = getAllData(SHEET_NAMES.DOI_TRA);
   returns.forEach(function (row) {
     var ngayDT = row[COL_DT_TRA.NGAY_DT - 1];
@@ -707,8 +823,13 @@ function generateDailyReport(targetDate) {
       });
     }
   });
+}
 
-  // --- F. THU MUA (THU_MUA) ---
+/**
+ * Thu thập giao dịch THU MUA (THU_MUA)
+ * @private
+ */
+function _collectThuMua(targetDate, branchMetrics, fallbackBranch, transactions) {
   var buybacks = getAllData(SHEET_NAMES.THU_MUA);
   buybacks.forEach(function (row) {
     var ngayTM = row[COL_TM.NGAY_TM - 1];
@@ -783,8 +904,13 @@ function generateDailyReport(targetDate) {
       });
     }
   });
+}
 
-  // --- G. BẢO HÀNH & SỬA CHỮA (BAO_HANH) ---
+/**
+ * Thu thập giao dịch BẢO HÀNH & SỬA CHỮA (BAO_HANH)
+ * @private
+ */
+function _collectBaoHanh(targetDate, branchMetrics, fallbackBranch, transactions) {
   var repairs = getAllData(SHEET_NAMES.BAO_HANH);
   repairs.forEach(function (row) {
     var ngayNhan = row[COL_BH.NGAY_NHAN - 1];
@@ -869,64 +995,13 @@ function generateDailyReport(targetDate) {
       });
     }
   });
+}
 
-  // Sắp xếp tăng dần theo thời gian
-  transactions.sort(function (a, b) {
-    return a.time.getTime() - b.time.getTime();
-  });
-
-  // --- 2. GHI BÁO CÁO LÊN SHEET ---
-  reportSheet.clearContents();
-  reportSheet.getRange("A1:M1000").clearFormat();
-
-  // Tạo tiêu đề
-  reportSheet
-    .getRange(1, 1)
-    .setValue("BÁO CÁO GIAO DỊCH THEO NGÀY")
-    .setFontSize(14)
-    .setFontWeight("bold");
-
-  reportSheet.getRange(3, 1).setValue("Ngày báo cáo:").setFontWeight("bold");
-
-  var dateCell = reportSheet.getRange(3, 2);
-  dateCell
-    .setValue(targetDate)
-    .setNumberFormat("dd/MM/yyyy")
-    .setBackground("#ffffff")
-    .setBorder(
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      "#cccccc",
-      SpreadsheetApp.BorderStyle.SOLID,
-    )
-    .setHorizontalAlignment("left");
-
-  reportSheet
-    .getRange(4, 1)
-    .setValue("Trạng thái cập nhật:")
-    .setFontWeight("bold");
-
-  // Chuẩn bị danh sách các chi nhánh hiển thị ở bảng tổng hợp
-  var activeBranches = branches.slice();
-  var fb = branchMetrics[fallbackBranch];
-  if (
-    fb.doanhSo !== 0 ||
-    fb.loiNhuan !== 0 ||
-    fb.thuTM !== 0 ||
-    fb.chiTM !== 0 ||
-    fb.thuCK !== 0 ||
-    fb.chiCK !== 0
-  ) {
-    activeBranches.push(fallbackBranch);
-  }
-  var numActiveBranches = activeBranches.length;
-  var totalSummaryColIdx = numActiveBranches + 2;
-
-  // Tiêu đề bảng tổng hợp chỉ tiêu tài chính
+/**
+ * Ghi bảng tổng hợp chỉ tiêu tài chính lên reportSheet
+ * @private
+ */
+function _writeSummaryTableToSheet(reportSheet, branchMetrics, activeBranches, totalSummaryColIdx) {
   var summaryTitleRange = reportSheet.getRange(6, 1, 1, totalSummaryColIdx);
   summaryTitleRange.merge();
   summaryTitleRange
@@ -1010,8 +1085,13 @@ function generateDailyReport(targetDate) {
       "#dadce0",
       SpreadsheetApp.BorderStyle.SOLID,
     );
+}
 
-  // --- 3. GHI CÁC BẢNG LỊCH SỬ CHI TIẾT THEO CHI NHÁNH ---
+/**
+ * Ghi các bảng chi tiết giao dịch theo chi nhánh lên reportSheet
+ * @private
+ */
+function _writeDetailedTablesToSheet(reportSheet, transactions, activeBranches, fallbackBranch) {
   var startRow = 17;
 
   activeBranches.forEach(function (branchName) {
@@ -1108,7 +1188,7 @@ function generateDailyReport(targetDate) {
         .setBackground("#f1f3f4")
         .setFontWeight("bold");
 
-      // Vẽ viền cho bảng (bao gồm cả dòng tổng cộng chi nhánh, tổng cộng 3 dòng tiêu đề/tổng + data)
+      // Vẽ viền cho bảng
       reportSheet
         .getRange(startRow, 1, detailRows.length + 3, 10)
         .setBorder(
@@ -1152,20 +1232,6 @@ function generateDailyReport(targetDate) {
       startRow = startRow + 5;
     }
   });
-
-  // Áp dụng font Times New Roman 12 cho toàn sheet
-  var maxRows = reportSheet.getMaxRows();
-  var maxCols = reportSheet.getMaxColumns();
-  reportSheet
-    .getRange(1, 1, maxRows, maxCols)
-    .setFontFamily("Times New Roman")
-    .setFontSize(12);
-
-  // Auto resize các cột hiển thị
-  var colsToResize = Math.max(10, totalSummaryColIdx);
-  for (var col = 1; col <= colsToResize; col++) {
-    reportSheet.autoResizeColumn(col);
-  }
 }
 
 /**

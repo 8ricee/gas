@@ -6,18 +6,12 @@
  */
 
 /**
- * Lấy danh sách tất cả phụ kiện
- *
- * @param {boolean} [chiConHang] - Nếu true, chỉ lấy SP còn hàng (tồn > 0 & đang bán)
- * @param {string} [chiNhanh] - Chỉ lấy SP ở chi nhánh
- * @return {Object[]}
+ * Lấy index cột (0-indexed) cho Phụ kiện
+ * @private
  */
-function getAllPhuKien(chiConHang, chiNhanh) {
+function _getPhuKienIndices() {
   initializeColumnEnums();
-  var data = getAllData(SHEET_NAMES.PHU_KIEN);
-  var result = [];
-
-  var c = {
+  return {
     maPK: COL_PK.MA_PK - 1,
     tenSP: COL_PK.TEN_SP - 1,
     loaiPK: COL_PK.LOAI_PK - 1,
@@ -29,6 +23,19 @@ function getAllPhuKien(chiConHang, chiNhanh) {
     trangThai: COL_PK.TRANG_THAI - 1,
     chiNhanh: COL_PK.CHI_NHANH - 1,
   };
+}
+
+/**
+ * Lấy danh sách tất cả phụ kiện
+ *
+ * @param {boolean} [chiConHang] - Nếu true, chỉ lấy SP còn hàng (tồn > 0 & đang bán)
+ * @param {string} [chiNhanh] - Chỉ lấy SP ở chi nhánh
+ * @return {Object[]}
+ */
+function getAllPhuKien(chiConHang, chiNhanh) {
+  var data = getAllData(SHEET_NAMES.PHU_KIEN);
+  var result = [];
+  var c = _getPhuKienIndices();
 
   data.forEach(function (row) {
     if (row.length <= c.chiNhanh) return;
@@ -66,18 +73,9 @@ function getAllPhuKien(chiConHang, chiNhanh) {
  * @return {Object[]} [{value: 'PK001', text: 'PK001 - Ốp lưng iPhone 15 (Tồn: 10)'}, ...]
  */
 function getPhuKienDropdown(chiNhanh) {
-  initializeColumnEnums();
   var data = getAllData(SHEET_NAMES.PHU_KIEN);
   var result = [];
-
-  var c = {
-    maPK: COL_PK.MA_PK - 1,
-    tenSP: COL_PK.TEN_SP - 1,
-    giaBan: COL_PK.GIA_BAN - 1,
-    soLuongTon: COL_PK.SO_LUONG_TON - 1,
-    trangThai: COL_PK.TRANG_THAI - 1,
-    chiNhanh: COL_PK.CHI_NHANH - 1,
-  };
+  var c = _getPhuKienIndices();
 
   data.forEach(function (row) {
     if (row.length <= c.chiNhanh) return;
@@ -184,22 +182,27 @@ function updatePhuKien(maPK, data) {
     sheet.insertColumnsAfter(maxCols, maxColNeeded - maxCols);
   }
 
+  var range = sheet.getRange(row, 1, 1, maxColNeeded);
+  var rowValues = range.getValues()[0];
+
   if (data.tenSP !== undefined)
-    sheet.getRange(row, COL_PK.TEN_SP).setValue(data.tenSP);
+    rowValues[COL_PK.TEN_SP - 1] = data.tenSP;
   if (data.loaiPK !== undefined)
-    sheet.getRange(row, COL_PK.LOAI_PK).setValue(data.loaiPK);
+    rowValues[COL_PK.LOAI_PK - 1] = data.loaiPK;
   if (data.thuongHieu !== undefined)
-    sheet.getRange(row, COL_PK.THUONG_HIEU).setValue(data.thuongHieu);
+    rowValues[COL_PK.THUONG_HIEU - 1] = data.thuongHieu;
   if (data.giaNhap !== undefined)
-    sheet.getRange(row, COL_PK.GIA_NHAP).setValue(Number(data.giaNhap));
+    rowValues[COL_PK.GIA_NHAP - 1] = Number(data.giaNhap);
   if (data.giaBan !== undefined)
-    sheet.getRange(row, COL_PK.GIA_BAN).setValue(Number(data.giaBan));
+    rowValues[COL_PK.GIA_BAN - 1] = Number(data.giaBan);
   if (data.soLuongTon !== undefined)
-    sheet.getRange(row, COL_PK.SO_LUONG_TON).setValue(Number(data.soLuongTon));
+    rowValues[COL_PK.SO_LUONG_TON - 1] = Number(data.soLuongTon);
   if (data.moTa !== undefined)
-    sheet.getRange(row, COL_PK.MO_TA).setValue(data.moTa);
+    rowValues[COL_PK.MO_TA - 1] = data.moTa;
   if (data.trangThai !== undefined)
-    sheet.getRange(row, COL_PK.TRANG_THAI).setValue(data.trangThai);
+    rowValues[COL_PK.TRANG_THAI - 1] = data.trangThai;
+
+  range.setValues([rowValues]);
 
   showToast("Đã cập nhật PK: " + maPK + " (" + chiNhanh + ")");
   return true;
@@ -344,22 +347,9 @@ function updateTonKhoPhuKien(maPK, soLuong, type, chiNhanh) {
  * @return {Object[]}
  */
 function getPhuKienSapHet() {
-  initializeColumnEnums();
   var data = getAllData(SHEET_NAMES.PHU_KIEN);
   var result = [];
-
-  var c = {
-    maPK: COL_PK.MA_PK - 1,
-    tenSP: COL_PK.TEN_SP - 1,
-    loaiPK: COL_PK.LOAI_PK - 1,
-    thuongHieu: COL_PK.THUONG_HIEU - 1,
-    giaNhap: COL_PK.GIA_NHAP - 1,
-    giaBan: COL_PK.GIA_BAN - 1,
-    soLuongTon: COL_PK.SO_LUONG_TON - 1,
-    moTa: COL_PK.MO_TA - 1,
-    trangThai: COL_PK.TRANG_THAI - 1,
-    chiNhanh: COL_PK.CHI_NHANH - 1,
-  };
+  var c = _getPhuKienIndices();
 
   data.forEach(function (row) {
     if (row.length <= c.chiNhanh) return;
@@ -395,20 +385,10 @@ function getPhuKienSapHet() {
  * @return {Object[]}
  */
 function getPhuKienUniqueList() {
-  initializeColumnEnums();
   var data = getAllData(SHEET_NAMES.PHU_KIEN);
   var result = [];
   var seen = {};
-
-  var c = {
-    maPK: COL_PK.MA_PK - 1,
-    tenSP: COL_PK.TEN_SP - 1,
-    loaiPK: COL_PK.LOAI_PK - 1,
-    thuongHieu: COL_PK.THUONG_HIEU - 1,
-    giaBan: COL_PK.GIA_BAN - 1,
-    trangThai: COL_PK.TRANG_THAI - 1,
-    chiNhanh: COL_PK.CHI_NHANH - 1,
-  };
+  var c = _getPhuKienIndices();
 
   data.forEach(function (row) {
     if (row.length <= c.chiNhanh) return;
@@ -461,18 +441,9 @@ function getPhuKienStockAtBranch(maPK, chiNhanh) {
  * @private
  */
 function _buildPhuKienDropdownCache() {
-  initializeColumnEnums();
   var data = getAllData(SHEET_NAMES.PHU_KIEN);
   var result = [];
-
-  var c = {
-    maPK: COL_PK.MA_PK - 1,
-    tenSP: COL_PK.TEN_SP - 1,
-    giaBan: COL_PK.GIA_BAN - 1,
-    soLuongTon: COL_PK.SO_LUONG_TON - 1,
-    trangThai: COL_PK.TRANG_THAI - 1,
-    chiNhanh: COL_PK.CHI_NHANH - 1,
-  };
+  var c = _getPhuKienIndices();
 
   data.forEach(function (row) {
     if (row.length <= c.chiNhanh) return;
@@ -510,20 +481,10 @@ function _buildPhuKienDropdownCache() {
  * @private
  */
 function _buildPhuKienUniqueCache() {
-  initializeColumnEnums();
   var data = getAllData(SHEET_NAMES.PHU_KIEN);
   var result = [];
   var seen = {};
-
-  var c = {
-    maPK: COL_PK.MA_PK - 1,
-    tenSP: COL_PK.TEN_SP - 1,
-    loaiPK: COL_PK.LOAI_PK - 1,
-    thuongHieu: COL_PK.THUONG_HIEU - 1,
-    giaBan: COL_PK.GIA_BAN - 1,
-    trangThai: COL_PK.TRANG_THAI - 1,
-    chiNhanh: COL_PK.CHI_NHANH - 1,
-  };
+  var c = _getPhuKienIndices();
 
   data.forEach(function (row) {
     if (row.length <= c.chiNhanh) return;

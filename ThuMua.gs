@@ -19,6 +19,8 @@
  * @return {string} Mã thu mua mới
  */
 function thucHienThuMua(data) {
+  return withDocumentLock(function () {
+    clearSheetCache();
     initializeColumnEnums();
     var maTM = generateId("TM", SHEET_NAMES.THU_MUA);
     var chiNhanh = data.chiNhanh;
@@ -31,9 +33,6 @@ function thucHienThuMua(data) {
     }
 
     var tenKH = ensureKhachHangExists(data.maKH, data.tenKH);
-    if (!tenKH) {
-      tenKH = lookupValue(SHEET_NAMES.KHACH_HANG, 1, data.maKH, 2) || "";
-    }
     var giaThuMua = Number(data.giaThuMua) || 0;
     var tienHoTro = Number(data.tienHoTro) || 0;
     var tongTienTraKhach = giaThuMua + tienHoTro;
@@ -148,36 +147,9 @@ function thucHienThuMua(data) {
       rowData[COL_TM.NGUOI_THUC_HIEN - 1] = data.nguoiThucHien || "";
       rowData[COL_TM.GHI_CHU - 1] = data.ghiChu || "";
 
-      // Backend validation for Hỗn hợp buyback payment
-      if (data.hinhThucThanhToan === "Hỗn hợp") {
-        var splitTienMat = Number(data.splitTienMat) || 0;
-        var splitChuyenKhoan = Number(data.splitChuyenKhoan) || 0;
-        var totalNeeded = tongTienTraKhach;
-        if (Math.abs(splitTienMat + splitChuyenKhoan - totalNeeded) > 1) {
-          throw new Error(
-            "Lỗi dữ liệu: Tổng tiền mặt (" +
-              splitTienMat +
-              ") và chuyển khoản (" +
-              splitChuyenKhoan +
-              ") không khớp với số tiền cần thanh toán (" +
-              totalNeeded +
-              ")!",
-          );
-        }
-      }
-
-      var tienMat = 0;
-      var chuyenKhoan = 0;
-      if (data.hinhThucThanhToan === "Hỗn hợp") {
-        tienMat = Number(data.splitTienMat) || 0;
-        chuyenKhoan = Number(data.splitChuyenKhoan) || 0;
-      } else if (data.hinhThucThanhToan === "Tiền mặt") {
-        tienMat = tongTienTraKhach;
-      } else {
-        chuyenKhoan = tongTienTraKhach;
-      }
-      rowData[COL_TM.TIEN_MAT - 1] = tienMat;
-      rowData[COL_TM.CHUYEN_KHOAN - 1] = chuyenKhoan;
+      var splitResult = calculatePaymentSplit(data, tongTienTraKhach);
+      rowData[COL_TM.TIEN_MAT - 1] = splitResult.tienMat;
+      rowData[COL_TM.CHUYEN_KHOAN - 1] = splitResult.chuyenKhoan;
 
       var tmSheet = ss.getSheetByName(SHEET_NAMES.THU_MUA);
       var tmRow = appendRow(SHEET_NAMES.THU_MUA, rowData);
@@ -200,4 +172,5 @@ function thucHienThuMua(data) {
 
     showToast("✅ Đã ghi nhận thu mua thành công: " + maTM);
     return maTM;
+  });
 }

@@ -6,17 +6,12 @@
  */
 
 /**
- * Lấy danh sách tất cả điện thoại
- *
- * @param {string} [filter] - Lọc theo TrangThaiKho: 'Còn hàng', 'Đã bán', etc.
- * @return {Object[]} Mảng objects điện thoại
+ * Lấy index cột (0-indexed) cho Điện thoại
+ * @private
  */
-function getAllDienThoai(filter) {
+function _getDienThoaiIndices() {
   initializeColumnEnums();
-  var data = getAllData(SHEET_NAMES.DIEN_THOAI);
-  var result = [];
-
-  var c = {
+  return {
     maDT: COL_DT.MA_DT - 1,
     tenSP: COL_DT.TEN_SP - 1,
     thuongHieu: COL_DT.THUONG_HIEU - 1,
@@ -34,6 +29,18 @@ function getAllDienThoai(filter) {
     ngayNhap: COL_DT.NGAY_NHAP - 1,
     ngayXuat: COL_DT.NGAY_XUAT - 1,
   };
+}
+
+/**
+ * Lấy danh sách tất cả điện thoại
+ *
+ * @param {string} [filter] - Lọc theo TrangThaiKho: 'Còn hàng', 'Đã bán', etc.
+ * @return {Object[]} Mảng objects điện thoại
+ */
+function getAllDienThoai(filter) {
+  var data = getAllData(SHEET_NAMES.DIEN_THOAI);
+  var result = [];
+  var c = _getDienThoaiIndices();
 
   data.forEach(function (row) {
     if (row.length <= c.trangThaiKho) return;
@@ -72,23 +79,9 @@ function getAllDienThoai(filter) {
  * @return {Object[]} [{value: 'DT001', text: 'DT001 - iPhone 15 (IMEI: xxx)'}, ...]
  */
 function getDienThoaiDropdown(chiNhanh) {
-  initializeColumnEnums();
   var data = getAllData(SHEET_NAMES.DIEN_THOAI);
   var result = [];
-
-  var c = {
-    maDT: COL_DT.MA_DT - 1,
-    tenSP: COL_DT.TEN_SP - 1,
-    thuongHieu: COL_DT.THUONG_HIEU - 1,
-    imei: COL_DT.IMEI - 1,
-    imei2: COL_DT.IMEI_2 - 1,
-    mauSac: COL_DT.MAU_SAC - 1,
-    dungLuong: COL_DT.DUNG_LUONG - 1,
-    giaBan: COL_DT.GIA_BAN - 1,
-    giaTraGop: COL_DT.GIA_TRA_GOP - 1,
-    trangThaiKho: COL_DT.TRANG_THAI_KHO - 1,
-    chiNhanh: COL_DT.CHI_NHANH - 1,
-  };
+  var c = _getDienThoaiIndices();
 
   data.forEach(function (row) {
     if (row.length <= c.trangThaiKho) return;
@@ -230,47 +223,48 @@ function updateDienThoai(maDT, data) {
     sheet.insertColumnsAfter(maxCols, maxColNeeded - maxCols);
   }
 
+  var range = sheet.getRange(row, 1, 1, maxColNeeded);
+  var rowValues = range.getValues()[0];
+
   if (data.tenSP !== undefined)
-    sheet.getRange(row, COL_DT.TEN_SP).setValue(data.tenSP);
+    rowValues[COL_DT.TEN_SP - 1] = data.tenSP;
   if (data.thuongHieu !== undefined)
-    sheet.getRange(row, COL_DT.THUONG_HIEU).setValue(data.thuongHieu);
+    rowValues[COL_DT.THUONG_HIEU - 1] = data.thuongHieu;
   if (data.imei !== undefined)
-    sheet.getRange(row, COL_DT.IMEI).setValue(data.imei);
+    rowValues[COL_DT.IMEI - 1] = data.imei;
   if (data.mauSac !== undefined)
-    sheet.getRange(row, COL_DT.MAU_SAC).setValue(data.mauSac);
+    rowValues[COL_DT.MAU_SAC - 1] = data.mauSac;
   if (data.dungLuong !== undefined)
-    sheet.getRange(row, COL_DT.DUNG_LUONG).setValue(data.dungLuong);
+    rowValues[COL_DT.DUNG_LUONG - 1] = data.dungLuong;
   if (data.tinhTrang !== undefined)
-    sheet.getRange(row, COL_DT.TINH_TRANG).setValue(data.tinhTrang);
+    rowValues[COL_DT.TINH_TRANG - 1] = data.tinhTrang;
   if (data.giaNhap !== undefined)
-    sheet.getRange(row, COL_DT.GIA_NHAP).setValue(Number(data.giaNhap));
+    rowValues[COL_DT.GIA_NHAP - 1] = Number(data.giaNhap);
   if (data.giaBan !== undefined)
-    sheet.getRange(row, COL_DT.GIA_BAN).setValue(Number(data.giaBan));
+    rowValues[COL_DT.GIA_BAN - 1] = Number(data.giaBan);
   if (data.giaTraGop !== undefined)
-    sheet.getRange(row, COL_DT.GIA_TRA_GOP).setValue(Number(data.giaTraGop));
+    rowValues[COL_DT.GIA_TRA_GOP - 1] = Number(data.giaTraGop);
   if (data.trangThaiKho !== undefined) {
-    sheet.getRange(row, COL_DT.TRANG_THAI_KHO).setValue(data.trangThaiKho);
+    rowValues[COL_DT.TRANG_THAI_KHO - 1] = data.trangThaiKho;
     if (
       data.trangThaiKho === "Đã bán" ||
       data.trangThaiKho === "Đang trả góp"
     ) {
-      sheet.getRange(row, COL_DT.NGAY_XUAT).setValue(new Date());
+      rowValues[COL_DT.NGAY_XUAT - 1] = new Date();
     } else {
-      sheet.getRange(row, COL_DT.NGAY_XUAT).setValue("");
+      rowValues[COL_DT.NGAY_XUAT - 1] = "";
     }
   }
   if (data.ghiChu !== undefined)
-    sheet.getRange(row, COL_DT.GHI_CHU).setValue(data.ghiChu);
+    rowValues[COL_DT.GHI_CHU - 1] = data.ghiChu;
   if (data.chiNhanh !== undefined)
-    sheet.getRange(row, COL_DT.CHI_NHANH).setValue(data.chiNhanh);
+    rowValues[COL_DT.CHI_NHANH - 1] = data.chiNhanh;
   if (data.ngayNhap !== undefined)
-    sheet
-      .getRange(row, COL_DT.NGAY_NHAP)
-      .setValue(data.ngayNhap ? new Date(data.ngayNhap) : "");
+    rowValues[COL_DT.NGAY_NHAP - 1] = data.ngayNhap ? new Date(data.ngayNhap) : "";
   if (data.ngayXuat !== undefined)
-    sheet
-      .getRange(row, COL_DT.NGAY_XUAT)
-      .setValue(data.ngayXuat ? new Date(data.ngayXuat) : "");
+    rowValues[COL_DT.NGAY_XUAT - 1] = data.ngayXuat ? new Date(data.ngayXuat) : "";
+
+  range.setValues([rowValues]);
 
   showToast("Đã cập nhật ĐT: " + maDT);
   return true;
@@ -319,29 +313,10 @@ function updateTrangThaiKhoDT(maDT_or_imei, trangThai) {
  * @return {Object[]} Kết quả tìm kiếm
  */
 function searchDienThoai(keyword) {
-  initializeColumnEnums();
   var data = getAllData(SHEET_NAMES.DIEN_THOAI);
   var result = [];
   var kw = String(keyword).trim().toLowerCase();
-
-  var c = {
-    maDT: COL_DT.MA_DT - 1,
-    tenSP: COL_DT.TEN_SP - 1,
-    thuongHieu: COL_DT.THUONG_HIEU - 1,
-    imei: COL_DT.IMEI - 1,
-    imei2: COL_DT.IMEI_2 - 1,
-    mauSac: COL_DT.MAU_SAC - 1,
-    dungLuong: COL_DT.DUNG_LUONG - 1,
-    tinhTrang: COL_DT.TINH_TRANG - 1,
-    giaNhap: COL_DT.GIA_NHAP - 1,
-    giaBan: COL_DT.GIA_BAN - 1,
-    giaTraGop: COL_DT.GIA_TRA_GOP - 1,
-    trangThaiKho: COL_DT.TRANG_THAI_KHO - 1,
-    ghiChu: COL_DT.GHI_CHU - 1,
-    chiNhanh: COL_DT.CHI_NHANH - 1,
-    ngayNhap: COL_DT.NGAY_NHAP - 1,
-    ngayXuat: COL_DT.NGAY_XUAT - 1,
-  };
+  var c = _getDienThoaiIndices();
 
   data.forEach(function (row) {
     if (row.length <= c.imei) return;
@@ -568,23 +543,9 @@ function backfillDienThoaiDates(silent) {
  * @private
  */
 function _buildDienThoaiDropdownCache() {
-  initializeColumnEnums();
   var data = getAllData(SHEET_NAMES.DIEN_THOAI);
   var result = [];
-
-  var c = {
-    maDT: COL_DT.MA_DT - 1,
-    tenSP: COL_DT.TEN_SP - 1,
-    thuongHieu: COL_DT.THUONG_HIEU - 1,
-    imei: COL_DT.IMEI - 1,
-    imei2: COL_DT.IMEI_2 - 1,
-    mauSac: COL_DT.MAU_SAC - 1,
-    dungLuong: COL_DT.DUNG_LUONG - 1,
-    giaBan: COL_DT.GIA_BAN - 1,
-    giaTraGop: COL_DT.GIA_TRA_GOP - 1,
-    trangThaiKho: COL_DT.TRANG_THAI_KHO - 1,
-    chiNhanh: COL_DT.CHI_NHANH - 1,
-  };
+  var c = _getDienThoaiIndices();
 
   data.forEach(function (row) {
     if (row.length <= c.trangThaiKho) return;

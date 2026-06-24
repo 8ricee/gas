@@ -27,17 +27,10 @@ function taoDichVu(data) {
     }
 
     // Auto lookup tên NV
-    var tenNguoiThucHien = "";
-    if (data.nguoiThucHien) {
-      tenNguoiThucHien =
-        lookupValue(SHEET_NAMES.NHAN_VIEN, 1, data.nguoiThucHien, 2) || "";
-    }
+    var tenNguoiThucHien = getNhanVienName(data.nguoiThucHien);
 
     // Auto lookup tên KH nếu có mã KH
     var tenKH = ensureKhachHangExists(data.maKH, data.tenKH);
-    if (!tenKH && data.maKH) {
-      tenKH = lookupValue(SHEET_NAMES.KHACH_HANG, 1, data.maKH, 2) || "";
-    }
 
     // Xác định phí dịch vụ
     var phiDichVu = Number(data.phiDichVu) || 0;
@@ -55,34 +48,11 @@ function taoDichVu(data) {
     var soTienGiaoDich = Number(data.soTienGiaoDich) || 0;
 
     // Backend validation and calculation for Hỗn hợp / Tiền mặt / Chuyển khoản payments
-    var tienMat = 0;
-    var chuyenKhoan = 0;
-    var hinhThucTTDisplay = data.hinhThucThanhToan;
-
-    if (data.hinhThucThanhToan === "Hỗn hợp") {
-      var splitTienMat = Number(data.splitTienMat) || 0;
-      var splitChuyenKhoan = Number(data.splitChuyenKhoan) || 0;
-      var totalNeeded = soTienGiaoDich + phiDichVu;
-      if (Math.abs(splitTienMat + splitChuyenKhoan - totalNeeded) > 1) {
-        throw new Error(
-          "Lỗi dữ liệu: Tổng tiền mặt (" +
-            splitTienMat +
-            ") và chuyển khoản (" +
-            splitChuyenKhoan +
-            ") không khớp với số tiền cần thanh toán (" +
-            totalNeeded +
-            ")!",
-        );
-      }
-      tienMat = splitTienMat;
-      chuyenKhoan = splitChuyenKhoan;
-      hinhThucTTDisplay = "Hỗn hợp";
-    } else if (data.hinhThucThanhToan === "Tiền mặt") {
-      tienMat = soTienGiaoDich + phiDichVu;
-    } else {
-      // Chuyển khoản hoặc Quẹt thẻ (POS)
-      chuyenKhoan = soTienGiaoDich + phiDichVu;
-    }
+    var totalNeeded = soTienGiaoDich + phiDichVu;
+    var splitResult = calculatePaymentSplit(data, totalNeeded);
+    var tienMat = splitResult.tienMat;
+    var chuyenKhoan = splitResult.chuyenKhoan;
+    var hinhThucTTDisplay = splitResult.hinhThucTTDisplay;
 
     var rowData = [];
     rowData[COL_DV.MA_DV - 1] = maDV;
@@ -130,8 +100,7 @@ function getDichVuTheoThang(thang, nam) {
 
   data.forEach(function (row) {
     var ngay = row[COL_DV.NGAY_GD - 1];
-    if (ngay instanceof Date) {
-      if (ngay.getMonth() + 1 === thang && ngay.getFullYear() === nam) {
+    if (isSameMonthYear(ngay, thang, nam)) {
         result.push({
           MaDV: String(row[COL_DV.MA_DV - 1] || ""),
           NgayGiaoDich: row[COL_DV.NGAY_GD - 1],
@@ -150,7 +119,7 @@ function getDichVuTheoThang(thang, nam) {
         });
       }
     }
-  });
+  );
 
   return result;
 }

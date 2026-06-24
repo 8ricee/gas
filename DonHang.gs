@@ -6,6 +6,41 @@
  */
 
 /**
+ * Lấy index cột (0-indexed) cho Đơn hàng
+ * @private
+ */
+function _getDonHangIndices() {
+  initializeColumnEnums();
+  return {
+    maDH: COL_DH.MA_DH - 1,
+    ngayBan: COL_DH.NGAY_BAN - 1,
+    maKH: COL_DH.MA_KH - 1,
+    tenKH: COL_DH.TEN_KH - 1,
+    maSP: COL_DH.MA_SP - 1,
+    tenSP: COL_DH.TEN_SP - 1,
+    nguonSP: COL_DH.NGUON_SP - 1,
+    thuongHieu: COL_DH.THUONG_HIEU - 1,
+    soLuong: COL_DH.SO_LUONG - 1,
+    donGia: COL_DH.DON_GIA - 1,
+    thanhTien: COL_DH.THANH_TIEN - 1,
+    hinhThucBan: COL_DH.HINH_THUC_BAN - 1,
+    hinhThucTT: COL_DH.HINH_THUC_TT - 1,
+    nguoiBan: COL_DH.NGUOI_BAN - 1,
+    tenNguoiBan: COL_DH.TEN_NGUOI_BAN - 1,
+    coQuyenXuatMay: COL_DH.QUYEN_XUAT - 1,
+    nguoiHoTro: COL_DH.NGUOI_HO_TRO - 1,
+    tenNguoiHoTro: COL_DH.TEN_NGUOI_HO_TRO - 1,
+    trangThai: COL_DH.TRANG_THAI - 1,
+    ghiChu: COL_DH.GHI_CHU - 1,
+    chiNhanh: COL_DH.CHI_NHANH - 1,
+    maQuaTang: COL_DH.MA_QUA_TANG - 1,
+    tenQuaTang: COL_DH.TEN_QUA_TANG - 1,
+    coNhanQua: COL_DH.CO_NHAN_QUA - 1,
+    tienGiamGia: COL_DH.TIEN_GIAM_GIA - 1,
+  };
+}
+
+/**
  * Tạo đơn hàng mới
  *
  * @param {Object} data - {
@@ -21,6 +56,15 @@
  * @return {string} Mã đơn hàng mới
  */
 function taoDonHang(data) {
+  var lock = LockService.getDocumentLock();
+  try {
+    lock.waitLock(15000);
+  } catch (e) {
+    throw new Error("Hệ thống hiện đang bận xử lý giao dịch khác. Vui lòng thử lại sau vài giây!");
+  }
+
+  try {
+    clearSheetCache();
     initializeColumnEnums();
     var ss = SpreadsheetApp.getActiveSpreadsheet();
 
@@ -172,6 +216,9 @@ function taoDonHang(data) {
       }
       throw e;
     }
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 /**
@@ -188,9 +235,6 @@ function _taoDonHangSingle(data, rollbackActions, ss) {
 
   // Lookup thông tin (Tự động thêm KH nếu chưa có)
   var tenKH = ensureKhachHangExists(data.maKH, data.tenKH);
-  if (!tenKH) {
-    tenKH = lookupValue(SHEET_NAMES.KHACH_HANG, 1, data.maKH, 2) || "";
-  }
   var tenSP = "";
   var thuongHieu = "";
   var nguonSP = data.nguonSP || "Điện thoại";
@@ -227,12 +271,9 @@ function _taoDonHangSingle(data, rollbackActions, ss) {
       ) || "";
   }
 
-  var tenNguoiBan =
-    lookupValue(SHEET_NAMES.NHAN_VIEN, 1, data.nguoiBan, 2) || "";
+  var tenNguoiBan = getNhanVienName(data.nguoiBan);
   var coQuyenXuatMay = kiemTraQuyenXuatMay(data.nguoiBan) ? "✓" : "✗";
-  var tenNguoiHoTro = data.nguoiHoTro
-    ? lookupValue(SHEET_NAMES.NHAN_VIEN, 1, data.nguoiHoTro, 2) || ""
-    : "";
+  var tenNguoiHoTro = getNhanVienName(data.nguoiHoTro);
 
   var soLuong = Number(data.soLuong) || 1;
   var donGia = Number(data.donGia) || 0;
@@ -404,22 +445,10 @@ function _taoDonHangSingle(data, rollbackActions, ss) {
   rowData[COL_DH.CO_NHAN_QUA - 1] = coNhanQua;
   rowData[COL_DH.TIEN_GIAM_GIA - 1] = tienGiamGia;
 
-  var tienMat = 0;
-  var chuyenKhoan = 0;
-  if (data.hinhThucThanhToan === "Hỗn hợp") {
-    tienMat = Number(data.splitTienMat) || 0;
-    chuyenKhoan = Number(data.splitChuyenKhoan) || 0;
-  } else if (data.hinhThucThanhToan === "Tiền mặt") {
-    tienMat =
-      data.hinhThucBan === "Trả góp" && data.traGop
-        ? Number(data.traGop.traTruoc) || 0
-        : thanhTien;
-  } else {
-    chuyenKhoan =
-      data.hinhThucBan === "Trả góp" && data.traGop
-        ? Number(data.traGop.traTruoc) || 0
-        : thanhTien;
-  }
+  var paidAmount = (data.hinhThucBan === "Trả góp" && data.traGop) ? (Number(data.traGop.traTruoc) || 0) : thanhTien;
+  var splitResult = calculatePaymentSplit(data, paidAmount);
+  var tienMat = splitResult.tienMat;
+  var chuyenKhoan = splitResult.chuyenKhoan;
   rowData[COL_DH.TIEN_MAT - 1] = tienMat;
   rowData[COL_DH.CHUYEN_KHOAN - 1] = chuyenKhoan;
 
@@ -552,43 +581,43 @@ function _taoDonHangSingle(data, rollbackActions, ss) {
  * @return {Object[]}
  */
 function getDonHangTheoThang(thang, nam) {
+  var c = _getDonHangIndices();
   var data = getAllData(SHEET_NAMES.DON_HANG);
   var result = [];
 
   data.forEach(function (row) {
-    var ngayBan = row[1];
-    if (ngayBan instanceof Date) {
-      if (ngayBan.getMonth() + 1 === thang && ngayBan.getFullYear() === nam) {
+    var ngayBan = row[c.ngayBan];
+    if (isSameMonthYear(ngayBan, thang, nam)) {
         result.push({
-          MaDH: String(row[0]),
-          NgayBan: row[1],
-          MaKH: String(row[2]),
-          TenKH: String(row[3]),
-          MaSP: String(row[4]),
-          TenSP: String(row[5]),
-          NguonSP: String(row[6]),
-          ThuongHieu: String(row[7]),
-          SoLuong: Number(row[8]) || 0,
-          DonGia: Number(row[9]) || 0,
-          ThanhTien: Number(row[10]) || 0,
-          HinhThucBan: String(row[11]),
-          HinhThucThanhToan: String(row[12]),
-          NguoiBan: String(row[13]),
-          TenNguoiBan: String(row[14]),
-          CoQuyenXuatMay: String(row[15]),
-          NguoiHoTro: String(row[16]),
-          TenNguoiHoTro: String(row[17]),
-          TrangThai: String(row[18]),
-          GhiChu: String(row[19]),
-          ChiNhanh: String(row[20] || ""),
-          MaQuaTang: String(row[21] || ""),
-          TenQuaTang: String(row[22] || ""),
-          CoNhanQua: String(row[23] || "✗"),
-          TienGiamGia: Number(row[24] || 0),
+          MaDH: String(row[c.maDH]),
+          NgayBan: row[c.ngayBan],
+          MaKH: String(row[c.maKH]),
+          TenKH: String(row[c.tenKH]),
+          MaSP: String(row[c.maSP]),
+          TenSP: String(row[c.tenSP]),
+          NguonSP: String(row[c.nguonSP]),
+          ThuongHieu: String(row[c.thuongHieu]),
+          SoLuong: Number(row[c.soLuong]) || 0,
+          DonGia: Number(row[c.donGia]) || 0,
+          ThanhTien: Number(row[c.thanhTien]) || 0,
+          HinhThucBan: String(row[c.hinhThucBan]),
+          HinhThucThanhToan: String(row[c.hinhThucTT]),
+          NguoiBan: String(row[c.nguoiBan]),
+          TenNguoiBan: String(row[c.tenNguoiBan]),
+          CoQuyenXuatMay: String(row[c.coQuyenXuatMay]),
+          NguoiHoTro: String(row[c.nguoiHoTro]),
+          TenNguoiHoTro: String(row[c.tenNguoiHoTro]),
+          TrangThai: String(row[c.trangThai]),
+          GhiChu: String(row[c.ghiChu]),
+          ChiNhanh: String(row[c.chiNhanh] || ""),
+          MaQuaTang: String(row[c.maQuaTang] || ""),
+          TenQuaTang: String(row[c.tenQuaTang] || ""),
+          CoNhanQua: String(row[c.coNhanQua] || "✗"),
+          TienGiamGia: Number(row[c.tienGiamGia] || 0),
         });
       }
     }
-  });
+  );
 
   return result;
 }
@@ -695,40 +724,41 @@ function getTongKetDonHang(thang, nam) {
  */
 function getDonHangDetails(maDH) {
   if (!maDH) return null;
-  var row = findRow(SHEET_NAMES.DON_HANG, 1, maDH);
+  var c = _getDonHangIndices();
+  var row = findRow(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH);
   if (row === -1) return null;
 
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(SHEET_NAMES.DON_HANG);
-  var values = sheet.getRange(row, 1, 1, 25).getValues()[0];
+  var values = sheet.getRange(row, 1, 1, COL_DH.CHUYEN_KHOAN).getValues()[0];
 
   return {
-    maDH: String(values[0]),
+    maDH: String(values[c.maDH]),
     ngayBan: formatDate(
-      values[1] instanceof Date ? values[1] : new Date(values[1]),
+      values[c.ngayBan] instanceof Date ? values[c.ngayBan] : new Date(values[c.ngayBan]),
     ),
-    maKH: String(values[2]),
-    tenKH: String(values[3]),
-    maSP: String(values[4]),
-    tenSP: String(values[5]),
-    nguonSP: String(values[6]),
-    thuongHieu: String(values[7]),
-    soLuong: Number(values[8]) || 0,
-    donGia: Number(values[9]) || 0,
-    thanhTien: Number(values[10]) || 0,
-    hinhThucBan: String(values[11]),
-    hinhThucThanhToan: String(values[12]),
-    nguoiBan: String(values[13]),
-    tenNguoiBan: String(values[14]),
-    coQuyenXuatMay: String(values[15]),
-    nguoiHoTro: String(values[16]),
-    tenNguoiHoTro: String(values[17]),
-    trangThai: String(values[18]),
-    ghiChu: String(values[19]),
-    chiNhanh: String(values[20] || ""),
-    maQuaTang: String(values[21] || ""),
-    tenQuaTang: String(values[22] || ""),
-    coNhanQua: String(values[23] || "✗"),
-    tienGiamGia: Number(values[24] || 0),
+    maKH: String(values[c.maKH]),
+    tenKH: String(values[c.tenKH]),
+    maSP: String(values[c.maSP]),
+    tenSP: String(values[c.tenSP]),
+    nguonSP: String(values[c.nguonSP]),
+    thuongHieu: String(values[c.thuongHieu]),
+    soLuong: Number(values[c.soLuong]) || 0,
+    donGia: Number(values[c.donGia]) || 0,
+    thanhTien: Number(values[c.thanhTien]) || 0,
+    hinhThucBan: String(values[c.hinhThucBan]),
+    hinhThucThanhToan: String(values[c.hinhThucTT]),
+    nguoiBan: String(values[c.nguoiBan]),
+    tenNguoiBan: String(values[c.tenNguoiBan]),
+    coQuyenXuatMay: String(values[c.coQuyenXuatMay]),
+    nguoiHoTro: String(values[c.nguoiHoTro]),
+    tenNguoiHoTro: String(values[c.tenNguoiHoTro]),
+    trangThai: String(values[c.trangThai]),
+    ghiChu: String(values[c.ghiChu]),
+    chiNhanh: String(values[c.chiNhanh] || ""),
+    maQuaTang: String(values[c.maQuaTang] || ""),
+    tenQuaTang: String(values[c.tenQuaTang] || ""),
+    coNhanQua: String(values[c.coNhanQua] || "✗"),
+    tienGiamGia: Number(values[c.tienGiamGia] || 0),
   };
 }

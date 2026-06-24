@@ -87,26 +87,32 @@ function taoHopDongTraGop(data) {
 
   // Chỉ tạo lịch thanh toán từng kỳ cho Cửa hàng tự trả góp
   if (!isCTTC) {
+    var historyRows = [];
+    var baseNum = getNewIdCounter("LS", SHEET_NAMES.LICH_SU_TRA_GOP);
     for (var i = 1; i <= soKy; i++) {
-      var maLS = generateId("LS", SHEET_NAMES.LICH_SU_TRA_GOP);
+      var nextNum = baseNum + i;
+      var padded = ("00000" + nextNum).slice(-5);
+      var maLS = "LS" + padded + getRandomLetters();
       var ngayCanTra = new Date(ngayBatDau);
       ngayCanTra.setMonth(ngayCanTra.getMonth() + i);
 
-      var lichData = [
-        maLS,
-        maTG,
-        i, // KySo
-        tienMoiKy, // SoTienCanTra
-        0, // SoTienDaTra
-        ngayCanTra, // NgayCanTra
-        "", // NgayThucTra
-        "", // HinhThucThanhToan
-        "Chưa trả", // TrangThai
-        "", // GhiChu
-      ];
+      var lichData = [];
+      lichData[COL_LSTG.MA_LS - 1] = maLS;
+      lichData[COL_LSTG.MA_TG - 1] = maTG;
+      lichData[COL_LSTG.KY_SO - 1] = i;
+      lichData[COL_LSTG.SO_TIEN_CAN_TRA - 1] = tienMoiKy;
+      lichData[COL_LSTG.SO_TIEN_DA_TRA - 1] = 0;
+      lichData[COL_LSTG.NGAY_CAN_TRA - 1] = ngayCanTra;
+      lichData[COL_LSTG.NGAY_THUC_TRA - 1] = "";
+      lichData[COL_LSTG.HINH_THUC_TT - 1] = "";
+      lichData[COL_LSTG.TRANG_THAI - 1] = "Chưa trả";
+      lichData[COL_LSTG.GHI_CHU - 1] = "";
+      lichData[COL_LSTG.TIEN_MAT - 1] = 0;
+      lichData[COL_LSTG.CHUYEN_KHOAN - 1] = 0;
 
-      appendRow(SHEET_NAMES.LICH_SU_TRA_GOP, lichData);
+      historyRows.push(lichData);
     }
+    appendRows(SHEET_NAMES.LICH_SU_TRA_GOP, historyRows);
   }
 
   var msgToast = isCTTC
@@ -129,26 +135,15 @@ function taoHopDongTraGop(data) {
  * @return {boolean}
  */
 function ghiNhanThanhToan(data) {
+  return withDocumentLock(function () {
+    clearSheetCache();
     initializeColumnEnums();
     var ss = SpreadsheetApp.getActiveSpreadsheet();
 
-    // Validation thanh toán hỗn hợp ở Backend
-    if (data.hinhThucThanhToan === "Hỗn hợp") {
-      var tongThanhToan =
-        (Number(data.splitChuyenKhoan) || 0) + (Number(data.splitTienMat) || 0);
-      var soTienYeuCau = Number(data.soTien) || 0;
-      if (Math.abs(tongThanhToan - soTienYeuCau) > 1) {
-        throw new Error(
-          "Lỗi dữ liệu: Tổng tiền mặt (" +
-            data.splitTienMat +
-            ") và chuyển khoản (" +
-            data.splitChuyenKhoan +
-            ") không khớp với số tiền cần thanh toán (" +
-            soTienYeuCau +
-            ")!",
-        );
-      }
-    }
+    var soTien = Number(data.soTien) || 0;
+    var splitResult = calculatePaymentSplit(data, soTien);
+    var tienMat = splitResult.tienMat;
+    var chuyenKhoan = splitResult.chuyenKhoan;
 
     // Tìm dòng lịch sử trả góp
     var lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
@@ -184,32 +179,22 @@ function ghiNhanThanhToan(data) {
       return false;
     }
 
-    var soTien = Number(data.soTien) || 0;
+    // Cập nhật lịch sử hàng loạt trong 1 range
+    var lastCol = lstgSheet.getLastColumn();
+    var range = lstgSheet.getRange(targetRow, 1, 1, lastCol);
+    var rowValues = range.getValues()[0];
 
-    var tienMat = 0;
-    var chuyenKhoan = 0;
-    if (data.hinhThucThanhToan === "Hỗn hợp") {
-      tienMat = Number(data.splitTienMat) || 0;
-      chuyenKhoan = Number(data.splitChuyenKhoan) || 0;
-    } else if (data.hinhThucThanhToan === "Tiền mặt") {
-      tienMat = soTien;
-    } else {
-      chuyenKhoan = soTien;
-    }
-
-    // Cập nhật lịch sử
-    lstgSheet.getRange(targetRow, COL_LSTG.SO_TIEN_DA_TRA).setValue(soTien);
-    lstgSheet.getRange(targetRow, COL_LSTG.NGAY_THUC_TRA).setValue(new Date());
-    lstgSheet
-      .getRange(targetRow, COL_LSTG.HINH_THUC_TT)
-      .setValue(data.hinhThucThanhToan || "Tiền mặt");
-    lstgSheet.getRange(targetRow, COL_LSTG.TRANG_THAI).setValue("Đã trả");
+    rowValues[COL_LSTG.SO_TIEN_DA_TRA - 1] = soTien;
+    rowValues[COL_LSTG.NGAY_THUC_TRA - 1] = new Date();
+    rowValues[COL_LSTG.HINH_THUC_TT - 1] = splitResult.hinhThucTTDisplay;
+    rowValues[COL_LSTG.TRANG_THAI - 1] = "Đã trả";
     if (data.ghiChu) {
-      lstgSheet.getRange(targetRow, COL_LSTG.GHI_CHU).setValue(data.ghiChu);
+      rowValues[COL_LSTG.GHI_CHU - 1] = data.ghiChu;
     }
+    rowValues[COL_LSTG.TIEN_MAT - 1] = tienMat;
+    rowValues[COL_LSTG.CHUYEN_KHOAN - 1] = chuyenKhoan;
 
-    lstgSheet.getRange(targetRow, COL_LSTG.TIEN_MAT).setValue(tienMat);
-    lstgSheet.getRange(targetRow, COL_LSTG.CHUYEN_KHOAN).setValue(chuyenKhoan);
+    range.setValues([rowValues]);
 
     clearSheetCache(SHEET_NAMES.LICH_SU_TRA_GOP);
 
@@ -226,6 +211,7 @@ function ghiNhanThanhToan(data) {
         "đ",
     );
     return true;
+  });
 }
 
 /**
@@ -254,31 +240,39 @@ function _capNhatTongTraGop(maTG) {
   });
 
   // Tìm dòng trả góp
-  var tgRow = findRow(SHEET_NAMES.TRA_GOP, 1, maTG);
+  initializeColumnEnums();
+  var tgRow = findRow(SHEET_NAMES.TRA_GOP, COL_TG.MA_TG, maTG);
   if (tgRow === -1) return;
 
   var tgSheet = ss.getSheetByName(SHEET_NAMES.TRA_GOP);
-  var traTruoc = parseAmountVal(tgSheet.getRange(tgRow, 6).getValue());
-  var soKy = Number(tgSheet.getRange(tgRow, 8).getValue()) || 0;
+  var lastCol = tgSheet.getLastColumn();
+  var range = tgSheet.getRange(tgRow, 1, 1, lastCol);
+  var rowValues = range.getValues()[0];
 
-  tgSheet.getRange(tgRow, 12).setValue(daTraSoKy); // DaTraSoKy
-  tgSheet.getRange(tgRow, 13).setValue(traTruoc + daTraSoTien); // DaTraSoTien (cộng tiền trả trước)
+  var traTruoc = parseAmountVal(rowValues[COL_TG.TRA_TRUOC - 1]);
+  var soKy = Number(rowValues[COL_TG.SO_KY - 1]) || 0;
+
+  rowValues[COL_TG.DA_TRA_SO_KY - 1] = daTraSoKy;
+  rowValues[COL_TG.DA_TRA_SO_TIEN - 1] = traTruoc + daTraSoTien;
 
   // Cập nhật trạng thái
   if (daTraSoKy >= soKy) {
-    tgSheet.getRange(tgRow, 16).setValue("Hoàn tất");
-
+    rowValues[COL_TG.TRANG_THAI - 1] = "Hoàn tất";
+    
     // Cập nhật trạng thái kho điện thoại → Đã bán
-    var maDH = tgSheet.getRange(tgRow, 2).getValue();
-    var maSP = lookupValue(SHEET_NAMES.DON_HANG, 1, maDH, 5);
-    var nguonSP = lookupValue(SHEET_NAMES.DON_HANG, 1, maDH, 7);
+    var maDH = rowValues[COL_TG.MA_DH - 1];
+    var maSP = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.MA_SP);
+    var nguonSP = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.NGUON_SP);
     if (nguonSP === "Điện thoại" && maSP) {
-      var ghiChuDH = lookupValue(SHEET_NAMES.DON_HANG, 1, maDH, 20) || "";
+      var ghiChuDH = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.GHI_CHU) || "";
       var imeiMatch = ghiChuDH.match(/\[IMEI:\s*([^\s\]]+)\]/);
       var imei = imeiMatch ? imeiMatch[1] : "";
       updateTrangThaiKhoDT(imei || maSP, "Đã bán");
     }
   }
+
+  range.setValues([rowValues]);
+
   clearSheetCache(SHEET_NAMES.TRA_GOP);
   invalidateDropdownCache(SHEET_NAMES.TRA_GOP);
 }

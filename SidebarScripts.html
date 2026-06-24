@@ -1,4 +1,16 @@
 <script>
+  // escapeHtml helper to prevent XSS
+  function escapeHtml(text) {
+    if (text === null || text === undefined) return "";
+    var map = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;"
+    };
+    return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
+  }
   // ==================== NAV TABS ====================
   document.querySelectorAll('.nav-tab').forEach(function(tab) {
     tab.addEventListener('click', function() {
@@ -744,7 +756,7 @@
     tr.style.borderBottom = '1px solid #dadce0';
 
     tr.innerHTML = 
-      '<td style="padding: 6px 8px; text-align: left; vertical-align: middle;">' + name + '</td>' +
+      '<td style="padding: 6px 8px; text-align: left; vertical-align: middle;">' + escapeHtml(name) + '</td>' +
       '<td style="padding: 6px 8px; text-align: center; vertical-align: middle;"><input type="number" value="1" min="1" class="acc-qty" style="width: 50px; text-align: center; padding: 4px;" onchange="tinhThanhTienAccRow(this.parentNode.parentNode)"></td>' +
       '<td style="padding: 6px 8px; text-align: right; vertical-align: middle;"><input type="number" value="' + price + '" class="acc-price" style="width: 80px; text-align: right; padding: 4px;" onchange="tinhThanhTienAccRow(this.parentNode.parentNode)"></td>' +
       '<td style="padding: 6px 8px; text-align: right; vertical-align: middle;" class="acc-total">' + formatNumber(price) + ' đ</td>' +
@@ -935,12 +947,12 @@
         originalOrderPrice = dh.thanhTien;
         originalOrderData = dh;
 
-        var html = '<strong>Khách hàng:</strong> ' + dh.tenKH + '<br>' +
-                   '<strong>Sản phẩm đã mua:</strong> ' + dh.tenSP + ' (Giá: ' + formatNumber(dh.thanhTien) + ' đ)<br>' +
-                   '<strong>Chi nhánh mua:</strong> ' + dh.chiNhanh;
+        var html = '<strong>Khách hàng:</strong> ' + escapeHtml(dh.tenKH) + '<br>' +
+                   '<strong>Sản phẩm đã mua:</strong> ' + escapeHtml(dh.tenSP) + ' (Giá: ' + formatNumber(dh.thanhTien) + ' đ)<br>' +
+                   '<strong>Chi nhánh mua:</strong> ' + escapeHtml(dh.chiNhanh);
         
         if (dh.coNhanQua === '✓') {
-          html += '<br><strong>Quà tặng kèm:</strong> ' + (dh.tenQuaTang || 'Chưa rõ') + ' (Mã: ' + (dh.maQuaTang || '') + ')';
+          html += '<br><strong>Quà tặng kèm:</strong> ' + escapeHtml(dh.tenQuaTang || 'Chưa rõ') + ' (Mã: ' + escapeHtml(dh.maQuaTang || '') + ')';
           document.getElementById('dt-doiTuongGroup').style.display = 'block';
           document.getElementById('dt-doiTuong').value = 'Sản phẩm chính';
         } else {
@@ -2146,8 +2158,8 @@
       else if (nv.vaiTro === 'Kỹ thuật') roleClass = 'role-kythuat';
 
       var html = '';
-      html += '<td><strong>' + nv.tenNV + '</strong><br><span style="color:#5f6368;font-size:9px;">' + nv.maNV + '</span></td>';
-      html += '<td><span class="role-badge ' + roleClass + '">' + nv.vaiTro + '</span></td>';
+      html += '<td><strong>' + escapeHtml(nv.tenNV) + '</strong><br><span style="color:#5f6368;font-size:9px;">' + escapeHtml(nv.maNV) + '</span></td>';
+      html += '<td><span class="role-badge ' + roleClass + '">' + escapeHtml(nv.vaiTro) + '</span></td>';
       html += '<td class="text-center">' + nv.soMayBan_Apple + '</td>';
       html += '<td class="text-center">' + nv.soMayBan_Khac + '</td>';
       html += '<td class="text-center">' + nv.soMayHoTro_Apple + '</td>';
