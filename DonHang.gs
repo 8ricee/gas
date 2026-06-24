@@ -454,14 +454,17 @@ function _taoDonHangSingle(data, rollbackActions, ss) {
 
   var donHangSheet = ss.getSheetByName(SHEET_NAMES.DON_HANG);
   var donHangRow = appendRow(SHEET_NAMES.DON_HANG, rowData);
-  rollbackActions.push(function () {
-    try {
-      donHangSheet.deleteRow(donHangRow);
-      clearSheetCache(SHEET_NAMES.DON_HANG);
-    } catch (err) {
-      Logger.log("Rollback failed to delete order row: " + err.message);
-    }
-  });
+  (function (capturedRow) {
+    rollbackActions.push(function () {
+      try {
+        var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.DON_HANG);
+        sheet.deleteRow(capturedRow);
+        clearSheetCache(SHEET_NAMES.DON_HANG);
+      } catch (err) {
+        Logger.log("Rollback failed to delete order row: " + err.message);
+      }
+    });
+  })(donHangRow);
 
   // Cập nhật kho sản phẩm
   if (nguonSP === "Điện thoại") {
@@ -474,24 +477,28 @@ function _taoDonHangSingle(data, rollbackActions, ss) {
       trangThaiMoi = "Đang trả góp";
     }
     updateTrangThaiKhoDT(data.imei || data.maSP, trangThaiMoi);
-    rollbackActions.push(function () {
-      try {
-        updateTrangThaiKhoDT(data.imei || data.maSP, "Còn hàng");
-      } catch (err) {
-        Logger.log("Rollback failed to restore phone status: " + err.message);
-      }
-    });
+    (function (key) {
+      rollbackActions.push(function () {
+        try {
+          updateTrangThaiKhoDT(key, "Còn hàng");
+        } catch (err) {
+          Logger.log("Rollback failed to restore phone status: " + err.message);
+        }
+      });
+    })(data.imei || data.maSP);
   } else {
     updateTonKhoPhuKien(data.maSP, soLuong, "xuat", chiNhanh);
-    rollbackActions.push(function () {
-      try {
-        updateTonKhoPhuKien(data.maSP, soLuong, "nhap", chiNhanh);
-      } catch (err) {
-        Logger.log(
-          "Rollback failed to restore accessory stock: " + err.message,
-        );
-      }
-    });
+    (function (maSP, qty, branch) {
+      rollbackActions.push(function () {
+        try {
+          updateTonKhoPhuKien(maSP, qty, "nhap", branch);
+        } catch (err) {
+          Logger.log(
+            "Rollback failed to restore accessory stock: " + err.message,
+          );
+        }
+      });
+    })(data.maSP, soLuong, chiNhanh);
   }
 
   // Trừ kho quà tặng nếu có
@@ -535,30 +542,32 @@ function _taoDonHangSingle(data, rollbackActions, ss) {
       splitTienMat: data.splitTienMat,
       splitChuyenKhoan: data.splitChuyenKhoan,
     });
-    rollbackActions.push(function () {
-      try {
-        var ss = SpreadsheetApp.getActiveSpreadsheet();
-        var tgSheet = ss.getSheetByName(SHEET_NAMES.TRA_GOP);
-        var tgRow = findRow(SHEET_NAMES.TRA_GOP, 1, maTG);
-        if (tgRow !== -1) {
-          tgSheet.deleteRow(tgRow);
-          clearSheetCache(SHEET_NAMES.TRA_GOP);
-          invalidateDropdownCache(SHEET_NAMES.TRA_GOP);
-        }
-        var lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
-        var lstgData = lstgSheet.getDataRange().getValues();
-        for (var rowIdx = lstgData.length - 1; rowIdx >= 1; rowIdx--) {
-          if (String(lstgData[rowIdx][1]) === maTG) {
-            lstgSheet.deleteRow(rowIdx + 1);
+    (function (capturedMaTG) {
+      rollbackActions.push(function () {
+        try {
+          var ss = SpreadsheetApp.getActiveSpreadsheet();
+          var tgSheet = ss.getSheetByName(SHEET_NAMES.TRA_GOP);
+          var tgRow = findRow(SHEET_NAMES.TRA_GOP, 1, capturedMaTG);
+          if (tgRow !== -1) {
+            tgSheet.deleteRow(tgRow);
+            clearSheetCache(SHEET_NAMES.TRA_GOP);
+            invalidateDropdownCache(SHEET_NAMES.TRA_GOP);
           }
+          var lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
+          var lstgData = lstgSheet.getDataRange().getValues();
+          for (var rowIdx = lstgData.length - 1; rowIdx >= 1; rowIdx--) {
+            if (String(lstgData[rowIdx][1]) === capturedMaTG) {
+              lstgSheet.deleteRow(rowIdx + 1);
+            }
+          }
+          clearSheetCache(SHEET_NAMES.LICH_SU_TRA_GOP);
+        } catch (err) {
+          Logger.log(
+            "Rollback failed to delete installment contract: " + err.message,
+          );
         }
-        clearSheetCache(SHEET_NAMES.LICH_SU_TRA_GOP);
-      } catch (err) {
-        Logger.log(
-          "Rollback failed to delete installment contract: " + err.message,
-        );
-      }
-    });
+      });
+    })(maTG);
   }
 
   showToast(

@@ -562,6 +562,13 @@ function initializeColumnEnums() {
   _columnEnumsInitialized = true;
 }
 
+/**
+ * Lấy bản đồ cột (column mapping) của một sheet.
+ * Chỉ đọc tiêu đề hiện có từ sheet, không ghi/sửa đổi cấu trúc cột.
+ * 
+ * @param {string} sheetName Tên sheet cần lấy bản đồ cột.
+ * @return {Object|null} Bản đồ cột (chuyển chữ thường) hoặc null nếu lỗi/không tìm thấy sheet.
+ */
 function getColMapFromSheet(sheetName) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -569,23 +576,9 @@ function getColMapFromSheet(sheetName) {
     if (!sheet) return null;
 
     var lastCol = sheet.getLastColumn();
-    var headers = [];
-    if (lastCol > 0) {
-      headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-    }
+    if (lastCol <= 0) return {};
 
-    // Tự động kiểm tra và thêm các cột còn thiếu theo SHEET_HEADERS
-    var expectedHeaders = SHEET_HEADERS[sheetName];
-    if (expectedHeaders && expectedHeaders.length > headers.length) {
-      var nextCol = headers.length + 1;
-      var missing = expectedHeaders.slice(headers.length);
-      sheet.getRange(1, nextCol, 1, missing.length).setValues([missing]);
-
-      // Tải lại các header mới
-      lastCol = sheet.getLastColumn();
-      headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-    }
-
+    var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
     var map = {};
     for (var i = 0; i < headers.length; i++) {
       map[String(headers[i]).trim().toLowerCase()] = i + 1;
@@ -594,6 +587,29 @@ function getColMapFromSheet(sheetName) {
   } catch (e) {
     Logger.log("Error getColMapFromSheet for " + sheetName + ": " + e.message);
     return null;
+  }
+}
+
+/**
+ * Đảm bảo các cột định nghĩa trong SHEET_HEADERS tồn tại trong sheet.
+ * Chỉ chạy khi cần migration hoặc cài đặt ban đầu.
+ * 
+ * @param {string} sheetName Tên sheet cần kiểm tra và cập nhật cấu trúc.
+ */
+function ensureSheetColumnsExist(sheetName) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName(sheetName);
+    var expected = SHEET_HEADERS[sheetName];
+    if (!sheet || !expected) return;
+
+    var current = sheet.getLastColumn();
+    if (expected.length > current) {
+      var missing = expected.slice(current);
+      sheet.getRange(1, current + 1, 1, missing.length).setValues([missing]);
+    }
+  } catch (e) {
+    Logger.log("Error ensureSheetColumnsExist for " + sheetName + ": " + e.message);
   }
 }
 
@@ -755,10 +771,10 @@ function getSheetDataCached(sheetName) {
  * @param {string} sheetName - Tên sheet để đếm số dòng
  * @return {string} Mã mới
  */
-function getRandomLetters() {
-  var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  return chars.charAt(Math.floor(Math.random() * 26)) + chars.charAt(Math.floor(Math.random() * 26));
-}
+// function getRandomLetters() {
+//   var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+//   return chars.charAt(Math.floor(Math.random() * 26)) + chars.charAt(Math.floor(Math.random() * 26));
+// }
 
 function getNewIdCounter(prefix, sheetName) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -784,13 +800,32 @@ function getNewIdCounter(prefix, sheetName) {
   return maxNum;
 }
 
+// function generateId(prefix, sheetName) {
+//   var maxNum = getNewIdCounter(prefix, sheetName);
+//   var nextNum = maxNum + 1;
+//   var padded = ("00000" + nextNum).slice(-5);
+//   return prefix + padded + getRandomLetters();
+// }
 function generateId(prefix, sheetName) {
-  var maxNum = getNewIdCounter(prefix, sheetName);
-  var nextNum = maxNum + 1;
-  var padded = ("00000" + nextNum).slice(-5);
-  return prefix + padded + getRandomLetters();
+var lock = LockService.getScriptLock();
+  // Chờ tối đa 5 giây nếu có người khác đang tạo ID
+  lock.waitLock(5000);
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var key = "id_counter_" + prefix + "_" + sheetName;
+    // Đọc counter cũ, nếu chưa có thì gán là 0, sau đó cộng 1
+    var count = Number(props.getProperty(key) || "0") + 1;
+    // Lưu counter mới lại ngay lập tức
+    props.setProperty(key, String(count));
+    // Định dạng số thành 5 chữ số (00001, 00002...)
+    var padded = ("00000" + count).slice(-5);
+    // Tạo ID kết hợp Counter và Random (Cần đảm bảo hàm getRandomLetters() đã được định nghĩa)
+    return prefix + padded; 
+  } finally {
+    // Luôn luôn giải phóng khóa dù có lỗi xảy ra hay không
+    lock.releaseLock(); 
+  }
 }
-
 /**
  * Lookup giá trị từ sheet
  *

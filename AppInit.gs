@@ -36,25 +36,7 @@ function setupSheets() {
 
   if (!runSetup) return;
 
-  var sheetOrder = [
-    SHEET_NAMES.CAU_HINH,
-    SHEET_NAMES.NHAN_VIEN,
-    SHEET_NAMES.DIEN_THOAI,
-    SHEET_NAMES.PHU_KIEN,
-    SHEET_NAMES.TON_KHO,
-    SHEET_NAMES.KHACH_HANG,
-    SHEET_NAMES.DON_HANG,
-    SHEET_NAMES.DICH_VU,
-    SHEET_NAMES.TRA_GOP,
-    SHEET_NAMES.LICH_SU_TRA_GOP,
-    SHEET_NAMES.DOANH_SO,
-    SHEET_NAMES.NHAP_KHO,
-    SHEET_NAMES.DOI_TRA,
-    SHEET_NAMES.THU_MUA,
-    SHEET_NAMES.BAO_CAO_NGAY,
-    SHEET_NAMES.BAO_CAO_DOANH_SO,
-    SHEET_NAMES.BAO_HANH,
-  ];
+  var sheetOrder = SHEET_ORDER;
 
   var createdCount = 0;
 
@@ -169,25 +151,7 @@ function setupSheets() {
  */
 function syncSheetHeaders(ss) {
   if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheetOrder = [
-    SHEET_NAMES.CAU_HINH,
-    SHEET_NAMES.NHAN_VIEN,
-    SHEET_NAMES.DIEN_THOAI,
-    SHEET_NAMES.PHU_KIEN,
-    SHEET_NAMES.TON_KHO,
-    SHEET_NAMES.KHACH_HANG,
-    SHEET_NAMES.DON_HANG,
-    SHEET_NAMES.DICH_VU,
-    SHEET_NAMES.TRA_GOP,
-    SHEET_NAMES.LICH_SU_TRA_GOP,
-    SHEET_NAMES.DOANH_SO,
-    SHEET_NAMES.NHAP_KHO,
-    SHEET_NAMES.DOI_TRA,
-    SHEET_NAMES.THU_MUA,
-    SHEET_NAMES.BAO_CAO_NGAY,
-    SHEET_NAMES.BAO_CAO_DOANH_SO,
-    SHEET_NAMES.BAO_HANH,
-  ];
+  var sheetOrder = SHEET_ORDER;
 
   var updatedSheets = [];
 
