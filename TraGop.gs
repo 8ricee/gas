@@ -87,11 +87,8 @@ function taoHopDongTraGop(data) {
   // Chỉ tạo lịch thanh toán từng kỳ cho Cửa hàng tự trả góp
   if (!isCTTC) {
     const historyRows = [];
-    const baseNum = getNewIdCounter("LS", SHEET_NAMES.LICH_SU_TRA_GOP);
     for (let i = 1; i <= soKy; i++) {
-      const nextNum = baseNum + i;
-      const padded = ("00000" + nextNum).slice(-5);
-      const maLS = "LS" + padded + getRandomLetters();
+      const maLS = generateId("LS", SHEET_NAMES.LICH_SU_TRA_GOP);
       const ngayCanTra = new Date(ngayBatDau);
       ngayCanTra.setMonth(ngayCanTra.getMonth() + i);
 
