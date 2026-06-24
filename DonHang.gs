@@ -56,14 +56,7 @@ function _getDonHangIndices() {
  * @return {string} Mã đơn hàng mới
  */
 function taoDonHang(data) {
-  var lock = LockService.getDocumentLock();
-  try {
-    lock.waitLock(15000);
-  } catch (e) {
-    throw new Error("Hệ thống hiện đang bận xử lý giao dịch khác. Vui lòng thử lại sau vài giây!");
-  }
-
-  try {
+  return withDocumentLock(function () {
     clearSheetCache();
     initializeColumnEnums();
     var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -216,9 +209,7 @@ function taoDonHang(data) {
       }
       throw e;
     }
-  } finally {
-    lock.releaseLock();
-  }
+  });
 }
 
 /**
@@ -638,60 +629,62 @@ function getDonHangTheoThang(thang, nam) {
  * @return {boolean}
  */
 function huyDonHang(maDH) {
-  var row = findRow(SHEET_NAMES.DON_HANG, 1, maDH);
-  if (row === -1) {
-    showAlert("❌ Lỗi", "Không tìm thấy đơn hàng: " + maDH);
-    return false;
-  }
+  return withDocumentLock(function () {
+    var row = findRow(SHEET_NAMES.DON_HANG, 1, maDH);
+    if (row === -1) {
+      showAlert("❌ Lỗi", "Không tìm thấy đơn hàng: " + maDH);
+      return false;
+    }
 
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(SHEET_NAMES.DON_HANG);
-  var currentTT = sheet.getRange(row, 19).getValue();
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName(SHEET_NAMES.DON_HANG);
+    var currentTT = sheet.getRange(row, 19).getValue();
 
-  if (currentTT === "Huỷ") {
-    showAlert("⚠️ Cảnh báo", "Đơn hàng " + maDH + " đã bị huỷ trước đó.");
-    return false;
-  }
+    if (currentTT === "Huỷ") {
+      showAlert("⚠️ Cảnh báo", "Đơn hàng " + maDH + " đã bị huỷ trước đó.");
+      return false;
+    }
 
-  // Hoàn kho sản phẩm chính
-  var nguonSP = sheet.getRange(row, 7).getValue();
-  var maSP = sheet.getRange(row, 5).getValue();
-  var soLuong = Number(sheet.getRange(row, 9).getValue());
-  var chiNhanh = sheet.getRange(row, 21).getValue();
+    // Hoàn kho sản phẩm chính
+    var nguonSP = sheet.getRange(row, 7).getValue();
+    var maSP = sheet.getRange(row, 5).getValue();
+    var soLuong = Number(sheet.getRange(row, 9).getValue());
+    var chiNhanh = sheet.getRange(row, 21).getValue();
 
-  if (nguonSP === "Điện thoại") {
-    var ghiChu = sheet.getRange(row, 20).getValue() || "";
-    var imeiMatch = ghiChu.match(/\[IMEI:\s*([^\s\]]+)\]/);
-    var imei = imeiMatch ? imeiMatch[1] : "";
-    updateTrangThaiKhoDT(imei || maSP, "Còn hàng");
-  } else {
-    updateTonKhoPhuKien(maSP, soLuong, "nhap", chiNhanh);
-  }
+    if (nguonSP === "Điện thoại") {
+      var ghiChu = sheet.getRange(row, 20).getValue() || "";
+      var imeiMatch = ghiChu.match(/\[IMEI:\s*([^\s\]]+)\]/);
+      var imei = imeiMatch ? imeiMatch[1] : "";
+      updateTrangThaiKhoDT(imei || maSP, "Còn hàng");
+    } else {
+      updateTonKhoPhuKien(maSP, soLuong, "nhap", chiNhanh);
+    }
 
-  // Hoàn kho quà tặng nếu có nhận quà
-  var maQuaTang = sheet.getRange(row, 22).getValue();
-  var coNhanQua = sheet.getRange(row, 24).getValue();
-  if (coNhanQua === "✓" && maQuaTang) {
-    var maQuaList = String(maQuaTang).split(",");
-    for (var i = 0; i < maQuaList.length; i++) {
-      var code = maQuaList[i].trim();
-      if (code) {
-        updateTonKhoPhuKien(code, 1, "nhap", chiNhanh);
+    // Hoàn kho quà tặng nếu có nhận quà
+    var maQuaTang = sheet.getRange(row, 22).getValue();
+    var coNhanQua = sheet.getRange(row, 24).getValue();
+    if (coNhanQua === "✓" && maQuaTang) {
+      var maQuaList = String(maQuaTang).split(",");
+      for (var i = 0; i < maQuaList.length; i++) {
+        var code = maQuaList[i].trim();
+        if (code) {
+          updateTonKhoPhuKien(code, 1, "nhap", chiNhanh);
+        }
       }
     }
-  }
 
-  // Đánh dấu huỷ
-  sheet.getRange(row, 19).setValue("Huỷ");
+    // Đánh dấu huỷ
+    sheet.getRange(row, 19).setValue("Huỷ");
 
-  // Kiểm tra nếu có trả góp → cập nhật trạng thái hợp đồng và các kỳ liên quan
-  var hinhThuc = sheet.getRange(row, 12).getValue();
-  if (hinhThuc === "Trả góp") {
-    huyHopDongTraGop(maDH);
-  }
+    // Kiểm tra nếu có trả góp → cập nhật trạng thái hợp đồng và các kỳ liên quan
+    var hinhThuc = sheet.getRange(row, 12).getValue();
+    if (hinhThuc === "Trả góp") {
+      huyHopDongTraGop(maDH);
+    }
 
-  showToast("✅ Đã huỷ đơn hàng: " + maDH + " và hoàn kho sản phẩm/quà tặng.");
-  return true;
+    showToast("✅ Đã huỷ đơn hàng: " + maDH + " và hoàn kho sản phẩm/quà tặng.");
+    return true;
+  });
 }
 
 /**

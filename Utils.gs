@@ -8,6 +8,7 @@
 // Cache lưu trữ dữ liệu của các sheet trong một lần chạy để tối ưu hiệu năng đọc
 var _sheetDataCache = {};
 var _sheetIndexCache = {};
+var _holdsLock = false;
 
 function clearSheetCache(sheetName) {
   if (sheetName) {
@@ -212,7 +213,6 @@ var COL_DT_TRA = {
 var COL_KH = {
   MA_KH: 1,
   HO_TEN: 2,
-  SO_DIEN_THOAI: 1,
   CCCD: 3,
   DIA_CHI: 4,
   NGAY_TAO: 5,
@@ -498,7 +498,6 @@ function initializeColumnEnums() {
   if (mapKH) {
     COL_KH.MA_KH = mapKH["mã khách hàng"] || COL_KH.MA_KH;
     COL_KH.HO_TEN = mapKH["họ tên"] || mapKH["họ và tên"] || COL_KH.HO_TEN;
-    COL_KH.SO_DIEN_THOAI = mapKH["số điện thoại"] || COL_KH.MA_KH;
     COL_KH.CCCD = mapKH["cccd"] || COL_KH.CCCD;
     COL_KH.DIA_CHI = mapKH["địa chỉ"] || COL_KH.DIA_CHI;
     COL_KH.NGAY_TAO = mapKH["ngày tạo"] || COL_KH.NGAY_TAO;
@@ -1430,6 +1429,9 @@ function getInterestRateConfig() {
  * @return {*} Kết quả trả về của callback
  */
 function withDocumentLock(callback) {
+  if (_holdsLock) {
+    return callback();
+  }
   var lock = LockService.getDocumentLock();
   try {
     lock.waitLock(15000);
@@ -1437,9 +1439,11 @@ function withDocumentLock(callback) {
     throw new Error("Hệ thống hiện đang bận xử lý giao dịch khác. Vui lòng thử lại sau vài giây!");
   }
   
+  _holdsLock = true;
   try {
     return callback();
   } finally {
+    _holdsLock = false;
     try {
       lock.releaseLock();
     } catch (err) {

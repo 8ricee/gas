@@ -261,84 +261,86 @@ function findPhuKienRow(maPK, chiNhanh) {
  * @return {boolean}
  */
 function updateTonKhoPhuKien(maPK, soLuong, type, chiNhanh) {
-  initializeColumnEnums();
-  if (!chiNhanh) {
-    throw new Error("Thiếu chi nhánh khi cập nhật tồn kho phụ kiện!");
-  }
+  return withDocumentLock(function () {
+    initializeColumnEnums();
+    if (!chiNhanh) {
+      throw new Error("Thiếu chi nhánh khi cập nhật tồn kho phụ kiện!");
+    }
 
-  var row = findPhuKienRow(maPK, chiNhanh);
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(SHEET_NAMES.PHU_KIEN);
+    var row = findPhuKienRow(maPK, chiNhanh);
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName(SHEET_NAMES.PHU_KIEN);
 
-  if (row === -1) {
-    if (type === "nhap") {
-      // Nếu chưa có ở chi nhánh này, sao chép thông tin từ chi nhánh bất kỳ
-      var details = lookupMultipleValues(
-        SHEET_NAMES.PHU_KIEN,
-        COL_PK.MA_PK,
-        maPK,
-        [
-          COL_PK.TEN_SP,
-          COL_PK.LOAI_PK,
-          COL_PK.THUONG_HIEU,
-          COL_PK.GIA_NHAP,
-          COL_PK.GIA_BAN,
-          COL_PK.MO_TA,
-        ],
-      );
-      if (details) {
-        var rowData = [];
-        rowData[COL_PK.MA_PK - 1] = maPK;
-        rowData[COL_PK.TEN_SP - 1] = details[COL_PK.TEN_SP] || "";
-        rowData[COL_PK.LOAI_PK - 1] = details[COL_PK.LOAI_PK] || "Khác";
-        rowData[COL_PK.THUONG_HIEU - 1] = details[COL_PK.THUONG_HIEU] || "";
-        rowData[COL_PK.GIA_NHAP - 1] = Number(details[COL_PK.GIA_NHAP]) || 0;
-        rowData[COL_PK.GIA_BAN - 1] = Number(details[COL_PK.GIA_BAN]) || 0;
-        rowData[COL_PK.SO_LUONG_TON - 1] = Number(soLuong);
-        rowData[COL_PK.MO_TA - 1] = details[COL_PK.MO_TA] || "";
-        rowData[COL_PK.TRANG_THAI - 1] = "Đang bán";
-        rowData[COL_PK.CHI_NHANH - 1] = chiNhanh;
+    if (row === -1) {
+      if (type === "nhap") {
+        // Nếu chưa có ở chi nhánh này, sao chép thông tin từ chi nhánh bất kỳ
+        var details = lookupMultipleValues(
+          SHEET_NAMES.PHU_KIEN,
+          COL_PK.MA_PK,
+          maPK,
+          [
+            COL_PK.TEN_SP,
+            COL_PK.LOAI_PK,
+            COL_PK.THUONG_HIEU,
+            COL_PK.GIA_NHAP,
+            COL_PK.GIA_BAN,
+            COL_PK.MO_TA,
+          ],
+        );
+        if (details) {
+          var rowData = [];
+          rowData[COL_PK.MA_PK - 1] = maPK;
+          rowData[COL_PK.TEN_SP - 1] = details[COL_PK.TEN_SP] || "";
+          rowData[COL_PK.LOAI_PK - 1] = details[COL_PK.LOAI_PK] || "Khác";
+          rowData[COL_PK.THUONG_HIEU - 1] = details[COL_PK.THUONG_HIEU] || "";
+          rowData[COL_PK.GIA_NHAP - 1] = Number(details[COL_PK.GIA_NHAP]) || 0;
+          rowData[COL_PK.GIA_BAN - 1] = Number(details[COL_PK.GIA_BAN]) || 0;
+          rowData[COL_PK.SO_LUONG_TON - 1] = Number(soLuong);
+          rowData[COL_PK.MO_TA - 1] = details[COL_PK.MO_TA] || "";
+          rowData[COL_PK.TRANG_THAI - 1] = "Đang bán";
+          rowData[COL_PK.CHI_NHANH - 1] = chiNhanh;
 
-        appendRow(SHEET_NAMES.PHU_KIEN, rowData);
-        return true;
+          appendRow(SHEET_NAMES.PHU_KIEN, rowData);
+          return true;
+        } else {
+          throw new Error(
+            "Không tìm thấy thông tin sản phẩm phụ kiện: " +
+              maPK +
+              " ở các chi nhánh khác!",
+          );
+        }
       } else {
         throw new Error(
-          "Không tìm thấy thông tin sản phẩm phụ kiện: " +
-            maPK +
-            " ở các chi nhánh khác!",
+          "Sản phẩm " + maPK + " không tồn tại tại " + chiNhanh + " để xuất kho!",
         );
       }
-    } else {
-      throw new Error(
-        "Sản phẩm " + maPK + " không tồn tại tại " + chiNhanh + " để xuất kho!",
-      );
     }
-  }
 
-  // Cập nhật dòng có sẵn
-  invalidateDropdownCache(SHEET_NAMES.PHU_KIEN);
-  var currentTon =
-    Number(sheet.getRange(row, COL_PK.SO_LUONG_TON).getValue()) || 0;
-  if (type === "nhap") {
-    sheet
-      .getRange(row, COL_PK.SO_LUONG_TON)
-      .setValue(currentTon + Number(soLuong));
-  } else if (type === "xuat") {
-    var newTon = currentTon - Number(soLuong);
-    if (newTon < 0) {
-      throw new Error(
-        "Không đủ tồn kho tại " +
-          chiNhanh +
-          "! Hiện tại: " +
-          currentTon +
-          ", cần xuất: " +
-          soLuong,
-      );
+    // Cập nhật dòng có sẵn
+    invalidateDropdownCache(SHEET_NAMES.PHU_KIEN);
+    var currentTon =
+      Number(sheet.getRange(row, COL_PK.SO_LUONG_TON).getValue()) || 0;
+    if (type === "nhap") {
+      sheet
+        .getRange(row, COL_PK.SO_LUONG_TON)
+        .setValue(currentTon + Number(soLuong));
+    } else if (type === "xuat") {
+      var newTon = currentTon - Number(soLuong);
+      if (newTon < 0) {
+        throw new Error(
+          "Không đủ tồn kho tại " +
+            chiNhanh +
+            "! Hiện tại: " +
+            currentTon +
+            ", cần xuất: " +
+            soLuong,
+        );
+      }
+      sheet.getRange(row, COL_PK.SO_LUONG_TON).setValue(newTon);
     }
-    sheet.getRange(row, COL_PK.SO_LUONG_TON).setValue(newTon);
-  }
 
-  return true;
+    return true;
+  });
 }
 
 /**

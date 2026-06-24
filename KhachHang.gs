@@ -41,11 +41,7 @@ function getKhachHangDropdown() {
     var ma = String(row[COL_KH.MA_KH - 1] || "");
     if (ma.trim() !== "") {
       var ten = String(row[COL_KH.HO_TEN - 1] || "");
-      var sdt = String(row[COL_KH.SO_DIEN_THOAI - 1] || "");
-      var displayText =
-        ma === sdt || !sdt
-          ? ma + " - " + ten
-          : ma + " - " + ten + " (" + sdt + ")";
+      var displayText = ma + " - " + ten;
       result.push({
         value: ma,
         text: displayText,
@@ -67,21 +63,13 @@ function addKhachHang(data) {
   var phone = String(data.soDienThoai || "").trim();
   var maKH = phone ? phone : generateId("KH", SHEET_NAMES.KHACH_HANG);
 
-  // Kiểm tra SĐT/Mã KH trùng
+  // Kiểm tra Mã KH trùng
   var existing = lookupValue(
     SHEET_NAMES.KHACH_HANG,
     COL_KH.MA_KH,
     maKH,
     COL_KH.MA_KH,
   );
-  if (phone && !existing && COL_KH.SO_DIEN_THOAI !== COL_KH.MA_KH) {
-    existing = lookupValue(
-      SHEET_NAMES.KHACH_HANG,
-      COL_KH.SO_DIEN_THOAI,
-      phone,
-      COL_KH.MA_KH,
-    );
-  }
   if (existing) {
     throw new Error(
       'Khách hàng với SĐT/Mã KH "' +
@@ -95,9 +83,6 @@ function addKhachHang(data) {
   var rowData = [];
   rowData[COL_KH.MA_KH - 1] = maKH;
   rowData[COL_KH.HO_TEN - 1] = data.hoTen || "";
-  if (COL_KH.SO_DIEN_THOAI !== COL_KH.MA_KH) {
-    rowData[COL_KH.SO_DIEN_THOAI - 1] = phone;
-  }
   rowData[COL_KH.CCCD - 1] = data.cccd || "";
   rowData[COL_KH.DIA_CHI - 1] = data.diaChi || "";
   rowData[COL_KH.NGAY_TAO - 1] = new Date();
@@ -126,9 +111,6 @@ function updateKhachHang(maKH, data) {
   var updates = {};
   if (data.soDienThoai !== undefined) {
     updates[COL_KH.MA_KH] = data.soDienThoai;
-    if (COL_KH.SO_DIEN_THOAI !== COL_KH.MA_KH) {
-      updates[COL_KH.SO_DIEN_THOAI] = data.soDienThoai;
-    }
   }
   if (data.hoTen !== undefined) updates[COL_KH.HO_TEN] = data.hoTen;
   if (data.cccd !== undefined) updates[COL_KH.CCCD] = data.cccd;
@@ -156,7 +138,7 @@ function searchKhachHang(keyword) {
 
   data.forEach(function (row) {
     var hoTen = String(row[COL_KH.HO_TEN - 1] || "").toLowerCase();
-    var sdt = String(row[COL_KH.SO_DIEN_THOAI - 1] || "").toLowerCase();
+    var sdt = String(row[COL_KH.MA_KH - 1] || "").toLowerCase();
     var cccd = String(row[COL_KH.CCCD - 1] || "").toLowerCase();
 
     if (
@@ -188,16 +170,12 @@ function _buildKhachHangDropdownCache() {
     var ma = String(row[COL_KH.MA_KH - 1] || "");
     if (ma.trim() !== "") {
       var ten = String(row[COL_KH.HO_TEN - 1] || "");
-      var sdt = String(row[COL_KH.SO_DIEN_THOAI - 1] || "");
       var cccd = String(row[COL_KH.CCCD - 1] || "");
-      var displayText =
-        ma === sdt || !sdt
-          ? ma + " - " + ten
-          : ma + " - " + ten + " (" + sdt + ")";
+      var displayText = ma + " - " + ten;
       result.push({
         v: ma,
         t: displayText,
-        _s: (ma + " " + ten + " " + sdt + " " + cccd).toLowerCase(),
+        _s: (ma + " " + ten + " " + cccd).toLowerCase(),
       });
     }
   });
@@ -262,13 +240,9 @@ function ensureKhachHangExists(maKH, hoTen, soDienThoai) {
   
   if (hoTen && hoTen !== maKH) {
     // Khách hàng chưa tồn tại, tự động thêm mới
-    var phone = soDienThoai || (/\d{9,11}/.test(maKH) ? maKH : "");
     var rowData = [];
     rowData[COL_KH.MA_KH - 1] = maKH;
     rowData[COL_KH.HO_TEN - 1] = hoTen;
-    if (COL_KH.SO_DIEN_THOAI !== COL_KH.MA_KH) {
-      rowData[COL_KH.SO_DIEN_THOAI - 1] = phone;
-    }
     rowData[COL_KH.NGAY_TAO - 1] = new Date();
     
     appendRow(SHEET_NAMES.KHACH_HANG, rowData);

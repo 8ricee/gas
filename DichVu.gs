@@ -18,6 +18,7 @@
  * @return {string} Mã dịch vụ mới
  */
 function taoDichVu(data) {
+  return withDocumentLock(function () {
     initializeColumnEnums();
     var maDV = generateId("DV", SHEET_NAMES.DICH_VU);
     var chiNhanh = data.chiNhanh;
@@ -84,6 +85,7 @@ function taoDichVu(data) {
         "đ",
     );
     return maDV;
+  });
 }
 
 /**

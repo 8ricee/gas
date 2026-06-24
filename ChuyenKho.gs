@@ -12,6 +12,7 @@
  * @return {boolean}
  */
 function chuyenKho(data) {
+  return withDocumentLock(function () {
     initializeColumnEnums();
     var nguonSP = data.nguonSP || "Điện thoại";
     var maSP = data.maSP;
@@ -110,4 +111,5 @@ function chuyenKho(data) {
         ")",
     );
     return true;
+  });
 }

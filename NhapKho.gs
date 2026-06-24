@@ -22,6 +22,7 @@
  * @return {string} Mã nhập kho
  */
 function nhapKho(data) {
+  return withDocumentLock(function () {
     initializeColumnEnums();
     var maNK = generateId("NK", SHEET_NAMES.NHAP_KHO);
     var nguonNhap = data.nguonNhap || "Điện thoại";
@@ -117,6 +118,7 @@ function nhapKho(data) {
         "đ",
     );
     return maNK;
+  });
 }
 
 /**

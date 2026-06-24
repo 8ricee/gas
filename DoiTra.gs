@@ -17,6 +17,7 @@
  * @return {string} Mã đổi trả mới
  */
 function thucHienDoiTra(data) {
+  return withDocumentLock(function () {
     initializeColumnEnums();
 
     // Backend validation for Hỗn hợp payments
@@ -674,4 +675,5 @@ function thucHienDoiTra(data) {
       }
       throw e;
     }
+  });
 }

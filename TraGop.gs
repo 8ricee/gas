@@ -221,60 +221,62 @@ function ghiNhanThanhToan(data) {
  * @private
  */
 function _capNhatTongTraGop(maTG) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  return withDocumentLock(function () {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  // Đếm kỳ đã trả và tổng tiền
-  var lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
-  var lastRow = lstgSheet.getLastRow();
-  if (lastRow <= 1) return;
+    // Đếm kỳ đã trả và tổng tiền
+    var lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
+    var lastRow = lstgSheet.getLastRow();
+    if (lastRow <= 1) return;
 
-  var allData = lstgSheet.getRange(2, 1, lastRow - 1, 9).getValues();
-  var daTraSoKy = 0;
-  var daTraSoTien = 0;
+    var allData = lstgSheet.getRange(2, 1, lastRow - 1, 9).getValues();
+    var daTraSoKy = 0;
+    var daTraSoTien = 0;
 
-  allData.forEach(function (row) {
-    if (String(row[1]) === maTG && String(row[8]) === "Đã trả") {
-      daTraSoKy++;
-      daTraSoTien += parseAmountVal(row[4]);
+    allData.forEach(function (row) {
+      if (String(row[1]) === maTG && String(row[8]) === "Đã trả") {
+        daTraSoKy++;
+        daTraSoTien += parseAmountVal(row[4]);
+      }
+    });
+
+    // Tìm dòng trả góp
+    initializeColumnEnums();
+    var tgRow = findRow(SHEET_NAMES.TRA_GOP, COL_TG.MA_TG, maTG);
+    if (tgRow === -1) return;
+
+    var tgSheet = ss.getSheetByName(SHEET_NAMES.TRA_GOP);
+    var lastCol = tgSheet.getLastColumn();
+    var range = tgSheet.getRange(tgRow, 1, 1, lastCol);
+    var rowValues = range.getValues()[0];
+
+    var traTruoc = parseAmountVal(rowValues[COL_TG.TRA_TRUOC - 1]);
+    var soKy = Number(rowValues[COL_TG.SO_KY - 1]) || 0;
+
+    rowValues[COL_TG.DA_TRA_SO_KY - 1] = daTraSoKy;
+    rowValues[COL_TG.DA_TRA_SO_TIEN - 1] = traTruoc + daTraSoTien;
+
+    // Cập nhật trạng thái
+    if (daTraSoKy >= soKy) {
+      rowValues[COL_TG.TRANG_THAI - 1] = "Hoàn tất";
+      
+      // Cập nhật trạng thái kho điện thoại → Đã bán
+      var maDH = rowValues[COL_TG.MA_DH - 1];
+      var maSP = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.MA_SP);
+      var nguonSP = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.NGUON_SP);
+      if (nguonSP === "Điện thoại" && maSP) {
+        var ghiChuDH = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.GHI_CHU) || "";
+        var imeiMatch = ghiChuDH.match(/\[IMEI:\s*([^\s\]]+)\]/);
+        var imei = imeiMatch ? imeiMatch[1] : "";
+        updateTrangThaiKhoDT(imei || maSP, "Đã bán");
+      }
     }
+
+    range.setValues([rowValues]);
+
+    clearSheetCache(SHEET_NAMES.TRA_GOP);
+    invalidateDropdownCache(SHEET_NAMES.TRA_GOP);
   });
-
-  // Tìm dòng trả góp
-  initializeColumnEnums();
-  var tgRow = findRow(SHEET_NAMES.TRA_GOP, COL_TG.MA_TG, maTG);
-  if (tgRow === -1) return;
-
-  var tgSheet = ss.getSheetByName(SHEET_NAMES.TRA_GOP);
-  var lastCol = tgSheet.getLastColumn();
-  var range = tgSheet.getRange(tgRow, 1, 1, lastCol);
-  var rowValues = range.getValues()[0];
-
-  var traTruoc = parseAmountVal(rowValues[COL_TG.TRA_TRUOC - 1]);
-  var soKy = Number(rowValues[COL_TG.SO_KY - 1]) || 0;
-
-  rowValues[COL_TG.DA_TRA_SO_KY - 1] = daTraSoKy;
-  rowValues[COL_TG.DA_TRA_SO_TIEN - 1] = traTruoc + daTraSoTien;
-
-  // Cập nhật trạng thái
-  if (daTraSoKy >= soKy) {
-    rowValues[COL_TG.TRANG_THAI - 1] = "Hoàn tất";
-    
-    // Cập nhật trạng thái kho điện thoại → Đã bán
-    var maDH = rowValues[COL_TG.MA_DH - 1];
-    var maSP = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.MA_SP);
-    var nguonSP = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.NGUON_SP);
-    if (nguonSP === "Điện thoại" && maSP) {
-      var ghiChuDH = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.GHI_CHU) || "";
-      var imeiMatch = ghiChuDH.match(/\[IMEI:\s*([^\s\]]+)\]/);
-      var imei = imeiMatch ? imeiMatch[1] : "";
-      updateTrangThaiKhoDT(imei || maSP, "Đã bán");
-    }
-  }
-
-  range.setValues([rowValues]);
-
-  clearSheetCache(SHEET_NAMES.TRA_GOP);
-  invalidateDropdownCache(SHEET_NAMES.TRA_GOP);
 }
 
 /**
@@ -283,32 +285,34 @@ function _capNhatTongTraGop(maTG) {
  * @param {string} maDH - Mã đơn hàng
  */
 function huyHopDongTraGop(maDH) {
-  var maTG = lookupValue(SHEET_NAMES.TRA_GOP, 2, maDH, 1);
-  if (maTG) {
-    var tgRow = findRow(SHEET_NAMES.TRA_GOP, 1, maTG);
-    if (tgRow !== -1) {
-      updateCell(SHEET_NAMES.TRA_GOP, tgRow, 16, "Đã huỷ");
+  return withDocumentLock(function () {
+    var maTG = lookupValue(SHEET_NAMES.TRA_GOP, 2, maDH, 1);
+    if (maTG) {
+      var tgRow = findRow(SHEET_NAMES.TRA_GOP, 1, maTG);
+      if (tgRow !== -1) {
+        updateCell(SHEET_NAMES.TRA_GOP, tgRow, 16, "Đã huỷ");
 
-      // Cập nhật trạng thái các kỳ chưa thanh toán trong Lịch sử trả góp thành "Đã huỷ"
-      var ss = SpreadsheetApp.getActiveSpreadsheet();
-      var lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
-      if (lstgSheet) {
-        var lastRow = lstgSheet.getLastRow();
-        if (lastRow > 1) {
-          var allLichSu = lstgSheet.getRange(2, 2, lastRow - 1, 8).getValues(); // Cột B (MaTG) đến I (TrangThai)
-          for (var i = 0; i < allLichSu.length; i++) {
-            if (String(allLichSu[i][0]) === maTG) {
-              var status = String(allLichSu[i][7]);
-              if (status !== "Đã trả") {
-                lstgSheet.getRange(i + 2, 9).setValue("Đã huỷ"); // Cột I (Cột 9)
+        // Cập nhật trạng thái các kỳ chưa thanh toán trong Lịch sử trả góp thành "Đã huỷ"
+        var ss = SpreadsheetApp.getActiveSpreadsheet();
+        var lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
+        if (lstgSheet) {
+          var lastRow = lstgSheet.getLastRow();
+          if (lastRow > 1) {
+            var allLichSu = lstgSheet.getRange(2, 2, lastRow - 1, 8).getValues(); // Cột B (MaTG) đến I (TrangThai)
+            for (var i = 0; i < allLichSu.length; i++) {
+              if (String(allLichSu[i][0]) === maTG) {
+                var status = String(allLichSu[i][7]);
+                if (status !== "Đã trả") {
+                  lstgSheet.getRange(i + 2, 9).setValue("Đã huỷ"); // Cột I (Cột 9)
+                }
               }
             }
+            clearSheetCache(SHEET_NAMES.LICH_SU_TRA_GOP);
           }
-          clearSheetCache(SHEET_NAMES.LICH_SU_TRA_GOP);
         }
       }
     }
-  }
+  });
 }
 
 /**
