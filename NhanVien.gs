@@ -6,41 +6,23 @@
  */
 
 /**
- * Lấy index cột (0-indexed) cho Nhân viên
- * @private
- */
-function _getNhanVienIndices() {
-  return {
-    maNV: COL_NV.MA_NV - 1,
-    hoTen: COL_NV.HO_TEN - 1,
-    soDienThoai: COL_NV.SO_DIEN_THOAI - 1,
-    email: COL_NV.EMAIL - 1,
-    vaiTro: COL_NV.VAI_TRO - 1,
-    quyenXuat: COL_NV.QUYEN_XUAT - 1,
-    ngayVao: COL_NV.NGAY_VAO - 1,
-    trangThai: COL_NV.TRANG_THAI - 1,
-  };
-}
-
-/**
  * Lấy danh sách tất cả nhân viên đang làm
  *
  * @return {Object[]} Mảng objects nhân viên
  */
 function getAllNhanVien() {
-  const activeRows = _getActiveNhanVienRows();
-  const c = _getNhanVienIndices();
+  const activeObjs = _getActiveNhanVienRows();
   
-  return activeRows.map(function(row) {
+  return activeObjs.map(function(obj) {
     return {
-      MaNV: String(row[c.maNV]),
-      HoTen: String(row[c.hoTen]),
-      SoDienThoai: String(row[c.soDienThoai]),
-      Email: String(row[c.email]),
-      VaiTro: String(row[c.vaiTro]),
-      QuyenXuatMay: String(row[c.quyenXuat]),
-      NgayVaoLam: row[c.ngayVao],
-      TrangThai: String(row[c.trangThai]),
+      MaNV: String(obj.MA_NV),
+      HoTen: String(obj.HO_TEN),
+      SoDienThoai: String(obj.SO_DIEN_THOAI),
+      Email: String(obj.EMAIL),
+      VaiTro: String(obj.VAI_TRO),
+      QuyenXuatMay: String(obj.QUYEN_XUAT),
+      NgayVaoLam: obj.NGAY_VAO,
+      TrangThai: String(obj.TRANG_THAI),
     };
   });
 }
@@ -51,15 +33,14 @@ function getAllNhanVien() {
  * @return {Object[]} [{value: 'NV001', text: 'NV001 - Nguyễn Văn A'}, ...]
  */
 function getNhanVienDropdown() {
-  const activeRows = _getActiveNhanVienRows();
-  const c = _getNhanVienIndices();
+  const activeObjs = _getActiveNhanVienRows();
   
-  return activeRows.map(function(row) {
+  return activeObjs.map(function(obj) {
     return {
-      value: String(row[c.maNV]),
-      text: row[c.maNV] + " - " + row[c.hoTen],
-      vaiTro: String(row[c.vaiTro]),
-      quyenXuatMay: String(row[c.quyenXuat]) === "✓",
+      value: String(obj.MA_NV),
+      text: obj.MA_NV + " - " + obj.HO_TEN,
+      vaiTro: String(obj.VAI_TRO),
+      quyenXuatMay: String(obj.QUYEN_XUAT) === "✓",
     };
   });
 }
@@ -166,19 +147,19 @@ function kiemTraQuyenXuatMay(maNV) {
 }
 
 /**
- * Lấy danh sách các dòng nhân viên đang hoạt động
+ * Lấy danh sách nhân viên đang hoạt động dưới dạng mapped objects
  * @private
  */
 function _getActiveNhanVienRows() {
   const data = getAllData(SHEET_NAMES.NHAN_VIEN);
-  const c = _getNhanVienIndices();
   
-  return data.filter(function (row) {
-    if (row.length <= c.trangThai) return false;
+  return data.map(function(row) {
+    return mapRowToObject(row, SHEET_NAMES.NHAN_VIEN);
+  }).filter(function (obj) {
     return (
-      row[c.maNV] &&
-      String(row[c.maNV]).trim() !== "" &&
-      String(row[c.trangThai]) !== "Nghỉ việc"
+      obj.MA_NV &&
+      String(obj.MA_NV).trim() !== "" &&
+      String(obj.TRANG_THAI) !== "Nghỉ việc"
     );
   });
 }

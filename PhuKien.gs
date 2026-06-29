@@ -6,25 +6,6 @@
  */
 
 /**
- * Lấy index cột (0-indexed) cho Phụ kiện
- * @private
- */
-function _getPhuKienIndices() {
-  return {
-    maPK: COL_PK.MA_PK - 1,
-    tenSP: COL_PK.TEN_SP - 1,
-    loaiPK: COL_PK.LOAI_PK - 1,
-    thuongHieu: COL_PK.THUONG_HIEU - 1,
-    giaNhap: COL_PK.GIA_NHAP - 1,
-    giaBan: COL_PK.GIA_BAN - 1,
-    soLuongTon: COL_PK.SO_LUONG_TON - 1,
-    moTa: COL_PK.MO_TA - 1,
-    trangThai: COL_PK.TRANG_THAI - 1,
-    chiNhanh: COL_PK.CHI_NHANH - 1,
-  };
-}
-
-/**
  * Lấy danh sách tất cả phụ kiện
  *
  * @param {boolean} [chiConHang] - Nếu true, chỉ lấy SP còn hàng (tồn > 0 & đang bán)
@@ -34,31 +15,31 @@ function _getPhuKienIndices() {
 function getAllPhuKien(chiConHang, chiNhanh) {
   const data = getAllData(SHEET_NAMES.PHU_KIEN);
   const result = [];
-  const c = _getPhuKienIndices();
 
   data.forEach(function (row) {
-    if (row.length <= c.chiNhanh) return;
+    const obj = mapRowToObject(row, SHEET_NAMES.PHU_KIEN);
+    if (!obj.MA_PK) return;
     if (chiConHang) {
       if (
-        String(row[c.trangThai]) === "Ngừng bán" ||
-        Number(row[c.soLuongTon]) <= 0
+        String(obj.TRANG_THAI) === "Ngừng bán" ||
+        Number(obj.SO_LUONG_TON) <= 0
       )
         return;
     }
     if (chiNhanh) {
-      if (String(row[c.chiNhanh] || "") !== chiNhanh) return;
+      if (String(obj.CHI_NHANH || "") !== chiNhanh) return;
     }
     result.push({
-      MaPK: String(row[c.maPK]),
-      TenSP: String(row[c.tenSP]),
-      LoaiPK: String(row[c.loaiPK]),
-      ThuongHieu: String(row[c.thuongHieu]),
-      GiaNhap: Number(row[c.giaNhap]) || 0,
-      GiaBan: Number(row[c.giaBan]) || 0,
-      SoLuongTon: Number(row[c.soLuongTon]) || 0,
-      MoTa: String(row[c.moTa]),
-      TrangThai: String(row[c.trangThai]),
-      ChiNhanh: String(row[c.chiNhanh] || ""),
+      MaPK: String(obj.MA_PK),
+      TenSP: String(obj.TEN_SP),
+      LoaiPK: String(obj.LOAI_PK),
+      ThuongHieu: String(obj.THUONG_HIEU),
+      GiaNhap: Number(obj.GIA_NHAP) || 0,
+      GiaBan: Number(obj.GIA_BAN) || 0,
+      SoLuongTon: Number(obj.SO_LUONG_TON) || 0,
+      MoTa: String(obj.MO_TA),
+      TrangThai: String(obj.TRANG_THAI),
+      ChiNhanh: String(obj.CHI_NHANH || ""),
     });
   });
 
@@ -74,31 +55,30 @@ function getAllPhuKien(chiConHang, chiNhanh) {
 function getPhuKienDropdown(chiNhanh) {
   const data = getAllData(SHEET_NAMES.PHU_KIEN);
   const result = [];
-  const c = _getPhuKienIndices();
 
   data.forEach(function (row) {
-    if (row.length <= c.chiNhanh) return;
+    const obj = mapRowToObject(row, SHEET_NAMES.PHU_KIEN);
     if (
-      row[c.maPK] &&
-      String(row[c.maPK]).trim() !== "" &&
-      String(row[c.trangThai]) !== "Ngừng bán" &&
-      Number(row[c.soLuongTon]) > 0
+      obj.MA_PK &&
+      String(obj.MA_PK).trim() !== "" &&
+      String(obj.TRANG_THAI) !== "Ngừng bán" &&
+      Number(obj.SO_LUONG_TON) > 0
     ) {
-      const rowChiNhanh = String(row[c.chiNhanh] || "");
+      const rowChiNhanh = String(obj.CHI_NHANH || "");
       if (!chiNhanh || rowChiNhanh === chiNhanh) {
         result.push({
-          value: String(row[c.maPK]),
+          value: String(obj.MA_PK),
           text:
-            row[c.maPK] +
+            obj.MA_PK +
             " - " +
-            row[c.tenSP] +
+            obj.TEN_SP +
             " (Tồn: " +
-            row[c.soLuongTon] +
+            obj.SO_LUONG_TON +
             " | " +
             rowChiNhanh +
             ")",
-          giaBan: Number(row[c.giaBan]),
-          soLuongTon: Number(row[c.soLuongTon]),
+          giaBan: Number(obj.GIA_BAN),
+          soLuongTon: Number(obj.SO_LUONG_TON),
           chiNhanh: rowChiNhanh,
         });
       }
@@ -346,28 +326,27 @@ function updateTonKhoPhuKien(maPK, soLuong, type, chiNhanh) {
 function getPhuKienSapHet() {
   const data = getAllData(SHEET_NAMES.PHU_KIEN);
   const result = [];
-  const c = _getPhuKienIndices();
 
   data.forEach(function (row) {
-    if (row.length <= c.chiNhanh) return;
+    const obj = mapRowToObject(row, SHEET_NAMES.PHU_KIEN);
     if (
-      row[c.maPK] &&
-      String(row[c.maPK]).trim() !== "" &&
-      String(row[c.trangThai]) === "Đang bán" &&
-      Number(row[c.soLuongTon]) <= 5 &&
-      Number(row[c.soLuongTon]) > 0
+      obj.MA_PK &&
+      String(obj.MA_PK).trim() !== "" &&
+      String(obj.TRANG_THAI) === "Đang bán" &&
+      Number(obj.SO_LUONG_TON) <= 5 &&
+      Number(obj.SO_LUONG_TON) > 0
     ) {
       result.push({
-        MaPK: String(row[c.maPK]),
-        TenSP: String(row[c.tenSP]),
-        LoaiPK: String(row[c.loaiPK]),
-        ThuongHieu: String(row[c.thuongHieu]),
-        GiaNhap: Number(row[c.giaNhap]) || 0,
-        GiaBan: Number(row[c.giaBan]) || 0,
-        SoLuongTon: Number(row[c.soLuongTon]) || 0,
-        MoTa: String(row[c.moTa]),
-        TrangThai: String(row[c.trangThai]),
-        ChiNhanh: String(row[c.chiNhanh] || ""),
+        MaPK: String(obj.MA_PK),
+        TenSP: String(obj.TEN_SP),
+        LoaiPK: String(obj.LOAI_PK),
+        ThuongHieu: String(obj.THUONG_HIEU),
+        GiaNhap: Number(obj.GIA_NHAP) || 0,
+        GiaBan: Number(obj.GIA_BAN) || 0,
+        SoLuongTon: Number(obj.SO_LUONG_TON) || 0,
+        MoTa: String(obj.MO_TA),
+        TrangThai: String(obj.TRANG_THAI),
+        ChiNhanh: String(obj.CHI_NHANH || ""),
       });
     }
   });
@@ -385,12 +364,11 @@ function getPhuKienUniqueList() {
   const data = getAllData(SHEET_NAMES.PHU_KIEN);
   const result = [];
   const seen = {};
-  const c = _getPhuKienIndices();
 
   data.forEach(function (row) {
-    if (row.length <= c.chiNhanh) return;
-    const maPK = String(row[c.maPK]).trim();
-    if (maPK && maPK !== "" && String(row[c.trangThai]) !== "Ngừng bán") {
+    const obj = mapRowToObject(row, SHEET_NAMES.PHU_KIEN);
+    const maPK = String(obj.MA_PK || "").trim();
+    if (maPK && maPK !== "" && String(obj.TRANG_THAI) !== "Ngừng bán") {
       if (!seen[maPK]) {
         seen[maPK] = true;
         result.push({
@@ -398,14 +376,14 @@ function getPhuKienUniqueList() {
           text:
             maPK +
             " - " +
-            row[c.tenSP] +
+            obj.TEN_SP +
             " (" +
-            row[c.loaiPK] +
+            obj.LOAI_PK +
             " | " +
-            row[c.thuongHieu] +
+            obj.THUONG_HIEU +
             ")",
-          giaBan: Number(row[c.giaBan]),
-          chiNhanh: String(row[c.chiNhanh] || ""),
+          giaBan: Number(obj.GIA_BAN),
+          chiNhanh: String(obj.CHI_NHANH || ""),
         });
       }
     }
@@ -439,32 +417,31 @@ function getPhuKienStockAtBranch(maPK, chiNhanh) {
 function _buildPhuKienDropdownCache() {
   const data = getAllData(SHEET_NAMES.PHU_KIEN);
   const result = [];
-  const c = _getPhuKienIndices();
 
   data.forEach(function (row) {
-    if (row.length <= c.chiNhanh) return;
+    const obj = mapRowToObject(row, SHEET_NAMES.PHU_KIEN);
     if (
-      row[c.maPK] &&
-      String(row[c.maPK]).trim() !== "" &&
-      String(row[c.trangThai]) !== "Ngừng bán" &&
-      Number(row[c.soLuongTon]) > 0
+      obj.MA_PK &&
+      String(obj.MA_PK).trim() !== "" &&
+      String(obj.TRANG_THAI) !== "Ngừng bán" &&
+      Number(obj.SO_LUONG_TON) > 0
     ) {
-      const cn = String(row[c.chiNhanh] || "");
+      const cn = String(obj.CHI_NHANH || "");
       result.push({
-        v: String(row[c.maPK]),
+        v: String(obj.MA_PK),
         t:
-          row[c.maPK] +
+          obj.MA_PK +
           " - " +
-          row[c.tenSP] +
+          obj.TEN_SP +
           " (Tồn: " +
-          row[c.soLuongTon] +
+          obj.SO_LUONG_TON +
           " | " +
           cn +
           ")",
-        gb: Number(row[c.giaBan]),
-        sl: Number(row[c.soLuongTon]),
+        gb: Number(obj.GIA_BAN),
+        sl: Number(obj.SO_LUONG_TON),
         cn: cn,
-        _s: (String(row[c.maPK]) + " " + String(row[c.tenSP])).toLowerCase(),
+        _s: (String(obj.MA_PK) + " " + String(obj.TEN_SP)).toLowerCase(),
       });
     }
   });
@@ -480,12 +457,11 @@ function _buildPhuKienUniqueCache() {
   const data = getAllData(SHEET_NAMES.PHU_KIEN);
   const result = [];
   const seen = {};
-  const c = _getPhuKienIndices();
 
   data.forEach(function (row) {
-    if (row.length <= c.chiNhanh) return;
-    const maPK = String(row[c.maPK]).trim();
-    if (maPK && maPK !== "" && String(row[c.trangThai]) !== "Ngừng bán") {
+    const obj = mapRowToObject(row, SHEET_NAMES.PHU_KIEN);
+    const maPK = String(obj.MA_PK || "").trim();
+    if (maPK && maPK !== "" && String(obj.TRANG_THAI) !== "Ngừng bán") {
       if (!seen[maPK]) {
         seen[maPK] = true;
         result.push({
@@ -493,15 +469,15 @@ function _buildPhuKienUniqueCache() {
           t:
             maPK +
             " - " +
-            row[c.tenSP] +
+            obj.TEN_SP +
             " (" +
-            row[c.loaiPK] +
+            obj.LOAI_PK +
             " | " +
-            row[c.thuongHieu] +
+            obj.THUONG_HIEU +
             ")",
-          gb: Number(row[c.giaBan]),
-          cn: String(row[c.chiNhanh] || ""),
-          _s: (maPK + " " + String(row[c.tenSP])).toLowerCase(),
+          gb: Number(obj.GIA_BAN),
+          cn: String(obj.CHI_NHANH || ""),
+          _s: (maPK + " " + String(obj.TEN_SP)).toLowerCase(),
         });
       }
     }

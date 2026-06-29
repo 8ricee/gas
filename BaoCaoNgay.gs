@@ -73,8 +73,11 @@ function generateDailyReport(targetDate) {
   });
 
   // --- 2. GHI BÁO CÁO LÊN SHEET ---
-  reportSheet.clearContents();
-  reportSheet.getRange("A1:M1000").clearFormat();
+  const totalRows = reportSheet.getMaxRows();
+  const totalCols = reportSheet.getMaxColumns();
+  if (totalRows >= 6) {
+    reportSheet.getRange(6, 1, totalRows - 5, totalCols).clear();
+  }
 
   // Tạo tiêu đề
   reportSheet
@@ -158,6 +161,7 @@ function _initBranchMetrics(branches, fallbackBranch) {
       chiTM: 0,
       thuCK: 0,
       chiCK: 0,
+      congNoCTTC : 0,
     };
   });
   branchMetrics[fallbackBranch] = {
@@ -167,6 +171,7 @@ function _initBranchMetrics(branches, fallbackBranch) {
     chiTM: 0,
     thuCK: 0,
     chiCK: 0,
+    congNoCTTC : 0,
   };
   return branchMetrics;
 }
@@ -257,6 +262,7 @@ function _collectDonHang(targetDate, branchMetrics, fallbackBranch, transactions
       // Tính dòng tiền
       let thuTM = 0;
       let thuCK = 0;
+      let congNo = 0;
 
       const cellTM = row[COL_DH.TIEN_MAT - 1];
       const cellCK = row[COL_DH.CHUYEN_KHOAN - 1];
@@ -289,7 +295,8 @@ function _collectDonHang(targetDate, branchMetrics, fallbackBranch, transactions
           );
           const conLai = thanhTien - traTruoc;
           if (loaiTG === "Công ty tài chính") {
-            thuCK += conLai;
+            // Thay vì thuCK += conLai;
+            congNo += conLai;
           }
         }
       } else {
@@ -316,8 +323,7 @@ function _collectDonHang(targetDate, branchMetrics, fallbackBranch, transactions
           const conLai = thanhTien - traTruoc;
 
           if (loaiTG === "Công ty tài chính") {
-            // Công ty tài chính giải ngân qua chuyển khoản
-            thuCK += conLai;
+            congNo += conLai;
           }
           amountCollected = traTruoc;
           rawAmount = traTruocRaw;
@@ -351,6 +357,7 @@ function _collectDonHang(targetDate, branchMetrics, fallbackBranch, transactions
       branchMetrics[brKey].loiNhuan += loiNhuan;
       branchMetrics[brKey].thuTM += thuTM;
       branchMetrics[brKey].thuCK += thuCK;
+      branchMetrics[brKey].congNoCTTC += congNo;
 
       transactions.push({
         maGD: maDH,
@@ -359,6 +366,7 @@ function _collectDonHang(targetDate, branchMetrics, fallbackBranch, transactions
         khachHang: tenKH,
         branch: branch,
         thuTM: thuTM,
+        congNo: congNo,
         chiTM: 0,
         thuCK: thuCK,
         chiCK: 0,
@@ -1031,7 +1039,8 @@ function _writeSummaryTableToSheet(reportSheet, branchMetrics, activeBranches, t
     { name: "4. Tiền mặt Chi", key: "chiTM" },
     { name: "5. Chuyển khoản Thu", key: "thuCK" },
     { name: "6. Chuyển khoản Chi", key: "chiCK" },
-    { name: "7. Dòng tiền ròng trong ngày", key: "netCash" },
+    { name: "7. Phải thu CTTC (Công nợ)", key: "congNoCTTC" },
+    { name: "8. Dòng tiền ròng trong ngày", key: "netCash" },
   ];
 
   const summaryData = [];
@@ -1102,7 +1111,7 @@ function _writeDetailedTablesToSheet(reportSheet, transactions, activeBranches, 
     });
 
     // 1. Tiêu đề bảng chi tiết chi nhánh
-    const titleRange = reportSheet.getRange(startRow, 1, 1, 10);
+    const titleRange = reportSheet.getRange(startRow, 1, 1, 11);
     titleRange.merge();
     titleRange
       .setValue("CHI TIẾT GIAO DỊCH - " + branchName.toUpperCase())
@@ -1121,12 +1130,13 @@ function _writeDetailedTablesToSheet(reportSheet, transactions, activeBranches, 
       "Chi Tiền mặt",
       "Thu Chuyển khoản",
       "Chi Chuyển khoản",
+      "Công nợ",
       "Lợi nhuận",
       "Chi tiết",
     ];
-    reportSheet.getRange(startRow + 1, 1, 1, 10).setValues([detailHeaders]);
+    reportSheet.getRange(startRow + 1, 1, 1, 11).setValues([detailHeaders]);
     reportSheet
-      .getRange(startRow + 1, 1, 1, 10)
+      .getRange(startRow + 1, 1, 1, 11)
       .setFontWeight("bold")
       .setBackground("#e8f0fe")
       .setHorizontalAlignment("left");
@@ -1138,6 +1148,7 @@ function _writeDetailedTablesToSheet(reportSheet, transactions, activeBranches, 
         sumChiTM = 0,
         sumThuCK = 0,
         sumChiCK = 0,
+        sumCongNo = 0,
         sumLoiNhuan = 0;
 
       branchTxs.forEach(function (tx) {
@@ -1150,6 +1161,7 @@ function _writeDetailedTablesToSheet(reportSheet, transactions, activeBranches, 
           tx.chiTM,
           tx.thuCK,
           tx.chiCK,
+          tx.congNo || 0,
           tx.loiNhuan,
           tx.detail,
         ]);
@@ -1157,16 +1169,17 @@ function _writeDetailedTablesToSheet(reportSheet, transactions, activeBranches, 
         sumChiTM += tx.chiTM;
         sumThuCK += tx.thuCK;
         sumChiCK += tx.chiCK;
+        sumCongNo += tx.congNo || 0;
         sumLoiNhuan += tx.loiNhuan;
       });
 
       reportSheet
-        .getRange(startRow + 2, 1, detailRows.length, 10)
+        .getRange(startRow + 2, 1, detailRows.length, 11)
         .setValues(detailRows);
 
       // Format tiền tệ
       reportSheet
-        .getRange(startRow + 2, 5, detailRows.length, 5)
+        .getRange(startRow + 2, 5, detailRows.length, 6)
         .setNumberFormat("#,##0");
 
       // Dòng tổng cộng của riêng chi nhánh
@@ -1176,20 +1189,20 @@ function _writeDetailedTablesToSheet(reportSheet, transactions, activeBranches, 
         .setValue("Tổng cộng chi nhánh")
         .setFontWeight("bold");
       reportSheet
-        .getRange(totalRowIdx, 5, 1, 5)
-        .setValues([[sumThuTM, sumChiTM, sumThuCK, sumChiCK, sumLoiNhuan]]);
+        .getRange(totalRowIdx, 5, 1, 6)
+        .setValues([[sumThuTM, sumChiTM, sumThuCK, sumChiCK, sumCongNo, sumLoiNhuan]]);
       reportSheet
-        .getRange(totalRowIdx, 5, 1, 5)
+        .getRange(totalRowIdx, 5, 1, 6)
         .setNumberFormat("#,##0")
         .setFontWeight("bold");
       reportSheet
-        .getRange(totalRowIdx, 1, 1, 10)
+        .getRange(totalRowIdx, 1, 1, 11)
         .setBackground("#f1f3f4")
         .setFontWeight("bold");
 
       // Vẽ viền cho bảng
       reportSheet
-        .getRange(startRow, 1, detailRows.length + 3, 10)
+        .getRange(startRow, 1, detailRows.length + 3, 11)
         .setBorder(
           true,
           true,
@@ -1205,7 +1218,7 @@ function _writeDetailedTablesToSheet(reportSheet, transactions, activeBranches, 
       startRow = totalRowIdx + 3;
     } else {
       // Báo không có giao dịch
-      const emptyRange = reportSheet.getRange(startRow + 2, 1, 1, 10);
+      const emptyRange = reportSheet.getRange(startRow + 2, 1, 1, 11);
       emptyRange.merge();
       emptyRange
         .setValue(
@@ -1216,7 +1229,7 @@ function _writeDetailedTablesToSheet(reportSheet, transactions, activeBranches, 
 
       // Vẽ viền cho bảng trống
       reportSheet
-        .getRange(startRow, 1, 3, 10)
+        .getRange(startRow, 1, 3, 11)
         .setBorder(
           true,
           true,

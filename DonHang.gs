@@ -5,39 +5,7 @@
  * ============================================================
  */
 
-/**
- * Lấy index cột (0-indexed) cho Đơn hàng
- * @private
- */
-function _getDonHangIndices() {
-  return {
-    maDH: COL_DH.MA_DH - 1,
-    ngayBan: COL_DH.NGAY_BAN - 1,
-    maKH: COL_DH.MA_KH - 1,
-    tenKH: COL_DH.TEN_KH - 1,
-    maSP: COL_DH.MA_SP - 1,
-    tenSP: COL_DH.TEN_SP - 1,
-    nguonSP: COL_DH.NGUON_SP - 1,
-    thuongHieu: COL_DH.THUONG_HIEU - 1,
-    soLuong: COL_DH.SO_LUONG - 1,
-    donGia: COL_DH.DON_GIA - 1,
-    thanhTien: COL_DH.THANH_TIEN - 1,
-    hinhThucBan: COL_DH.HINH_THUC_BAN - 1,
-    hinhThucTT: COL_DH.HINH_THUC_TT - 1,
-    nguoiBan: COL_DH.NGUOI_BAN - 1,
-    tenNguoiBan: COL_DH.TEN_NGUOI_BAN - 1,
-    coQuyenXuatMay: COL_DH.QUYEN_XUAT - 1,
-    nguoiHoTro: COL_DH.NGUOI_HO_TRO - 1,
-    tenNguoiHoTro: COL_DH.TEN_NGUOI_HO_TRO - 1,
-    trangThai: COL_DH.TRANG_THAI - 1,
-    ghiChu: COL_DH.GHI_CHU - 1,
-    chiNhanh: COL_DH.CHI_NHANH - 1,
-    maQuaTang: COL_DH.MA_QUA_TANG - 1,
-    tenQuaTang: COL_DH.TEN_QUA_TANG - 1,
-    coNhanQua: COL_DH.CO_NHAN_QUA - 1,
-    tienGiamGia: COL_DH.TIEN_GIAM_GIA - 1,
-  };
-}
+
 
 /**
  * Tạo đơn hàng mới

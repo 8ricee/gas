@@ -6,31 +6,6 @@
  */
 
 /**
- * Lấy index cột (0-indexed) cho Điện thoại
- * @private
- */
-function _getDienThoaiIndices() {
-  return {
-    maDT: COL_DT.MA_DT - 1,
-    tenSP: COL_DT.TEN_SP - 1,
-    thuongHieu: COL_DT.THUONG_HIEU - 1,
-    imei: COL_DT.IMEI - 1,
-    imei2: COL_DT.IMEI_2 - 1,
-    mauSac: COL_DT.MAU_SAC - 1,
-    dungLuong: COL_DT.DUNG_LUONG - 1,
-    tinhTrang: COL_DT.TINH_TRANG - 1,
-    giaNhap: COL_DT.GIA_NHAP - 1,
-    giaBan: COL_DT.GIA_BAN - 1,
-    giaTraGop: COL_DT.GIA_TRA_GOP - 1,
-    trangThaiKho: COL_DT.TRANG_THAI_KHO - 1,
-    ghiChu: COL_DT.GHI_CHU - 1,
-    chiNhanh: COL_DT.CHI_NHANH - 1,
-    ngayNhap: COL_DT.NGAY_NHAP - 1,
-    ngayXuat: COL_DT.NGAY_XUAT - 1,
-  };
-}
-
-/**
  * Lấy danh sách tất cả điện thoại
  *
  * @param {string} [filter] - Lọc theo TrangThaiKho: 'Còn hàng', 'Đã bán', etc.
@@ -39,31 +14,28 @@ function _getDienThoaiIndices() {
 function getAllDienThoai(filter) {
   const data = getAllData(SHEET_NAMES.DIEN_THOAI);
   const result = [];
-  const c = _getDienThoaiIndices();
 
   data.forEach(function (row) {
-    if (row.length <= c.trangThaiKho) return;
-    if (!filter || String(row[c.trangThaiKho]) === filter) {
+    const obj = mapRowToObject(row, SHEET_NAMES.DIEN_THOAI);
+    if (!obj.MA_DT) return;
+    if (!filter || String(obj.TRANG_THAI_KHO) === filter) {
       result.push({
-        MaDT: String(row[c.maDT]),
-        TenSP: String(row[c.tenSP]),
-        ThuongHieu: String(row[c.thuongHieu]),
-        IMEI: String(row[c.imei]),
-        IMEI2:
-          c.imei2 !== undefined && row.length > c.imei2
-            ? String(row[c.imei2] || "")
-            : "",
-        MauSac: String(row[c.mauSac]),
-        DungLuong: String(row[c.dungLuong]),
-        TinhTrang: String(row[c.tinhTrang]),
-        GiaNhap: Number(row[c.giaNhap]) || 0,
-        GiaBan: Number(row[c.giaBan]) || 0,
-        GiaTraGop: Number(row[c.giaTraGop]) || 0,
-        TrangThaiKho: String(row[c.trangThaiKho]),
-        GhiChu: String(row[c.ghiChu]),
-        ChiNhanh: String(row[c.chiNhanh] || ""),
-        NgayNhap: row[c.ngayNhap] ? new Date(row[c.ngayNhap]) : null,
-        NgayXuat: row[c.ngayXuat] ? new Date(row[c.ngayXuat]) : null,
+        MaDT: String(obj.MA_DT),
+        TenSP: String(obj.TEN_SP),
+        ThuongHieu: String(obj.THUONG_HIEU),
+        IMEI: String(obj.IMEI),
+        IMEI2: String(obj.IMEI_2 || ""),
+        MauSac: String(obj.MAU_SAC),
+        DungLuong: String(obj.DUNG_LUONG),
+        TinhTrang: String(obj.TINH_TRANG),
+        GiaNhap: Number(obj.GIA_NHAP) || 0,
+        GiaBan: Number(obj.GIA_BAN) || 0,
+        GiaTraGop: Number(obj.GIA_TRA_GOP) || 0,
+        TrangThaiKho: String(obj.TRANG_THAI_KHO),
+        GhiChu: String(obj.GHI_CHU),
+        ChiNhanh: String(obj.CHI_NHANH || ""),
+        NgayNhap: obj.NGAY_NHAP ? new Date(obj.NGAY_NHAP) : null,
+        NgayXuat: obj.NGAY_XUAT ? new Date(obj.NGAY_XUAT) : null,
       });
     }
   });
@@ -80,45 +52,41 @@ function getAllDienThoai(filter) {
 function getDienThoaiDropdown(chiNhanh) {
   const data = getAllData(SHEET_NAMES.DIEN_THOAI);
   const result = [];
-  const c = _getDienThoaiIndices();
 
   data.forEach(function (row) {
-    if (row.length <= c.trangThaiKho) return;
+    const obj = mapRowToObject(row, SHEET_NAMES.DIEN_THOAI);
     if (
-      row[c.maDT] &&
-      String(row[c.maDT]).trim() !== "" &&
-      String(row[c.trangThaiKho]) === "Còn hàng"
+      obj.MA_DT &&
+      String(obj.MA_DT).trim() !== "" &&
+      String(obj.TRANG_THAI_KHO) === "Còn hàng"
     ) {
-      const rowChiNhanh = String(row[c.chiNhanh] || "");
+      const rowChiNhanh = String(obj.CHI_NHANH || "");
       if (!chiNhanh || rowChiNhanh === chiNhanh) {
-        const imeiVal = String(row[c.imei] || "");
-        const imei2Val =
-          c.imei2 !== undefined && row.length > c.imei2
-            ? String(row[c.imei2] || "")
-            : "";
+        const imeiVal = String(obj.IMEI || "");
+        const imei2Val = String(obj.IMEI_2 || "");
         let imeiText = imeiVal;
         if (imei2Val) {
           imeiText += " / " + imei2Val;
         }
 
         result.push({
-          value: String(row[c.maDT]),
+          value: String(obj.MA_DT),
           text:
-            row[c.maDT] +
+            obj.MA_DT +
             " - " +
-            row[c.tenSP] +
+            obj.TEN_SP +
             " (" +
-            row[c.mauSac] +
+            obj.MAU_SAC +
             ", " +
-            row[c.dungLuong] +
+            obj.DUNG_LUONG +
             " | IMEI: " +
             imeiText +
             " | " +
             rowChiNhanh +
             ")",
-          thuongHieu: String(row[c.thuongHieu]),
-          giaBan: Number(row[c.giaBan]),
-          giaTraGop: Number(row[c.giaTraGop]),
+          thuongHieu: String(obj.THUONG_HIEU),
+          giaBan: Number(obj.GIA_BAN),
+          giaTraGop: Number(obj.GIA_TRA_GOP),
           chiNhanh: rowChiNhanh,
         });
       }
@@ -312,17 +280,14 @@ function searchDienThoai(keyword) {
   const data = getAllData(SHEET_NAMES.DIEN_THOAI);
   const result = [];
   const kw = String(keyword).trim().toLowerCase();
-  const c = _getDienThoaiIndices();
 
   data.forEach(function (row) {
-    if (row.length <= c.imei) return;
-    const tenSP = String(row[c.tenSP]).toLowerCase();
-    const thuongHieu = String(row[c.thuongHieu]).toLowerCase();
-    const imei = String(row[c.imei]).toLowerCase();
-    const imei2 =
-      c.imei2 !== undefined && row.length > c.imei2
-        ? String(row[c.imei2]).toLowerCase()
-        : "";
+    const obj = mapRowToObject(row, SHEET_NAMES.DIEN_THOAI);
+    if (!obj.MA_DT) return;
+    const tenSP = String(obj.TEN_SP).toLowerCase();
+    const thuongHieu = String(obj.THUONG_HIEU).toLowerCase();
+    const imei = String(obj.IMEI).toLowerCase();
+    const imei2 = String(obj.IMEI_2 || "").toLowerCase();
 
     if (
       tenSP.indexOf(kw) !== -1 ||
@@ -331,25 +296,22 @@ function searchDienThoai(keyword) {
       imei2.indexOf(kw) !== -1
     ) {
       result.push({
-        MaDT: String(row[c.maDT]),
-        TenSP: String(row[c.tenSP]),
-        ThuongHieu: String(row[c.thuongHieu]),
-        IMEI: String(row[c.imei]),
-        IMEI2:
-          c.imei2 !== undefined && row.length > c.imei2
-            ? String(row[c.imei2] || "")
-            : "",
-        MauSac: String(row[c.mauSac]),
-        DungLuong: String(row[c.dungLuong]),
-        TinhTrang: String(row[c.tinhTrang]),
-        GiaNhap: Number(row[c.giaNhap]) || 0,
-        GiaBan: Number(row[c.giaBan]) || 0,
-        GiaTraGop: Number(row[c.giaTraGop]) || 0,
-        TrangThaiKho: String(row[c.trangThaiKho]),
-        GhiChu: String(row[c.ghiChu]),
-        ChiNhanh: String(row[c.chiNhanh] || ""),
-        NgayNhap: row[c.ngayNhap] ? new Date(row[c.ngayNhap]) : null,
-        NgayXuat: row[c.ngayXuat] ? new Date(row[c.ngayXuat]) : null,
+        MaDT: String(obj.MA_DT),
+        TenSP: String(obj.TEN_SP),
+        ThuongHieu: String(obj.THUONG_HIEU),
+        IMEI: String(obj.IMEI),
+        IMEI2: String(obj.IMEI_2 || ""),
+        MauSac: String(obj.MAU_SAC),
+        DungLuong: String(obj.DUNG_LUONG),
+        TinhTrang: String(obj.TINH_TRANG),
+        GiaNhap: Number(obj.GIA_NHAP) || 0,
+        GiaBan: Number(obj.GIA_BAN) || 0,
+        GiaTraGop: Number(obj.GIA_TRA_GOP) || 0,
+        TrangThaiKho: String(obj.TRANG_THAI_KHO),
+        GhiChu: String(obj.GHI_CHU),
+        ChiNhanh: String(obj.CHI_NHANH || ""),
+        NgayNhap: obj.NGAY_NHAP ? new Date(obj.NGAY_NHAP) : null,
+        NgayXuat: obj.NGAY_XUAT ? new Date(obj.NGAY_XUAT) : null,
       });
     }
   });
@@ -540,49 +502,45 @@ function backfillDienThoaiDates(silent) {
 function _buildDienThoaiDropdownCache() {
   const data = getAllData(SHEET_NAMES.DIEN_THOAI);
   const result = [];
-  const c = _getDienThoaiIndices();
 
   data.forEach(function (row) {
-    if (row.length <= c.trangThaiKho) return;
+    const obj = mapRowToObject(row, SHEET_NAMES.DIEN_THOAI);
     if (
-      row[c.maDT] &&
-      String(row[c.maDT]).trim() !== "" &&
-      String(row[c.trangThaiKho]) === "Còn hàng"
+      obj.MA_DT &&
+      String(obj.MA_DT).trim() !== "" &&
+      String(obj.TRANG_THAI_KHO) === "Còn hàng"
     ) {
-      const cn = String(row[c.chiNhanh] || "");
-      const imeiVal = String(row[c.imei] || "");
-      const imei2Val =
-        c.imei2 !== undefined && row.length > c.imei2
-          ? String(row[c.imei2] || "")
-          : "";
+      const cn = String(obj.CHI_NHANH || "");
+      const imeiVal = String(obj.IMEI || "");
+      const imei2Val = String(obj.IMEI_2 || "");
       let imeiText = imeiVal;
       if (imei2Val) {
         imeiText += " / " + imei2Val;
       }
 
       result.push({
-        v: String(row[c.maDT]),
+        v: String(obj.MA_DT),
         t:
-          row[c.maDT] +
+          obj.MA_DT +
           " - " +
-          row[c.tenSP] +
+          obj.TEN_SP +
           " (" +
-          row[c.mauSac] +
+          obj.MAU_SAC +
           ", " +
-          row[c.dungLuong] +
+          obj.DUNG_LUONG +
           " | IMEI: " +
           imeiText +
           " | " +
           cn +
           ")",
-        th: String(row[c.thuongHieu]),
-        gb: Number(row[c.giaBan]),
-        gtg: Number(row[c.giaTraGop]),
+        th: String(obj.THUONG_HIEU),
+        gb: Number(obj.GIA_BAN),
+        gtg: Number(obj.GIA_TRA_GOP),
         cn: cn,
         _s: (
-          String(row[c.maDT]) +
+          String(obj.MA_DT) +
           " " +
-          String(row[c.tenSP]) +
+          String(obj.TEN_SP) +
           " " +
           imeiVal +
           " " +

@@ -411,18 +411,21 @@ function _onEditDonHang(sheet, row, col, e) {
       statusVal.toLowerCase() === "huy" ||
       statusVal.toLowerCase() === "huỷ"
     ) {
-      const maDH = sheet.getRange(row, COL_DH.MA_DH).getValue();
-      const maSP = sheet.getRange(row, COL_DH.MA_SP).getValue();
-      const nguonSP = sheet.getRange(row, COL_DH.NGUON_SP).getValue();
-      const hinhThucBan = sheet.getRange(row, COL_DH.HINH_THUC_BAN).getValue();
-      const soLuong = Number(sheet.getRange(row, COL_DH.SO_LUONG).getValue()) || 1;
-      const branch = sheet.getRange(row, COL_DH.CHI_NHANH).getValue();
-      const coNhanQua = sheet.getRange(row, COL_DH.CO_NHAN_QUA).getValue();
-      const maQua = sheet.getRange(row, COL_DH.MA_QUA_TANG).getValue();
+      const lastCol = sheet.getLastColumn();
+      const rowValues = sheet.getRange(row, 1, 1, lastCol).getValues()[0];
+
+      const maDH = rowValues[COL_DH.MA_DH - 1];
+      const maSP = rowValues[COL_DH.MA_SP - 1];
+      const nguonSP = rowValues[COL_DH.NGUON_SP - 1];
+      const hinhThucBan = rowValues[COL_DH.HINH_THUC_BAN - 1];
+      const soLuong = Number(rowValues[COL_DH.SO_LUONG - 1]) || 1;
+      const branch = rowValues[COL_DH.CHI_NHANH - 1];
+      const coNhanQua = rowValues[COL_DH.CO_NHAN_QUA - 1];
+      const maQua = rowValues[COL_DH.MA_QUA_TANG - 1];
 
       // 1. Hoàn trả kho sản phẩm chính
       if (nguonSP === "Điện thoại") {
-        const ghiChuDH = sheet.getRange(row, COL_DH.GHI_CHU).getValue() || "";
+        const ghiChuDH = rowValues[COL_DH.GHI_CHU - 1] || "";
         const imeiMatch = ghiChuDH.match(/\[IMEI:\s*([^\s\]]+)\]/);
         const imei = imeiMatch ? imeiMatch[1] : "";
         updateTrangThaiKhoDT(imei || maSP, "Còn hàng");
