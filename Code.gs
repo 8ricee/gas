@@ -181,6 +181,8 @@ function doGet(e) {
 
 // ======================== EDIT TRIGGER REGISTER ========================
 
+const EDIT_HANDLERS = {};
+
 EDIT_HANDLERS[SHEET_NAMES.CAU_HINH] = function (sheet, row, col, e) {
   _setupDataValidations(e.source);
 };
