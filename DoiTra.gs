@@ -198,12 +198,19 @@ const DoiTraStrategy = {
 
       const dtSheet = ss.getSheetByName(SHEET_NAMES.DOI_TRA);
       const dtRow = appendRow(SHEET_NAMES.DOI_TRA, rowData);
-      rollbackActions.push(function () {
-        try {
-          dtSheet.deleteRow(dtRow);
-          clearSheetCache(SHEET_NAMES.DOI_TRA);
-        } catch (err) {}
-      });
+      (function (capturedMaDT) {
+        rollbackActions.push(function () {
+          try {
+            const ssRollback = SpreadsheetApp.getActiveSpreadsheet();
+            const sheet = ssRollback.getSheetByName(SHEET_NAMES.DOI_TRA);
+            const r = findRow(SHEET_NAMES.DOI_TRA, COL_DT_TRA.MA_DT, capturedMaDT);
+            if (r !== -1) {
+              sheet.deleteRow(r);
+              clearSheetCache(SHEET_NAMES.DOI_TRA);
+            }
+          } catch (err) {}
+        });
+      })(maDT);
 
       showToast("✅ Đổi quà tặng thành công đơn " + maDH);
       return maDT;
@@ -370,12 +377,19 @@ const DoiTraStrategy = {
 
       const dtSheet = ss.getSheetByName(SHEET_NAMES.DOI_TRA);
       const dtRow = appendRow(SHEET_NAMES.DOI_TRA, rowData);
-      rollbackActions.push(function () {
-        try {
-          dtSheet.deleteRow(dtRow);
-          clearSheetCache(SHEET_NAMES.DOI_TRA);
-        } catch (err) {}
-      });
+      (function (capturedMaDT) {
+        rollbackActions.push(function () {
+          try {
+            const ssRollback = SpreadsheetApp.getActiveSpreadsheet();
+            const sheet = ssRollback.getSheetByName(SHEET_NAMES.DOI_TRA);
+            const r = findRow(SHEET_NAMES.DOI_TRA, COL_DT_TRA.MA_DT, capturedMaDT);
+            if (r !== -1) {
+              sheet.deleteRow(r);
+              clearSheetCache(SHEET_NAMES.DOI_TRA);
+            }
+          } catch (err) {}
+        });
+      })(maDT);
 
       showToast("✅ Ghi nhận Đổi trả phụ kiện thành công: " + maDT);
       return maDT;
@@ -592,12 +606,19 @@ const DoiTraStrategy = {
 
       const dtSheet = ss.getSheetByName(SHEET_NAMES.DOI_TRA);
       const dtRow = appendRow(SHEET_NAMES.DOI_TRA, rowData);
-      rollbackActions.push(function () {
-        try {
-          dtSheet.deleteRow(dtRow);
-          clearSheetCache(SHEET_NAMES.DOI_TRA);
-        } catch (err) {}
-      });
+      (function (capturedMaDT) {
+        rollbackActions.push(function () {
+          try {
+            const ssRollback = SpreadsheetApp.getActiveSpreadsheet();
+            const sheet = ssRollback.getSheetByName(SHEET_NAMES.DOI_TRA);
+            const r = findRow(SHEET_NAMES.DOI_TRA, COL_DT_TRA.MA_DT, capturedMaDT);
+            if (r !== -1) {
+              sheet.deleteRow(r);
+              clearSheetCache(SHEET_NAMES.DOI_TRA);
+            }
+          } catch (err) {}
+        });
+      })(maDT);
 
       showToast("✅ Ghi nhận Đổi trả thành công: " + maDT);
       return maDT;

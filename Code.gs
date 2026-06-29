@@ -175,13 +175,12 @@ function doGet(e) {
   return html
     .evaluate()
     .setTitle("VanTran Mobile — Hệ thống Dịch vụ & Buôn bán Trả góp")
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT)
     .addMetaTag("viewport", "width=device-width, initial-scale=1");
 }
 
 // ======================== EDIT TRIGGER REGISTER ========================
 
-const EDIT_HANDLERS = {};
 EDIT_HANDLERS[SHEET_NAMES.CAU_HINH] = function (sheet, row, col, e) {
   _setupDataValidations(e.source);
 };
@@ -190,7 +189,6 @@ EDIT_HANDLERS[SHEET_NAMES.NHAP_KHO] = _onEditNhapKho;
 EDIT_HANDLERS[SHEET_NAMES.BAO_CAO_NGAY] = _onEditBaoCaoNgay;
 EDIT_HANDLERS[SHEET_NAMES.BAO_CAO_DOANH_SO] = _onEditBaoCaoDoanhSo;
 EDIT_HANDLERS[SHEET_NAMES.LICH_SU_TRA_GOP] = _onEditLichSuTraGop;
-EDIT_HANDLERS[SHEET_NAMES.TRA_GOP] = _onEditTraGop;
 
 /**
  * onEdit trigger — auto-calculate khi chỉnh sửa
@@ -201,6 +199,26 @@ function onEdit(e) {
   const sheetName = sheet.getName();
   const row = e.range.getRow();
   const col = e.range.getColumn();
+
+  // Kiểm tra xem cột được sửa đổi có liên quan đến các bộ xử lý (EDIT_HANDLERS) không.
+  // Tránh xoá cache và chạy xử lý vô ích đối với các cột không cần auto-lookup/auto-calculate.
+  let isRelevant = false;
+  if (sheetName === SHEET_NAMES.DON_HANG) {
+    isRelevant = (col === COL_DH.SO_LUONG || col === COL_DH.DON_GIA || col === COL_DH.TIEN_GIAM_GIA ||
+                  col === COL_DH.MA_KH || col === COL_DH.MA_SP || col === COL_DH.NGUOI_BAN || col === COL_DH.NGUOI_HO_TRO);
+  } else if (sheetName === SHEET_NAMES.NHAP_KHO) {
+    isRelevant = (col === COL_NK.SO_LUONG || col === COL_NK.GIA_NHAP || col === COL_NK.MA_SP);
+  } else if (sheetName === SHEET_NAMES.LICH_SU_TRA_GOP) {
+    isRelevant = (col === COL_LSTG.SO_TIEN_DA_TRA || col === COL_LSTG.TRANG_THAI);
+  } else if (sheetName === SHEET_NAMES.BAO_CAO_NGAY) {
+    isRelevant = (row === 3 && col === 2);
+  } else if (sheetName === SHEET_NAMES.BAO_CAO_DOANH_SO) {
+    isRelevant = (row === 3 && (col === 2 || col === 4 || col === 6 || col === 8));
+  } else if (sheetName === SHEET_NAMES.CAU_HINH) {
+    isRelevant = true; // Luôn chạy khi sửa đổi cấu hình để cập nhật validation
+  }
+
+  if (!isRelevant) return;
 
   try {
     clearSheetCache(sheetName);
@@ -271,12 +289,7 @@ function _onEditLichSuTraGop(sheet, row, col, e) {
   _capNhatTongTraGop(maTG);
 }
 
-/**
- * Tự động cập nhật khi sửa trực tiếp trên sheet Trả góp
- */
-function _onEditTraGop(sheet, row, col, e) {
-  // Bỏ xử lý tự động hoàn kho từ onEdit để tránh race condition/timeout (đơn hàng phải huỷ qua UI)
-}
+
 
 /**
  * Auto-calculate cho sheet DonHang (Đơn hàng)

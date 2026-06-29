@@ -213,8 +213,12 @@ function getSheetIndex(sheetName, searchCol) {
         cellVal = String(rawVal).trim();
       }
       cellVal = cellVal.toLowerCase();
-      if (!(cellVal in indexMap)) {
-        indexMap[cellVal] = i; // Lưu index 0-indexed trong mảng data
+      if (cellVal !== "") {
+        if (cellVal in indexMap) {
+          Logger.log("CẢNH BÁO TRÙNG KHÓA CHÍNH: '" + rawVal + "' tại dòng " + (i + 2) + " trong sheet " + sheetName + ". Dòng cũ ở dòng " + (indexMap[cellVal] + 2));
+        } else {
+          indexMap[cellVal] = i; // Lưu index 0-indexed trong mảng data
+        }
       }
     }
     _sheetIndexCache[sheetName][searchCol] = indexMap;
@@ -385,12 +389,17 @@ function generateId(prefix, sheetName) {
     const props = PropertiesService.getScriptProperties();
     const key = "id_counter_" + prefix + "_" + sheetName;
     // Đọc counter cũ, nếu chưa có thì gán là 0, sau đó cộng 1
-    const count = Number(props.getProperty(key) || "0") + 1;
+    let count = Number(props.getProperty(key) || "0");
+    
+    // Tự phục hồi: nếu counter < max trong sheet -> seed lại
+    const maxInSheet = getNewIdCounter(prefix, sheetName); // đã có sẵn
+    if (count < maxInSheet) count = maxInSheet;
+
+    count += 1;
     // Lưu counter mới lại ngay lập tức
     props.setProperty(key, String(count));
     // Định dạng số thành 5 chữ số (00001, 00002...)
     const padded = ("00000" + count).slice(-5);
-    // Tạo ID kết hợp Counter và Random (Cần đảm bảo hàm getRandomLetters() đã được định nghĩa)
     return prefix + padded; 
   } finally {
     // Luôn luôn giải phóng khóa dù có lỗi xảy ra hay không

@@ -152,16 +152,21 @@ function thucHienThuMua(data) {
 
       const tmSheet = ss.getSheetByName(SHEET_NAMES.THU_MUA);
       const tmRow = appendRow(SHEET_NAMES.THU_MUA, rowData);
-      rollbackActions.push(function () {
-        try {
-          const ssRollback = SpreadsheetApp.getActiveSpreadsheet();
-          const tmSheetRollback = ssRollback.getSheetByName(SHEET_NAMES.THU_MUA);
-          tmSheetRollback.deleteRow(tmRow);
-          clearSheetCache(SHEET_NAMES.THU_MUA);
-        } catch (err) {
-          Logger.log("Rollback failed to delete buyback row: " + err.message);
-        }
-      });
+      (function (capturedMaTM) {
+        rollbackActions.push(function () {
+          try {
+            const ssRollback = SpreadsheetApp.getActiveSpreadsheet();
+            const tmSheetRollback = ssRollback.getSheetByName(SHEET_NAMES.THU_MUA);
+            const r = findRow(SHEET_NAMES.THU_MUA, COL_TM.MA_TM, capturedMaTM);
+            if (r !== -1) {
+              tmSheetRollback.deleteRow(r);
+              clearSheetCache(SHEET_NAMES.THU_MUA);
+            }
+          } catch (err) {
+            Logger.log("Rollback failed to delete buyback row: " + err.message);
+          }
+        });
+      })(maTM);
     } catch (e) {
       for (let rIdx = rollbackActions.length - 1; rIdx >= 0; rIdx--) {
         rollbackActions[rIdx]();

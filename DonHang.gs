@@ -283,17 +283,21 @@ function _taoDonHangSingle(data, rollbackActions, ss) {
 
   const donHangSheet = ss.getSheetByName(SHEET_NAMES.DON_HANG);
   const donHangRow = appendRow(SHEET_NAMES.DON_HANG, rowData);
-  (function (capturedRow) {
+  (function (capturedMaDH) {
     rollbackActions.push(function () {
       try {
-        const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.DON_HANG);
-        sheet.deleteRow(capturedRow);
-        clearSheetCache(SHEET_NAMES.DON_HANG);
+        const ssRollback = SpreadsheetApp.getActiveSpreadsheet();
+        const sheet = ssRollback.getSheetByName(SHEET_NAMES.DON_HANG);
+        const r = findRow(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, capturedMaDH);
+        if (r !== -1) {
+          sheet.deleteRow(r);
+          clearSheetCache(SHEET_NAMES.DON_HANG);
+        }
       } catch (err) {
         Logger.log("Rollback failed to delete order row: " + err.message);
       }
     });
-  })(donHangRow);
+  })(maDH);
 
   // Cập nhật kho sản phẩm
   strategy.updateStock(data, chiNhanh, soLuong, rollbackActions, ss);
