@@ -70,7 +70,21 @@
     // Set initial mode from template evaluation
     var initialMode = '<?!= (typeof mode !== "undefined" ? mode : "donHang") ?>';
   </script>
-  <?!= HtmlService.createHtmlOutputFromFile('SidebarScripts').getContent(); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('SidebarScriptsCommon').getContent(); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('SidebarScriptsDonHang').getContent(); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('SidebarScriptsKhachHang').getContent(); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('SidebarScriptsNhapKho').getContent(); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('SidebarScriptsDichVu').getContent(); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('SidebarScriptsThanhToan').getContent(); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('SidebarScriptsChuyenKho').getContent(); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('SidebarScriptsDoiTra').getContent(); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('SidebarScriptsThuMua').getContent(); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('SidebarScriptsDoanhSo').getContent(); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('SidebarScriptsBaoHanh').getContent(); ?>
+  <script>
+    // Khởi tạo ứng dụng sau khi toàn bộ code đã được tải
+    init();
+  </script>
 
 </body>
 </html>

@@ -1,0 +1,43 @@
+<script>
+  function submitKhachHang() {
+    let hoTen = document.getElementById('kh-hoTen').value.trim();
+    let sdt = document.getElementById('kh-soDienThoai').value.trim();
+
+    if (!hoTen || !sdt) {
+      showAlertMsg('error', 'Vui lòng nhập Họ tên và SĐT!');
+      return;
+    }
+
+    let data = {
+      hoTen: hoTen,
+      soDienThoai: sdt,
+      cccd: document.getElementById('kh-cccd').value.trim(),
+      diaChi: document.getElementById('kh-diaChi').value.trim(),
+      ghiChu: document.getElementById('kh-ghiChu').value.trim()
+    };
+
+    setLoading('btnThemKH', true);
+    google.script.run
+      .withSuccessHandler(function(maKH) {
+        setLoading('btnThemKH', false);
+        showAlertMsg('success', 'Đã thêm KH: <strong>' + escapeHtml(maKH) + '</strong> - ' + escapeHtml(hoTen));
+        document.getElementById('kh-hoTen').value = '';
+        document.getElementById('kh-soDienThoai').value = '';
+        document.getElementById('kh-cccd').value = '';
+        document.getElementById('kh-diaChi').value = '';
+        document.getElementById('kh-ghiChu').value = '';
+        google.script.run.withSuccessHandler(function(items) {
+          localCache.khachHang = items || [];
+          populateDatalist('dh-maKH', 'dh-maKH-list', items);
+          populateDatalist('tm-maKH', 'tm-maKH-list', items);
+          populateDatalist('dv-maKH', 'dv-maKH-list', items);
+          populateDatalist('bh-maKH', 'bh-maKH-list', items);
+        }).getKhachHangDropdown();
+      })
+      .withFailureHandler(function(err) {
+        setLoading('btnThemKH', false);
+        showAlertMsg('error', 'Lỗi: ' + err.message);
+      })
+      .addKhachHang(data);
+  }
+</script>

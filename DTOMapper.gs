@@ -34,6 +34,43 @@ const DTO_DEFS = {
     tienGiamGia: ["TIEN_GIAM_GIA", "number"],
     imei: ["IMEI", "string"],
     tienThuMua: ["TIEN_THU_MUA", "number"]
+  },
+  DIEN_THOAI_VIEW: {
+    MaDT: ["MA_DT", "string"],
+    TenSP: ["TEN_SP", "string"],
+    ThuongHieu: ["THUONG_HIEU", "string"],
+    IMEI: ["IMEI", "string"],
+    IMEI2: ["IMEI_2", "string"],
+    MauSac: ["MAU_SAC", "string"],
+    DungLuong: ["DUNG_LUONG", "string"],
+    TinhTrang: ["TINH_TRANG", "string"],
+    GiaNhap: ["GIA_NHAP", "number"],
+    GiaBan: ["GIA_BAN", "number"],
+    GiaTraGop: ["GIA_TRA_GOP", "number"],
+    TrangThaiKho: ["TRANG_THAI_KHO", "string"],
+    GhiChu: ["GHI_CHU", "string"],
+    ChiNhanh: ["CHI_NHANH", "string"],
+    NgayNhap: ["NGAY_NHAP", "date"],
+    NgayXuat: ["NGAY_XUAT", "date"]
+  },
+  TRA_GOP_VIEW: {
+    MaTG: ["MA_TG", "string"],
+    MaDH: ["MA_DH", "string"],
+    MaKH: ["MA_KH", "string"],
+    TenKH: ["TEN_KH", "string"],
+    TongTien: ["TONG_TIEN", "number"],
+    TraTruoc: ["TRA_TRUOC", "number"],
+    ConLai: ["CON_LAI", "number"],
+    SoKy: ["SO_KY", "number"],
+    TienMoiKy: ["TIEN_MOI_KY", "number"],
+    NgayBatDau: ["NGAY_BAT_DAU", "date"],
+    NgayKetThuc: ["NGAY_KET_THUC", "date"],
+    DaTraSoKy: ["DA_TRA_SO_KY", "number"],
+    DaTraSoTien: ["DA_TRA_SO_TIEN", "number"],
+    LoaiTraGop: ["LOAI_TRA_GOP", "string"],
+    CongTyTC: ["CONG_TY_TC", "string"],
+    TrangThai: ["TRANG_THAI", "string"],
+    ChiNhanh: ["CHI_NHANH", "string"]
   }
 };
 

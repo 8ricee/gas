@@ -1,0 +1,452 @@
+<script>
+  function onThuMuaLoaiGDChange() {
+    let loai = document.getElementById('tm-loaiGD').value;
+    let fields = document.getElementById('tm-tradeInFields');
+    let htbGroup = document.getElementById('tm-hinhThucBanGroup');
+    let htttMoiGroup = document.getElementById('tm-Moi-hinhThucTTGroup');
+
+    let optionTru = document.querySelector("#tm-Thu-hinhThucTT option[value='Trừ vào đơn mới']");
+    if (optionTru) {
+      optionTru.style.display = (loai === 'Thu cũ đổi mới') ? '' : 'none';
+    }
+
+    if (loai === 'Thu cũ đổi mới') {
+      fields.style.display = 'block';
+      htbGroup.style.display = 'block';
+      htttMoiGroup.style.display = 'block';
+      onThuMuaBranchChange();
+      onThuMuaHinhThucTTChange();
+    } else {
+      fields.style.display = 'none';
+      htbGroup.style.display = 'none';
+      htttMoiGroup.style.display = 'none';
+      document.getElementById('tm-truDonMoiGroup').style.display = 'none';
+      document.getElementById('tm-truDonMoiAmt').value = 0;
+      document.getElementById('tm-hinhThucBan').value = 'Bán thẳng';
+      document.getElementById('tm-maSP-Moi').value = '';
+      document.getElementById('tm-tienHoTro').value = 0;
+      document.getElementById('tm-coNhanQua').value = '✗';
+      document.getElementById('tm-maQuaTang').value = '';
+      document.getElementById('tm-tienGiamGia').value = 0;
+      document.getElementById('tm-maQuaTangGroup').style.display = 'none';
+      
+      document.getElementById('tm-Moi-hinhThucTT').value = 'Tiền mặt';
+      onPaymentMethodChange('tm-Moi');
+      onThuMuaHinhThucBanChange();
+
+      // Nếu đang chọn "Trừ vào đơn mới", reset về Tiền mặt khi chuyển sang Bán thẳng
+      let htttThuSel = document.getElementById('tm-Thu-hinhThucTT');
+      if (htttThuSel && htttThuSel.value === 'Trừ vào đơn mới') {
+        htttThuSel.value = 'Tiền mặt';
+        onPaymentMethodChange('tm-Thu');
+      }
+    }
+    tinhThuMuaChenhLech();
+  }
+
+  function onThuMuaHinhThucBanChange() {
+    let hinhThuc = document.getElementById('tm-hinhThucBan').value;
+    let section = document.getElementById('tm-traGopSection');
+    let httt = document.getElementById('tm-Moi-hinhThucTT') ? document.getElementById('tm-Moi-hinhThucTT').value : '';
+    let traTruocGroup = document.getElementById('tm-tg-traTruoc') ? document.getElementById('tm-tg-traTruoc').closest('.form-group') : null;
+    if (hinhThuc === 'Trả góp') {
+      section.classList.add('show');
+      if (traTruocGroup) {
+        if (httt === 'Hỗn hợp') {
+          traTruocGroup.style.display = 'none';
+        } else {
+          traTruocGroup.style.display = '';
+        }
+      }
+      tinhThuMuaTraGop();
+    } else {
+      section.classList.remove('show');
+      if (traTruocGroup) {
+        traTruocGroup.style.display = '';
+      }
+    }
+  }
+
+  function onThuMuaHinhThucTTChange() {
+    let loaiGD = document.getElementById('tm-loaiGD').value;
+    let htttThu = document.getElementById('tm-Thu-hinhThucTT').value;
+    let truGroup = document.getElementById('tm-truDonMoiGroup');
+    let truAmtInput = document.getElementById('tm-truDonMoiAmt');
+
+    let giaThu = Number(document.getElementById('tm-giaThuMua').value) || 0;
+    let hoTro = Number(document.getElementById('tm-tienHoTro').value) || 0;
+    let maxTru = giaThu + hoTro;
+
+    if (loaiGD === 'Thu cũ đổi mới') {
+      if (htttThu === 'Trừ vào đơn mới') {
+        truGroup.style.display = 'none';
+        truAmtInput.value = maxTru;
+      } else {
+        truGroup.style.display = 'block';
+        let currentVal = Number(truAmtInput.value) || 0;
+        if (currentVal === 0 || currentVal > maxTru) {
+          truAmtInput.value = maxTru;
+        }
+      }
+    } else {
+      truGroup.style.display = 'none';
+      truAmtInput.value = 0;
+    }
+
+    tinhThuMuaChenhLech();
+    let hinhThuc = document.getElementById('tm-hinhThucBan').value;
+    if (hinhThuc === 'Trả góp') {
+      tinhThuMuaTraGop();
+    }
+  }
+
+  function getThuMuaGiaMayMoi() {
+    let donGiaInput = document.getElementById('tm-donGia-Moi');
+    if (donGiaInput) {
+      return Number(donGiaInput.value) || 0;
+    }
+    return 0;
+  }
+
+  function onThuMuaSanPhamMoiChange() {
+    let val = document.getElementById('tm-maSP-Moi').value.trim();
+    if (!val) return;
+
+    let matchedItem = null;
+    let items = localCache.dienThoai || [];
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].text === val || items[i].value === val) {
+        matchedItem = items[i];
+        break;
+      }
+    }
+    if (matchedItem) {
+      let price = Number(matchedItem.giaBan) || 0;
+      document.getElementById('tm-donGia-Moi').value = price;
+      tinhThuMuaChenhLech();
+      let dl = document.getElementById('tm-maSP-Moi-list');
+      if (dl) dl.innerHTML = '';
+    }
+  }
+
+  function tinhThuMuaTraGop() {
+    let giaMoi = getThuMuaGiaMayMoi();
+    let hoTro = Number(document.getElementById('tm-tienHoTro').value) || 0;
+    let giamGia = Number(document.getElementById('tm-tienGiamGia').value) || 0;
+    let giaMayMoi = giaMoi - giamGia - hoTro;
+
+    let truAmt = Number(document.getElementById('tm-truDonMoiAmt').value) || 0;
+    let thucCanThanhToan = Math.max(0, giaMayMoi - truAmt);
+
+    let loai = document.getElementById('tm-tg-loai').value;
+    let isCTTC = (loai === 'Công ty tài chính');
+
+    document.getElementById('tm-tg-congTyTCGroup').style.display = isCTTC ? 'block' : 'none';
+
+    let httt = document.getElementById('tm-Moi-hinhThucTT') ? document.getElementById('tm-Moi-hinhThucTT').value : '';
+    let traTruoc = 0;
+    if (httt === 'Hỗn hợp') {
+      let tm = Number(document.getElementById('tm-Moi-split-tienMat').value) || 0;
+      let ck = Number(document.getElementById('tm-Moi-split-chuyenKhoan').value) || 0;
+      traTruoc = tm + ck;
+    } else {
+      traTruoc = Number(document.getElementById('tm-tg-traTruoc').value) || 0;
+    }
+
+    let soKy = Number(document.getElementById('tm-tg-soKy').value) || 1;
+    let conLai = thucCanThanhToan - traTruoc;
+
+    if (conLai <= 0) {
+      document.getElementById('tm-tg-summary').style.display = 'none';
+      showAlertMsg('error', 'Số tiền trả trước phải nhỏ hơn số tiền thực cần thanh toán để mua trả góp!');
+      return;
+    }
+
+    let activeId = document.activeElement ? document.activeElement.id : '';
+    let tienMoiKyInput = document.getElementById('tm-tg-tienMoiKyInput');
+    let tienMoiKy = Number(tienMoiKyInput.value) || 0;
+
+    if (activeId !== 'tm-tg-tienMoiKyInput') {
+      tienMoiKy = Math.ceil(conLai / soKy);
+      tienMoiKyInput.value = tienMoiKy;
+    }
+
+    let summary = document.getElementById('tm-tg-summary');
+    summary.style.display = 'block';
+
+    let html =
+      '<div class="summary-row"><span>Giá máy mới:</span><span>' + formatNumber(giaMayMoi) + ' đ</span></div>';
+
+    if (truAmt > 0) {
+      html +=
+        '<div class="summary-row" style="color:#b06000;"><span>Trừ tiền thu mua:</span><span>-' + formatNumber(truAmt) + ' đ</span></div>' +
+        '<div class="summary-row" style="font-weight:bold;"><span>Thực cần thanh toán:</span><span>' + formatNumber(thucCanThanhToan) + ' đ</span></div>';
+    }
+
+    html +=
+      '<div class="summary-row"><span>Trả trước:</span><span>' + formatNumber(traTruoc) + ' đ</span></div>' +
+      '<div class="summary-row"><span>Còn lại cần góp:</span><span>' + formatNumber(conLai) + ' đ</span></div>' +
+      '<div class="summary-row"><span>Số kỳ:</span><span>' + soKy + ' kỳ</span></div>' +
+      '<div class="summary-row summary-total"><span>Mỗi kỳ (thực đóng):</span><span>' + formatNumber(tienMoiKy) + ' đ</span></div>';
+
+    summary.innerHTML = html;
+    updateSplitPaymentAmounts('tm');
+  }
+
+  function onThuMuaBranchChange() {
+    let branch = document.getElementById('tm-chiNhanh').value;
+    let loai = document.getElementById('tm-loaiGD').value;
+    let phoneInput = document.getElementById('tm-maSP-Moi');
+    let phoneList = document.getElementById('tm-maSP-Moi-list');
+    let quaInput = document.getElementById('tm-maQuaTang');
+    let quaList = document.getElementById('tm-maQuaTang-list');
+
+    if (loai !== 'Thu cũ đổi mới') return;
+    phoneInput.value = '';
+    quaInput.value = '';
+
+    if (!branch) {
+      phoneInput.placeholder = 'Chọn chi nhánh trước';
+      quaInput.placeholder = 'Chọn chi nhánh trước';
+      if (phoneList) phoneList.innerHTML = '';
+      if (quaList) quaList.innerHTML = '';
+      return;
+    }
+
+    phoneInput.placeholder = 'Gõ để tìm kiếm...';
+    if (phoneList) phoneList.innerHTML = '';
+
+    quaInput.placeholder = 'Gõ để tìm quà tặng...';
+    let giftItems = searchPhuKienLocal(branch, '');
+    populateDatalist('tm-maQuaTang', 'tm-maQuaTang-list', giftItems);
+  }
+
+  function onThuMuaCoNhanQuaChange() {
+    let coNhan = document.getElementById('tm-coNhanQua').value;
+    let group = document.getElementById('tm-maQuaTangGroup');
+    if (coNhan === '✓') {
+      group.style.display = 'block';
+      document.getElementById('tm-tienGiamGia').value = 0;
+    } else {
+      group.style.display = 'none';
+      document.getElementById('tm-maQuaTang').value = '';
+    }
+    tinhThuMuaChenhLech();
+  }
+
+  function tinhThuMuaChenhLech() {
+    let loai = document.getElementById('tm-loaiGD').value;
+    let giaThu = Number(document.getElementById('tm-giaThuMua').value) || 0;
+    let hoTro = Number(document.getElementById('tm-tienHoTro').value) || 0;
+    let maxTru = giaThu + hoTro;
+    let summary = document.getElementById('tm-summary');
+
+    if (loai === 'Bán thẳng') {
+      summary.innerHTML = '';
+      return;
+    }
+
+    let truAmtInput = document.getElementById('tm-truDonMoiAmt');
+    let truAmt = Number(truAmtInput.value) || 0;
+    if (truAmt < 0) truAmt = 0;
+    if (truAmt > maxTru) truAmt = maxTru;
+    truAmtInput.value = truAmt;
+
+    let giaMoi = getThuMuaGiaMayMoi();
+    let giamGia = Number(document.getElementById('tm-tienGiamGia').value) || 0;
+    let valueMoiSauGiam = giaMoi - giamGia;
+    
+    let chenhLech = valueMoiSauGiam - truAmt;
+    let traKhachConLai = maxTru - truAmt;
+
+    let html = '<strong>Giá bán máy mới:</strong> ' + formatNumber(giaMoi) + ' đ<br>';
+    if (giamGia > 0) {
+      html += '<strong>Giảm giá máy mới:</strong> -' + formatNumber(giamGia) + ' đ<br>';
+      html += '<strong>Giá sau giảm:</strong> ' + formatNumber(valueMoiSauGiam) + ' đ<br>';
+    }
+    html += '<strong>Tổng giá trị thu máy cũ:</strong> ' + formatNumber(maxTru) + ' đ (Hỗ trợ: ' + formatNumber(hoTro) + ' đ)<br>';
+    html += '<strong>Trừ vào đơn mới:</strong> -' + formatNumber(truAmt) + ' đ<br>';
+
+    if (traKhachConLai > 0) {
+      let htttThu = document.getElementById('tm-Thu-hinhThucTT').value;
+      html += '<strong style="color: #b06000;">Trả lại khách (tiền thừa thu máy) qua ' + htttThu + ': ' + formatNumber(traKhachConLai) + ' đ</strong><br>';
+    }
+
+    if (chenhLech >= 0) {
+      html += '<strong style="color: #1a73e8;">Khách cần thanh toán thêm cho máy mới: ' + formatNumber(chenhLech) + ' đ</strong>';
+    } else {
+      html += '<strong style="color: #137333;">Cửa hàng trả lại khách chênh lệch máy: ' + formatNumber(Math.abs(chenhLech)) + ' đ</strong>';
+    }
+
+    summary.innerHTML = html;
+
+    let htb = document.getElementById('tm-hinhThucBan').value;
+    if (htb === 'Trả góp') {
+      tinhThuMuaTraGop();
+    }
+    updateSplitPaymentAmounts('tm');
+  }
+
+  // Lắng nghe thay đổi loại trả góp
+  document.getElementById('tm-tg-loai').addEventListener('change', function() {
+    tinhThuMuaTraGop();
+  });
+
+  function submitThuMua() {
+    let maKH = extractId(document.getElementById('tm-maKH').value);
+    let loaiGD = document.getElementById('tm-loaiGD').value;
+    let tenSP = document.getElementById('tm-tenSP-Thu').value.trim();
+    let imei = document.getElementById('tm-imei-Thu').value.trim();
+    let chiNhanh = document.getElementById('tm-chiNhanh').value;
+    let nguoiTH = extractId(document.getElementById('tm-nguoiThucHien').value);
+    let nguoiHT = extractId(document.getElementById('tm-nguoiHoTro').value);
+
+    if (!maKH || !tenSP || !imei || !chiNhanh || !nguoiTH) {
+      showAlertMsg('error', 'Vui lòng chọn Khách hàng, nhập Tên SP, IMEI, Chi nhánh và Người thực hiện!');
+      return;
+    }
+
+    let htb = (loaiGD === 'Thu cũ đổi mới') ? document.getElementById('tm-hinhThucBan').value : 'Bán thẳng';
+    let htttThu = getPaymentMethodString('tm-Thu');
+
+    let data = {
+      maKH: maKH,
+      tenKH: extractCustomerName(document.getElementById('tm-maKH').value),
+      loaiGiaoDich: loaiGD,
+      tenSP_Thu: tenSP,
+      thuongHieu_Thu: document.getElementById('tm-thuongHieu-Thu').value,
+      imei_Thu: imei,
+      mauSac_Thu: document.getElementById('tm-mauSac-Thu').value.trim(),
+      dungLuong_Thu: document.getElementById('tm-dungLuong-Thu').value.trim(),
+      tinhTrang_Thu: document.getElementById('tm-tinhTrang-Thu').value,
+      giaThuMua: Number(document.getElementById('tm-giaThuMua').value) || 0,
+      chiNhanh: chiNhanh,
+      nguoiThucHien: nguoiTH,
+      nguoiHoTro: nguoiHT,
+      hinhThucThanhToan: htttThu,
+      ghiChu: document.getElementById('tm-ghiChu').value.trim()
+    };
+
+    if (htttThu === 'Hỗn hợp') {
+      data.splitTienMat = Number(document.getElementById('tm-Thu-split-tienMat').value) || 0;
+      data.splitChuyenKhoan = Number(document.getElementById('tm-Thu-split-chuyenKhoan').value) || 0;
+    } else if (htttThu === 'Trừ vào đơn mới' && loaiGD !== 'Thu cũ đổi mới') {
+      showAlertMsg('error', 'Hình thức "Trừ vào đơn mới" chỉ áp dụng cho giao dịch Thu cũ đổi mới!');
+      return;
+    }
+
+    if (loaiGD === 'Thu cũ đổi mới') {
+      let htttMoi = getPaymentMethodString('tm-Moi');
+      data.maSP_Moi = extractId(document.getElementById('tm-maSP-Moi').value);
+      data.imei_Moi = extractImei(document.getElementById('tm-maSP-Moi').value);
+      data.donGia_Moi = Number(document.getElementById('tm-donGia-Moi').value) || 0;
+      data.tienHoTro = Number(document.getElementById('tm-tienHoTro').value) || 0;
+      data.coNhanQua = document.getElementById('tm-coNhanQua').value;
+      data.maQuaTang = extractId(document.getElementById('tm-maQuaTang').value, true);
+      data.tienGiamGia = Number(document.getElementById('tm-tienGiamGia').value) || 0;
+      data.hinhThucBan = htb;
+      data.hinhThucThanhToanPhu = htttMoi;
+      data.tradeInDeduction = Number(document.getElementById('tm-truDonMoiAmt').value) || 0;
+
+      if (htttMoi === 'Hỗn hợp') {
+        data.splitTienMatPhu = Number(document.getElementById('tm-Moi-split-tienMat').value) || 0;
+        data.splitChuyenKhoanPhu = Number(document.getElementById('tm-Moi-split-chuyenKhoan').value) || 0;
+      }
+
+      if (!data.maSP_Moi) {
+        showAlertMsg('error', 'Vui lòng chọn điện thoại mới để đổi lên đời!');
+        return;
+      }
+
+      if (htb === 'Trả góp') {
+        let tmHttt = document.getElementById('tm-Moi-hinhThucTT').value;
+        let derivedTraTruoc = 0;
+        if (tmHttt === 'Hỗn hợp') {
+          let tm = Number(document.getElementById('tm-Moi-split-tienMat').value) || 0;
+          let ck = Number(document.getElementById('tm-Moi-split-chuyenKhoan').value) || 0;
+          derivedTraTruoc = tm + ck;
+        } else {
+          derivedTraTruoc = Number(document.getElementById('tm-tg-traTruoc').value) || 0;
+        }
+
+        data.traGop = {
+          traTruoc: derivedTraTruoc,
+          soKy: Number(document.getElementById('tm-tg-soKy').value) || 6,
+          loaiTraGop: document.getElementById('tm-tg-loai').value,
+          congTyTC: document.getElementById('tm-tg-congTyTC').value,
+          tienMoiKy: Number(document.getElementById('tm-tg-tienMoiKyInput').value) || 0
+        };
+        if (data.traGop.loaiTraGop === 'Công ty tài chính' && !data.traGop.congTyTC) {
+          showAlertMsg('error', 'Vui lòng chọn Công ty tài chính cho hợp đồng trả góp!');
+          return;
+        }
+
+        let giaMoi = getThuMuaGiaMayMoi();
+        let giaMayMoi = giaMoi - data.tienGiamGia - data.tienHoTro;
+
+        if (data.tradeInDeduction > 0) {
+          giaMayMoi = Math.max(0, giaMayMoi - data.tradeInDeduction);
+        }
+
+        if (derivedTraTruoc >= giaMayMoi) {
+          showAlertMsg('error', 'Số tiền trả trước phải nhỏ hơn số tiền thực cần thanh toán để mua trả góp!');
+          return;
+        }
+      }
+    }
+
+    setLoading('btnThuMua', true);
+    google.script.run
+      .withSuccessHandler(function(maTM) {
+        setLoading('btnThuMua', false);
+        showAlertMsg('success', 'Ghi nhận thu mua thành công! Ma: <strong>' + escapeHtml(maTM) + '</strong>');
+        document.getElementById('tm-tenSP-Thu').value = '';
+        document.getElementById('tm-imei-Thu').value = '';
+        document.getElementById('tm-mauSac-Thu').value = '';
+        document.getElementById('tm-dungLuong-Thu').value = '';
+        document.getElementById('tm-giaThuMua').value = 0;
+        document.getElementById('tm-maSP-Moi').value = '';
+        document.getElementById('tm-donGia-Moi').value = 0;
+        document.getElementById('tm-tienHoTro').value = 0;
+        document.getElementById('tm-coNhanQua').value = '✗';
+        document.getElementById('tm-maQuaTang').value = '';
+        document.getElementById('tm-tienGiamGia').value = 0;
+        document.getElementById('tm-maQuaTangGroup').style.display = 'none';
+        document.getElementById('tm-ghiChu').value = '';
+        document.getElementById('tm-nguoiHoTro').value = '';
+        document.getElementById('tm-tradeInFields').style.display = 'none';
+        document.getElementById('tm-hinhThucBanGroup').style.display = 'none';
+        document.getElementById('tm-hinhThucBan').value = 'Bán thẳng';
+
+        // reset installment inputs
+        document.getElementById('tm-tg-traTruoc').value = 0;
+        document.getElementById('tm-tg-soKy').value = 6;
+        document.getElementById('tm-tg-loai').value = 'Cửa hàng';
+        document.getElementById('tm-tg-congTyTC').value = '';
+        document.getElementById('tm-tg-tienMoiKyInput').value = 0;
+        document.getElementById('tm-tg-summary').style.display = 'none';
+        document.getElementById('tm-traGopSection').classList.remove('show');
+
+        let htttThu = document.getElementById('tm-Thu-hinhThucTT');
+        if (htttThu) {
+          htttThu.value = 'Tiền mặt';
+          onPaymentMethodChange('tm-Thu');
+        }
+        let htttMoi = document.getElementById('tm-Moi-hinhThucTT');
+        if (htttMoi) {
+          htttMoi.value = 'Tiền mặt';
+          onPaymentMethodChange('tm-Moi');
+        }
+
+        if (document.getElementById('tm-maQuaTang').clearTags) {
+          document.getElementById('tm-maQuaTang').clearTags();
+        }
+        preloadInventoryData();
+      })
+      .withFailureHandler(function(err) {
+        setLoading('btnThuMua', false);
+        showAlertMsg('error', 'Lỗi: ' + err.message);
+      })
+      .thucHienThuMua(data);
+  }
+</script>

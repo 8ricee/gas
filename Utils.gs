@@ -1178,3 +1178,38 @@ function getRowValues(sheetName, row) {
   if (lastCol === 0) return [];
   return sheet.getRange(row, 1, 1, lastCol).getValues()[0];
 }
+
+/**
+ * Thêm rollback action an toàn với logging lỗi
+ * 
+ * @param {Function[]} rollbackActions Mảng lưu các action rollback
+ * @param {string} description Mô tả của rollback action
+ * @param {Function} action Hàm thực hiện rollback
+ */
+function addRollback(rollbackActions, description, action) {
+  rollbackActions.push(function () {
+    try {
+      action();
+    } catch (err) {
+      Logger.log("[ROLLBACK FAILED] " + description + ": " + err.message);
+    }
+  });
+}
+
+/**
+ * Tạo mảng dữ liệu row dựa trên bản đồ cột enum và giá trị tương ứng (DRY Compliance)
+ * 
+ * @param {Object} colEnum Bản đồ enum cột (ví dụ: COL_DH)
+ * @param {Object} fieldMap Bản đồ dữ liệu { Tên_Enum_Cột: Giá_trị }
+ * @return {Array} Mảng dòng dữ liệu
+ */
+function buildRowData(colEnum, fieldMap) {
+  const rowData = [];
+  for (const enumKey in fieldMap) {
+    const colIdx = colEnum[enumKey];
+    if (colIdx !== undefined) {
+      rowData[colIdx - 1] = fieldMap[enumKey];
+    }
+  }
+  return rowData;
+}

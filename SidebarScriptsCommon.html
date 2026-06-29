@@ -1,0 +1,926 @@
+<script>
+  // escapeHtml helper to prevent XSS
+  function escapeHtml(text) {
+    if (text === null || text === undefined) return "";
+    let map = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;"
+    };
+    return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
+  }
+
+  // ==================== NAV TABS ====================
+  document.querySelectorAll('.nav-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      // Update active tab
+      document.querySelectorAll('.nav-tab').forEach(function(t) { t.classList.remove('active'); });
+      this.classList.add('active');
+
+      // Show corresponding section
+      let sectionId = 'section-' + this.dataset.section;
+      document.querySelectorAll('.form-section').forEach(function(s) { s.classList.remove('active'); });
+      let activeSec = document.getElementById(sectionId);
+      if (activeSec) activeSec.classList.add('active');
+
+      hideAlert();
+    });
+  });
+
+  // ==================== ALERT ====================
+  function showAlertMsg(type, msg) {
+    let box = document.getElementById('alertBox');
+    box.className = 'alert alert-' + type + ' show';
+    if (type === 'success' || type === 'info') {
+      box.innerHTML = msg;
+    } else {
+      box.textContent = msg;
+    }
+    // Auto hide after 5s for success
+    if (type === 'success') {
+      setTimeout(function() { box.classList.remove('show'); }, 5000);
+    }
+  }
+
+  function hideAlert() {
+    document.getElementById('alertBox').classList.remove('show');
+  }
+
+  // ==================== LOADING ====================
+  function setLoading(btnId, loading) {
+    let btn = document.getElementById(btnId);
+    if (!btn) return;
+    if (loading) {
+      btn.disabled = true;
+      btn.dataset.originalText = btn.innerHTML;
+      btn.innerHTML = '<span class="spinner"></span> Đang xử lý...';
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = btn.dataset.originalText || btn.innerHTML;
+    }
+  }
+
+  let branchesCached = [];
+  let localCache = {
+    dienThoai: [],
+    phuKien: [],
+    phuKienUnique: [],
+    khachHang: null
+  };
+
+  function removeAccents(str) {
+    if (!str) return '';
+    return str.normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '')
+              .replace(/đ/g, 'd')
+              .replace(/Đ/g, 'D');
+  }
+
+  function matchSearchKeyword(text, keyword) {
+    if (!text || !keyword) return false;
+    let normText = removeAccents(text.toLowerCase());
+    let normKeyword = removeAccents(keyword.toLowerCase());
+    let words = normKeyword.split(/\s+/).filter(Boolean);
+    return words.every(function(word) {
+      return normText.indexOf(word) !== -1;
+    });
+  }
+
+  function searchDienThoaiLocal(branch, keyword) {
+    if (!branch) return [];
+    let items = localCache.dienThoai || [];
+    return items.filter(function(item) {
+      if (String(item.chiNhanh || "").toLowerCase() !== String(branch).toLowerCase()) {
+        return false;
+      }
+      if (!keyword) return true;
+      return matchSearchKeyword(item.text, keyword) || matchSearchKeyword(item.value, keyword);
+    });
+  }
+
+  function searchKhachHangLocal(keyword) {
+    let items = localCache.khachHang || [];
+    if (!keyword) return items.slice(0, 100);
+    return items.filter(function(item) {
+      return matchSearchKeyword(item.text, keyword) || matchSearchKeyword(item.value, keyword);
+    }).slice(0, 100);
+  }
+
+  function searchPhuKienLocal(branch, keyword) {
+    if (!branch) return [];
+    let items = localCache.phuKien || [];
+    return items.filter(function(item) {
+      if (String(item.chiNhanh || "").toLowerCase() !== String(branch).toLowerCase()) {
+        return false;
+      }
+      if (!keyword) return true;
+      return matchSearchKeyword(item.text, keyword) || matchSearchKeyword(item.value, keyword);
+    });
+  }
+
+  // searchPhuKienUniqueLocal: Tìm kiếm phụ kiện không phân biệt chi nhánh
+  function searchPhuKienUniqueLocal(keyword) {
+    let items = localCache.phuKienUnique || [];
+    if (!keyword) return items;
+    return items.filter(function(item) {
+      return matchSearchKeyword(item.text, keyword) || matchSearchKeyword(item.value, keyword);
+    });
+  }
+
+  function preloadInventoryData(callback) {
+    google.script.run.withSuccessHandler(function(data) {
+      if (data) {
+        localCache.dienThoai = data.dienThoai || [];
+        localCache.phuKien = data.phuKien || [];
+        localCache.phuKienUnique = data.phuKienUnique || [];
+        window.storeInterestRate = data.storeInterestRate || 0;
+      }
+      if (callback) callback();
+    }).getPreloadData();
+  }
+
+  function refreshSystemData(e) {
+    if (e) e.stopPropagation();
+    let btn = e ? e.target : null;
+    let originalHTML = btn ? btn.innerHTML : "Làm mới";
+    if (btn) {
+      btn.innerHTML = 'Đang nạp';
+      btn.style.pointerEvents = 'none';
+      btn.style.opacity = '0.6';
+    }
+    showAlertMsg('info', 'Đang làm mới bộ nhớ đệm hệ thống...');
+    google.script.run.withSuccessHandler(function() {
+      preloadInventoryData(function() {
+        if (btn) {
+          btn.innerHTML = originalHTML;
+          btn.style.pointerEvents = 'auto';
+          btn.style.opacity = '1';
+        }
+        showAlertMsg('success', 'Đã làm mới bộ nhớ đệm thành công!');
+        if (typeof onDonHangBranchOrNguonChange === 'function') {
+          onDonHangBranchOrNguonChange();
+        }
+      });
+    }).clearAllCaches();
+  }
+
+  let originalOrderPrice = 0;
+  let originalOrderData = null;
+
+  // ==================== INIT — LOAD DATA ====================
+  function init() {
+    // Set default month/year for Doanh số
+    let now = new Date();
+    let curMonth = now.getMonth() + 1;
+    let curYear = now.getFullYear();
+    let dsThang = document.getElementById('ds-thang');
+    if (dsThang) dsThang.value = curMonth;
+    let dsNam = document.getElementById('ds-nam');
+    if (dsNam) dsNam.value = curYear;
+
+    // Load all initial metadata and inventory preloads in a single combined request
+    google.script.run.withSuccessHandler(function(data) {
+      if (!data) return;
+
+      // 1. Inventory preload data
+      if (data.preloadData) {
+        localCache.dienThoai = data.preloadData.dienThoai || [];
+        localCache.phuKien = data.preloadData.phuKien || [];
+        localCache.phuKienUnique = data.preloadData.phuKienUnique || [];
+      }
+
+      // Lưu trữ lãi suất trả góp cửa hàng
+      window.storeInterestRate = data.storeInterestRate || 0;
+
+      // 2. Branches
+      if (data.branches) {
+        branchesCached = data.branches;
+        populateSelect('dh-chiNhanh', data.branches);
+        populateSelect('nk-chiNhanh', data.branches);
+        populateSelect('dv-chiNhanh', data.branches);
+        populateSelect('ck-cnNguon', data.branches);
+        populateSelect('ck-cnDich', data.branches);
+        populateSelect('dt-chiNhanh', data.branches);
+        populateSelect('tm-chiNhanh', data.branches);
+        populateSelect('bh-chiNhanh', data.branches);
+      }
+
+      // 3. Staff (Employees)
+      if (data.staff) {
+        populateDatalist('dh-nguoiBan', 'dh-nguoiBan-list', data.staff);
+        populateDatalist('dh-nguoiHoTro', 'dh-nguoiHoTro-list', data.staff, true);
+        populateDatalist('dv-nguoiThucHien', 'dv-nguoiThucHien-list', data.staff);
+        populateDatalist('dt-nguoiThucHien', 'dt-nguoiThucHien-list', data.staff);
+        populateDatalist('tm-nguoiThucHien', 'tm-nguoiThucHien-list', data.staff);
+        populateDatalist('tm-nguoiHoTro', 'tm-nguoiHoTro-list', data.staff, true);
+        populateDatalist('bh-nguoiTiepNhan', 'bh-nguoiTiepNhan-list', data.staff);
+        populateDatalist('bh-nguoiSua', 'bh-nguoiSua-list', data.staff);
+      }
+
+      // 4. Finance companies
+      if (data.financeCompanies) {
+        populateSelect('tg-congTyTC', data.financeCompanies);
+        populateSelect('tm-tg-congTyTC', data.financeCompanies);
+      }
+
+      // 5. Brands
+      if (data.brands) {
+        populateSelect('nk-thuongHieu', data.brands);
+        populateSelect('tm-thuongHieu-Thu', data.brands);
+      }
+
+      // Load initial mode tab (needs to run after populate select/datalists)
+      if (typeof initialMode !== 'undefined' && initialMode) {
+        let activeTab = document.querySelector('.nav-tab[data-section="' + initialMode + '"]');
+        if (activeTab) {
+          activeTab.click();
+        }
+      }
+    }).getInitialSidebarData();
+
+    // Preload khách hàng trong background sau 1.5 giây để tìm kiếm nhanh
+    setTimeout(function() {
+      google.script.run.withSuccessHandler(function(items) {
+        localCache.khachHang = items || [];
+      }).getKhachHangDropdown();
+    }, 1500);
+
+    // Set up dynamic search (>= 4 characters, or local search if cached) for large datasets
+    setupDatalistSearch('dh-maKH', 'dh-maKH-list', function(query, callback) {
+      if (localCache.khachHang) {
+        callback(searchKhachHangLocal(query));
+      } else {
+        google.script.run.withSuccessHandler(callback).getKhachHangDropdownSearch(query);
+      }
+    });
+    setupDatalistSearch('tm-maKH', 'tm-maKH-list', function(query, callback) {
+      if (localCache.khachHang) {
+        callback(searchKhachHangLocal(query));
+      } else {
+        google.script.run.withSuccessHandler(callback).getKhachHangDropdownSearch(query);
+      }
+    });
+    setupDatalistSearch('bh-maKH', 'bh-maKH-list', function(query, callback) {
+      if (localCache.khachHang) {
+        callback(searchKhachHangLocal(query));
+      } else {
+        google.script.run.withSuccessHandler(callback).getKhachHangDropdownSearch(query);
+      }
+    });
+    setupDatalistSearch('dv-maKH', 'dv-maKH-list', function(query, callback) {
+      if (localCache.khachHang) {
+        callback(searchKhachHangLocal(query));
+      } else {
+        google.script.run.withSuccessHandler(callback).getKhachHangDropdownSearch(query);
+      }
+    });
+    setupDatalistSearch('dh-maSP', 'dh-maSP-list', function(query, callback) {
+      let branch = document.getElementById('dh-chiNhanh').value;
+      let source = document.getElementById('dh-nguonSP').value;
+      if (!branch) return callback([]);
+      if (source === 'Điện thoại') {
+        callback(searchDienThoaiLocal(branch, query));
+      } else {
+        callback(searchPhuKienLocal(branch, query));
+      }
+    });
+    setupDatalistSearch('ck-maSP', 'ck-maSP-list', function(query, callback) {
+      let branch = document.getElementById('ck-cnNguon').value;
+      if (!branch) return callback([]);
+      callback(searchDienThoaiLocal(branch, query));
+    });
+    setupDatalistSearch('dt-maSP-Nhan', 'dt-maSP-Nhan-list', function(query, callback) {
+      let branch = document.getElementById('dt-chiNhanh').value;
+      if (!branch) return callback([]);
+      let doiTuong = document.getElementById('dt-doiTuong').value;
+      if (doiTuong === 'Quà tặng kèm') {
+        callback(searchPhuKienLocal(branch, query));
+      } else {
+        let loaiGD = document.getElementById('dt-loaiGD').value;
+        if (loaiGD === 'Đổi máy') {
+          callback(searchDienThoaiLocal(branch, query));
+        } else {
+          callback(searchPhuKienLocal(branch, query));
+        }
+      }
+    });
+    setupDatalistSearch('tm-maSP-Moi', 'tm-maSP-Moi-list', function(query, callback) {
+      let branch = document.getElementById('tm-chiNhanh').value;
+      if (!branch) return callback([]);
+      callback(searchDienThoaiLocal(branch, query));
+    });
+    setupDatalistSearch('tt-maTG', 'tt-maTG-list', function(query, callback) {
+      google.script.run.withSuccessHandler(callback).getTraGopDropdownSearch(query);
+    });
+    setupDatalistSearch('nk-pkCu-maSP', 'nk-pkCu-maSP-list', function(query, callback) {
+      callback(searchPhuKienUniqueLocal(query));
+    });
+
+    setupMultiSelectDatalist('dh-maQuaTang', 'dh-maQuaTang-list');
+    setupMultiSelectDatalist('tm-maQuaTang', 'tm-maQuaTang-list');
+  }
+
+  function populateSelect(selectId, items, addEmpty) {
+    let sel = document.getElementById(selectId);
+    if (!sel) return;
+    let firstOption = sel.options[0];
+    sel.innerHTML = '';
+    if (firstOption) {
+      sel.appendChild(firstOption);
+    }
+
+    if (addEmpty) {
+      let emptyOpt = document.createElement('option');
+      emptyOpt.value = '';
+      emptyOpt.textContent = '-- Không --';
+      sel.insertBefore(emptyOpt, sel.firstChild);
+    }
+
+    items.forEach(function(item) {
+      let opt = document.createElement('option');
+      opt.value = item.value;
+      opt.textContent = item.text;
+      if (item.giaBan !== undefined) opt.dataset.giaBan = item.giaBan;
+      if (item.giaTraGop !== undefined) opt.dataset.giaTraGop = item.giaTraGop;
+      if (item.soTienCanTra !== undefined) opt.dataset.soTienCanTra = item.soTienCanTra;
+      if (item.tienMoiKy !== undefined) opt.dataset.tienMoiKy = item.tienMoiKy;
+      sel.appendChild(opt);
+    });
+  }
+
+  function extractId(val, isMulti) {
+    if (!val) return '';
+    if (isMulti && val.indexOf(',') !== -1) {
+      return val.split(',').map(function(item) {
+        return extractIdSingle(item.trim());
+      }).filter(Boolean).join(', ');
+    }
+    return extractIdSingle(val);
+  }
+
+  function extractImei(val) {
+    if (!val) return '';
+    let match = val.match(/IMEI:\s*([^\s\|)]+)/i);
+    return match ? match[1].trim() : '';
+  }
+
+  function extractIdSingle(val) {
+    if (!val) return '';
+    let parts = val.split(' - ');
+    let prefix = parts[0].trim();
+    if (prefix.indexOf('Kỳ') === 0) {
+      return prefix.replace('Kỳ', '').trim();
+    }
+    return prefix;
+  }
+
+  function setupMultiSelectDatalist(inputId, listId) {
+    let originalInput = document.getElementById(inputId);
+    if (!originalInput) return;
+
+    let container = document.createElement('div');
+    container.className = 'tag-container';
+    
+    let tagInput = document.createElement('input');
+    tagInput.type = 'text';
+    tagInput.className = 'tag-input-field';
+    tagInput.placeholder = originalInput.placeholder || 'Gõ để tìm...';
+    tagInput.setAttribute('list', listId);
+
+    originalInput.parentNode.insertBefore(container, originalInput);
+    container.appendChild(tagInput);
+    originalInput.style.display = 'none';
+
+    let tags = [];
+
+    function syncValue() {
+      let joinedVal = tags.map(function(t) { return t.text; }).join(', ');
+      let descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+      descriptor.set.call(originalInput, joinedVal);
+      
+      let event = document.createEvent('HTMLEvents');
+      event.initEvent('change', true, false);
+      originalInput.dispatchEvent(event);
+    }
+
+    function addTag(text) {
+      text = text.trim();
+      if (!text) return;
+      
+      if (text.indexOf(',') !== -1) {
+        let parts = text.split(',');
+        parts.forEach(function(p) {
+          addTag(p);
+        });
+        tagInput.value = '';
+        return;
+      }
+
+      let exists = tags.some(function(t) { return t.text === text; });
+      if (exists) {
+        tagInput.value = '';
+        return;
+      }
+      
+      let tagEl = document.createElement('span');
+      tagEl.className = 'tag';
+      tagEl.textContent = text;
+      
+      let closeBtn = document.createElement('span');
+      closeBtn.className = 'tag-close';
+      closeBtn.innerHTML = '&times;';
+      closeBtn.onclick = function(e) {
+        e.stopPropagation();
+        if (tagEl.parentNode) {
+          container.removeChild(tagEl);
+        }
+        tags = tags.filter(function(t) { return t.element !== tagEl; });
+        syncValue();
+      };
+      
+      tagEl.appendChild(closeBtn);
+      container.insertBefore(tagEl, tagInput);
+      
+      tags.push({ text: text, element: tagEl });
+      tagInput.value = '';
+      syncValue();
+    }
+
+    originalInput.clearTags = function() {
+      tags.forEach(function(t) {
+        if (t.element.parentNode) {
+          container.removeChild(t.element);
+        }
+      });
+      tags = [];
+      tagInput.value = '';
+      let descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+      descriptor.set.call(originalInput, '');
+    };
+
+    originalInput.setTagsFromValue = function(val) {
+      tags.forEach(function(t) {
+        if (t.element.parentNode) {
+          container.removeChild(t.element);
+        }
+      });
+      tags = [];
+      
+      if (val) {
+        let parts = val.split(',');
+        parts.forEach(function(p) {
+          addTag(p.trim());
+        });
+      }
+    };
+
+    let nativeValueDesc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+    Object.defineProperty(originalInput, 'value', {
+      get: function() {
+        return nativeValueDesc.get.call(originalInput);
+      },
+      set: function(val) {
+        nativeValueDesc.set.call(originalInput, val);
+        originalInput.setTagsFromValue(val);
+      },
+      configurable: true
+    });
+
+    tagInput.addEventListener('input', function() {
+      let val = tagInput.value;
+      let dl = document.getElementById(listId);
+      if (!dl) return;
+      let opts = dl.querySelectorAll('option');
+      for (let i = 0; i < opts.length; i++) {
+        if (opts[i].value === val) {
+          addTag(val);
+          break;
+        }
+      }
+    });
+
+    tagInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addTag(tagInput.value);
+      } else if (e.key === ',') {
+        e.preventDefault();
+        addTag(tagInput.value);
+      } else if (e.key === 'Backspace' && tagInput.value === '') {
+        if (tags.length > 0) {
+          let lastTag = tags.pop();
+          if (lastTag.element.parentNode) {
+            container.removeChild(lastTag.element);
+          }
+          syncValue();
+        }
+      }
+    });
+
+    container.addEventListener('click', function() {
+      tagInput.focus();
+    });
+  }
+
+  function populateDatalist(inputId, listId, items, addEmpty) {
+    let dl = document.getElementById(listId);
+    if (!dl) return;
+    dl.innerHTML = '';
+
+    if (addEmpty) {
+      let emptyOpt = document.createElement('option');
+      emptyOpt.value = '';
+      dl.appendChild(emptyOpt);
+    }
+
+    items.forEach(function(item) {
+      let opt = document.createElement('option');
+      opt.value = item.text || item.value;
+      opt.dataset.id = item.value;
+      if (item.giaBan !== undefined) opt.dataset.giaBan = item.giaBan;
+      if (item.giaTraGop !== undefined) opt.dataset.giaTraGop = item.giaTraGop;
+      if (item.soTienCanTra !== undefined) opt.dataset.soTienCanTra = item.soTienCanTra;
+      if (item.tienMoiKy !== undefined) opt.dataset.tienMoiKy = item.tienMoiKy;
+      dl.appendChild(opt);
+    });
+  }
+
+  function setupDatalistSearch(inputId, listId, searchFunc) {
+    let input = document.getElementById(inputId);
+    if (!input) return;
+
+    let debounceTimeout = null;
+
+    input.addEventListener('input', function() {
+      let val = input.value.trim();
+      let dl = document.getElementById(listId);
+      if (!dl) return;
+
+      let isKhachHang = (inputId === 'dh-maKH' || inputId === 'tm-maKH' || inputId === 'bh-maKH' || inputId === 'dv-maKH');
+      let isLocal = (inputId === 'dh-maSP' || inputId === 'ck-maSP' || inputId === 'dt-maSP-Nhan' || inputId === 'tm-maSP-Moi' || inputId === 'nk-pkCu-maSP') || (isKhachHang && localCache.khachHang);
+      let minLength = isLocal ? 1 : 4;
+
+      if (val.length < minLength) {
+        dl.innerHTML = '';
+        return;
+      }
+
+      if (isLocal) {
+        let items = [];
+        if (inputId === 'dh-maSP') {
+          let source = document.getElementById('dh-nguonSP').value;
+          items = (source === 'Điện thoại') ? (localCache.dienThoai || []) : (localCache.phuKien || []);
+        } else if (inputId === 'ck-maSP' || inputId === 'tm-maSP-Moi') {
+          items = localCache.dienThoai || [];
+        } else if (inputId === 'dt-maSP-Nhan') {
+          let doiTuong = document.getElementById('dt-doiTuong').value;
+          if (doiTuong === 'Quà tặng kèm') {
+            items = localCache.phuKien || [];
+          } else {
+            let loaiGD = document.getElementById('dt-loaiGD').value;
+            items = (loaiGD === 'Đổi máy') ? (localCache.dienThoai || []) : (localCache.phuKien || []);
+          }
+        } else if (inputId === 'nk-pkCu-maSP') {
+          items = localCache.phuKien || [];
+        } else if (isKhachHang) {
+          items = localCache.khachHang || [];
+        }
+
+        let exactMatch = items.some(function(item) {
+          return item.text === val;
+        });
+
+        if (exactMatch) {
+          dl.innerHTML = '';
+          return;
+        }
+      }
+
+      clearTimeout(debounceTimeout);
+
+      if (isLocal) {
+        searchFunc(val, function(items) {
+          populateDatalist(inputId, listId, items || []);
+        });
+      } else {
+        dl.innerHTML = '';
+        let loadOpt = document.createElement('option');
+        loadOpt.value = '\u23F3 \u0110ang t\u00ECm ki\u1EBFm...';
+        dl.appendChild(loadOpt);
+
+        debounceTimeout = setTimeout(function() {
+          searchFunc(val, function(items) {
+            populateDatalist(inputId, listId, items || []);
+          });
+        }, 500);
+      }
+    });
+  }
+
+  function extractCustomerName(str) {
+    if (!str) return '';
+    let parts = str.split(' - ');
+    if (parts.length > 1) {
+      let namePart = parts[1].trim();
+      return namePart.replace(/\s*\(.*?\)$/, '');
+    }
+    return str;
+  }
+
+  function onKHChange(prefix) {
+    let inputEl = document.getElementById(prefix + '-khachHang');
+    let maKHEl = document.getElementById(prefix + '-maKH');
+    let sdtEl = document.getElementById(prefix + '-sdtKH');
+    if (!inputEl) return;
+
+    let val = inputEl.value;
+    if (!val) {
+      if (maKHEl) maKHEl.value = '';
+      if (sdtEl) sdtEl.value = '';
+      return;
+    }
+
+    let parts = val.split(' - ');
+    let maKH = parts[0].trim();
+    if (maKHEl) maKHEl.value = maKH;
+
+    if (sdtEl) {
+      let match = val.match(/\((.*?)\)$/);
+      if (match) {
+        sdtEl.value = match[1].trim();
+      } else if (/^\d+$/.test(maKH)) {
+        sdtEl.value = maKH;
+      }
+    }
+  }
+
+  function getAmountToPay(prefix) {
+    if (prefix === 'dh') {
+      let htb = document.getElementById('dh-hinhThucBan').value;
+      if (htb === 'Trả góp') {
+        let httt = document.getElementById('dh-hinhThucTT') ? document.getElementById('dh-hinhThucTT').value : '';
+        if (httt === 'Hỗn hợp') {
+          let tm = Number(document.getElementById('dh-split-tienMat').value) || 0;
+          let ck = Number(document.getElementById('dh-split-chuyenKhoan').value) || 0;
+          return tm + ck;
+        }
+        return Number(document.getElementById('tg-traTruoc').value) || 0;
+      }
+      return getDonHangThanhTien();
+    } else if (prefix === 'tm-Thu') {
+      let giaThu = Number(document.getElementById('tm-giaThuMua').value) || 0;
+      let loai = document.getElementById('tm-loaiGD').value;
+      if (loai === 'Thu cũ đổi mới') {
+        let hoTro = Number(document.getElementById('tm-tienHoTro').value) || 0;
+        let truAmt = Number(document.getElementById('tm-truDonMoiAmt').value) || 0;
+        return Math.max(0, giaThu + hoTro - truAmt);
+      }
+      return giaThu;
+    } else if (prefix === 'tm-Moi') {
+      let htb = document.getElementById('tm-hinhThucBan').value;
+      if (htb === 'Trả góp') {
+        return Number(document.getElementById('tm-tg-traTruoc').value) || 0;
+      }
+      let giaMoi = getThuMuaGiaMayMoi();
+      let giamGia = Number(document.getElementById('tm-tienGiamGia').value) || 0;
+      return Math.max(0, giaMoi - giamGia);
+    } else if (prefix === 'dt') {
+      return Math.abs(Number(document.getElementById('dt-tienHoanTra').value) || 0);
+    } else if (prefix === 'tt') {
+      return Number(document.getElementById('tt-soTien').value) || 0;
+    } else if (prefix === 'dv') {
+      let soTien = Number(document.getElementById('dv-soTien').value) || 0;
+      let phi = Number(document.getElementById('dv-phi').value) || 0;
+      return soTien + phi;
+    } else if (prefix === 'bh') {
+      return Number(document.getElementById('bh-phiSuaChua').value) || 0;
+    }
+    return 0;
+  }
+
+  function validateSplitPayment(prefix, inputName) {
+    let activeId = document.activeElement ? document.activeElement.id : '';
+    let edited = inputName;
+    if (!edited) {
+      if (activeId === prefix + '-split-chuyenKhoan') {
+        edited = 'chuyenKhoan';
+      } else {
+        edited = 'tienMat';
+      }
+    }
+
+    let tmInput = document.getElementById(prefix + '-split-tienMat');
+    let ckInput = document.getElementById(prefix + '-split-chuyenKhoan');
+    if (!tmInput || !ckInput) return;
+
+    let tm = Number(tmInput.value) || 0;
+    let ck = Number(ckInput.value) || 0;
+
+    let htb = '';
+    if (prefix === 'dh') {
+      htb = document.getElementById('dh-hinhThucBan') ? document.getElementById('dh-hinhThucBan').value : '';
+    } else if (prefix === 'tm') {
+      htb = document.getElementById('tm-hinhThucBan') ? document.getElementById('tm-hinhThucBan').value : '';
+    }
+    
+    let httt = document.getElementById(prefix + '-hinhThucTT') ? document.getElementById(prefix + '-hinhThucTT').value : '';
+
+    if (htb === 'Trả góp' && httt === 'Hỗn hợp') {
+      if (prefix === 'dh') {
+        let thanhTien = getDonHangThanhTien();
+        let maxAllowed = Math.max(0, thanhTien - 1000);
+        if (edited === 'tienMat') {
+          if (tm < 0) tm = 0;
+          if (tm > maxAllowed) tm = maxAllowed;
+          if (tm + ck > maxAllowed) {
+            ck = maxAllowed - tm;
+          }
+        } else {
+          if (ck < 0) ck = 0;
+          if (ck > maxAllowed) ck = maxAllowed;
+          if (tm + ck > maxAllowed) {
+            tm = maxAllowed - ck;
+          }
+        }
+        tmInput.value = tm;
+        ckInput.value = ck;
+        tinhTraGop();
+      } else if (prefix === 'tm') {
+        let giaThu = Number(document.getElementById('tm-giaThuMua').value) || 0;
+        let giaMoi = getThuMuaGiaMayMoi();
+        let hoTro = Number(document.getElementById('tm-tienHoTro').value) || 0;
+        let giamGia = Number(document.getElementById('tm-tienGiamGia').value) || 0;
+        let giaMayMoi = giaMoi - giamGia - hoTro;
+        
+        let minPayback = Math.max(0, giaThu - giaMayMoi + 1000);
+        let maxPayback = giaThu;
+
+        if (edited === 'tienMat') {
+          if (tm < 0) tm = 0;
+          if (tm > maxPayback) tm = maxPayback;
+          if (tm + ck > maxPayback) {
+            ck = maxPayback - tm;
+          } else if (tm + ck < minPayback) {
+            ck = minPayback - tm;
+          }
+        } else {
+          if (ck < 0) ck = 0;
+          if (ck > maxPayback) ck = maxPayback;
+          if (tm + ck > maxPayback) {
+            tm = maxPayback - ck;
+          } else if (tm + ck < minPayback) {
+            tm = minPayback - ck;
+          }
+        }
+        tmInput.value = tm;
+        ckInput.value = ck;
+        tinhThuMuaTraGop();
+      }
+    } else {
+      let total = getAmountToPay(prefix);
+      if (edited === 'tienMat') {
+        if (tm > total) {
+          tm = total;
+        } else if (tm < 0) {
+          tm = 0;
+        }
+        tmInput.value = tm;
+        ckInput.value = total - tm;
+      } else {
+        if (ck > total) {
+          ck = total;
+        } else if (ck < 0) {
+          ck = 0;
+        }
+        ckInput.value = ck;
+        tmInput.value = total - ck;
+      }
+    }
+  }
+
+  function updateSplitPaymentAmounts(prefix) {
+    let htttSelect = document.getElementById(prefix + '-hinhThucTT');
+    if (!htttSelect) return;
+    let httt = htttSelect.value;
+    if (httt !== 'Hỗn hợp') return;
+
+    let htb = '';
+    if (prefix === 'dh') {
+      htb = document.getElementById('dh-hinhThucBan') ? document.getElementById('dh-hinhThucBan').value : '';
+    } else if (prefix === 'tm') {
+      htb = document.getElementById('tm-hinhThucBan') ? document.getElementById('tm-hinhThucBan').value : '';
+    }
+
+    let tmInput = document.getElementById(prefix + '-split-tienMat');
+    let ckInput = document.getElementById(prefix + '-split-chuyenKhoan');
+    if (!tmInput || !ckInput) return;
+
+    if (htb === 'Trả góp' && httt === 'Hỗn hợp') {
+      validateSplitPayment(prefix, 'tienMat');
+      return;
+    }
+
+    let total = getAmountToPay(prefix);
+    let tm = Number(tmInput.value) || 0;
+    let ck = total - tm;
+    if (ck < 0) {
+      ck = 0;
+      tm = total;
+    }
+    tmInput.value = tm;
+    ckInput.value = ck;
+  }
+
+  function formatPaymentAmount(n) {
+    return Math.round(Number(n) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  }
+
+  function getPaymentMethodString(prefix) {
+    return document.getElementById(prefix + '-hinhThucTT').value;
+  }
+
+  function formatNumber(n) {
+    return Number(n).toLocaleString('vi-VN');
+  }
+
+  function onPaymentMethodChange(prefix) {
+    let selectEl = document.getElementById(prefix + '-hinhThucTT');
+    let httt = selectEl.value;
+    let splitRow = document.getElementById(prefix + '-split-payment-row');
+    if (!splitRow) return;
+
+    if (httt === 'Hỗn hợp') {
+      splitRow.style.display = 'flex';
+      
+      let htb = '';
+      if (prefix === 'dh') {
+        htb = document.getElementById('dh-hinhThucBan') ? document.getElementById('dh-hinhThucBan').value : '';
+      } else if (prefix === 'tm-Moi') {
+        htb = document.getElementById('tm-hinhThucBan') ? document.getElementById('tm-hinhThucBan').value : '';
+      }
+
+      let total = 0;
+      if (htb === 'Trả góp' && prefix === 'dh') {
+        total = getDonHangThanhTien();
+      } else {
+        total = getAmountToPay(prefix);
+      }
+
+      document.getElementById(prefix + '-split-tienMat').value = total;
+      document.getElementById(prefix + '-split-chuyenKhoan').value = 0;
+
+      if (prefix === 'dh' || prefix === 'tt' || prefix === 'dv' || prefix === 'tm-Moi') {
+        selectEl.style.background = '#e8f0fe';
+        selectEl.style.borderColor = '#a8c7fa';
+      } else if (prefix === 'tm-Thu') {
+        selectEl.style.background = '#f1f3f4';
+        selectEl.style.borderColor = '#dadce0';
+      } else if (prefix === 'dt') {
+        selectEl.style.background = '#fdf3f3';
+        selectEl.style.borderColor = '#f5c6cb';
+      }
+    } else {
+      splitRow.style.display = 'none';
+      document.getElementById(prefix + '-split-tienMat').value = 0;
+      document.getElementById(prefix + '-split-chuyenKhoan').value = 0;
+
+      selectEl.style.background = '#fff';
+      selectEl.style.borderColor = '#dadce0';
+
+      if (httt === 'Trừ vào đơn mới') {
+        selectEl.style.background = '#fef7e0';
+        selectEl.style.borderColor = '#f9ab00';
+      }
+    }
+
+    if (prefix === 'dh') {
+      let htb = document.getElementById('dh-hinhThucBan') ? document.getElementById('dh-hinhThucBan').value : '';
+      let traTruocGroup = document.getElementById('tg-traTruoc') ? document.getElementById('tg-traTruoc').closest('.form-group') : null;
+      if (traTruocGroup) {
+        if (htb === 'Trả góp' && httt === 'Hỗn hợp') {
+          traTruocGroup.style.display = 'none';
+        } else {
+          traTruocGroup.style.display = '';
+        }
+      }
+      if (htb === 'Trả góp') {
+        tinhTraGop();
+      }
+    } else if (prefix === 'tm') {
+      let htb = document.getElementById('tm-hinhThucBan') ? document.getElementById('tm-hinhThucBan').value : '';
+      let traTruocGroup = document.getElementById('tm-tg-traTruoc') ? document.getElementById('tm-tg-traTruoc').closest('.form-group') : null;
+      if (traTruocGroup) {
+        if (htb === 'Trả góp' && httt === 'Hỗn hợp') {
+          traTruocGroup.style.display = 'none';
+        } else {
+          traTruocGroup.style.display = '';
+        }
+      }
+      if (htb === 'Trả góp') {
+        tinhThuMuaTraGop();
+      }
+    }
+  }
+</script>

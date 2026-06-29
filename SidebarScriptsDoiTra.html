@@ -1,0 +1,319 @@
+<script>
+  function checkDonHangDoiTra() {
+    let maDH = document.getElementById('dt-maDH').value.trim();
+    if (!maDH) {
+      showAlertMsg('error', 'Vui lòng nhập Mã đơn hàng!');
+      return;
+    }
+
+    setLoading('btnCheckDoiTra', true);
+    google.script.run
+      .withSuccessHandler(function(dh) {
+        setLoading('btnCheckDoiTra', false);
+        if (!dh) {
+          document.getElementById('dt-infoBox').style.display = 'none';
+          document.getElementById('dt-doiTuongGroup').style.display = 'none';
+          showAlertMsg('error', 'Không tìm thấy đơn hàng: ' + maDH);
+          return;
+        }
+
+        if (dh.trangThai === 'Huỷ' || dh.trangThai === 'Đổi trả') {
+          document.getElementById('dt-infoBox').style.display = 'none';
+          document.getElementById('dt-doiTuongGroup').style.display = 'none';
+          showAlertMsg('error', 'Đơn hàng này đã ở trạng thái: ' + dh.trangThai);
+          return;
+        }
+
+        originalOrderPrice = dh.thanhTien;
+        originalOrderData = dh;
+
+        let html = '<strong>Khách hàng:</strong> ' + escapeHtml(dh.tenKH) + '<br>' +
+                   '<strong>Sản phẩm đã mua:</strong> ' + escapeHtml(dh.tenSP) + ' (Giá: ' + formatNumber(dh.thanhTien) + ' đ)<br>' +
+                   '<strong>Chi nhánh mua:</strong> ' + escapeHtml(dh.chiNhanh);
+        
+        if (dh.coNhanQua === '✓') {
+          html += '<br><strong>Quà tặng kèm:</strong> ' + escapeHtml(dh.tenQuaTang || 'Chưa rõ') + ' (Mã: ' + escapeHtml(dh.maQuaTang || '') + ')';
+          document.getElementById('dt-doiTuongGroup').style.display = 'block';
+          document.getElementById('dt-doiTuong').value = 'Sản phẩm chính';
+        } else {
+          document.getElementById('dt-doiTuongGroup').style.display = 'none';
+          document.getElementById('dt-doiTuong').value = 'Sản phẩm chính';
+        }
+
+        let infoBox = document.getElementById('dt-infoBox');
+        infoBox.innerHTML = html;
+        infoBox.style.display = 'block';
+
+        document.getElementById('dt-chiNhanh').value = dh.chiNhanh;
+        
+        onDoiTraDoiTuongChange();
+        hideAlert();
+      })
+      .withFailureHandler(function(err) {
+        setLoading('btnCheckDoiTra', false);
+        showAlertMsg('error', 'Lỗi kiểm tra đơn hàng: ' + err.message);
+      })
+      .getDonHangDetails(maDH);
+  }
+
+  function onDoiTraDoiTuongChange() {
+    if (!originalOrderData) return;
+    let doiTuong = document.getElementById('dt-doiTuong').value;
+    let loaiGDSelect = document.getElementById('dt-loaiGD');
+    loaiGDSelect.innerHTML = '';
+
+    let giftContainer = document.getElementById('dt-giftExchangeContainer');
+    let giftList = document.getElementById('dt-giftExchangeList');
+    giftContainer.style.display = 'none';
+    giftList.innerHTML = '';
+
+    if (doiTuong === 'Quà tặng kèm') {
+      let opt = document.createElement('option');
+      opt.value = 'Đổi quà';
+      opt.textContent = 'Đổi quà (Đổi sang quà tặng mới)';
+      loaiGDSelect.appendChild(opt);
+
+      // Render gift items
+      if (originalOrderData && originalOrderData.maQuaTang) {
+        let maList = String(originalOrderData.maQuaTang).split(',');
+        let tenList = String(originalOrderData.tenQuaTang || '').split(',');
+        
+        let html = '';
+        for (let i = 0; i < maList.length; i++) {
+          let code = maList[i].trim();
+          let name = (tenList[i] || '').trim() || '(Không tên)';
+          if (!code) continue;
+          
+          html += 
+            '<div class="gift-exchange-row" style="margin-bottom:12px; border-bottom:1px solid #e1e9ec; padding-bottom:10px;">' +
+              '<label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:500; margin-bottom:4px;">' +
+                '<input type="checkbox" class="dt-gift-check" value="' + escapeHtml(code) + '" data-name="' + escapeHtml(name) + '" onchange="toggleGiftInput(this, \'' + escapeHtml(code) + '\')" style="width:auto; margin:0;">' +
+                '<span><strong>' + escapeHtml(code) + '</strong> - ' + escapeHtml(name) + '</span>' +
+              '</label>' +
+              '<div id="dt-gift-input-container-' + escapeHtml(code) + '" style="display:none; margin-top:6px; padding-left:22px;">' +
+                '<label style="font-size:11px; color:#555; display:block; margin-bottom:4px;">Thay thế bằng quà mới: <span class="required">*</span></label>' +
+                '<input type="text" class="dt-gift-new-input" id="dt-gift-new-' + escapeHtml(code) + '" list="dt-maSP-Nhan-list" placeholder="Tìm quà tặng mới..." oninput="tinhDoiTraChenhLech()" style="margin-bottom:0;">' +
+              '</div>' +
+            '</div>';
+        }
+        giftList.innerHTML = html;
+        giftContainer.style.display = 'block';
+      }
+    } else {
+      if (originalOrderData.nguonSP === 'Điện thoại') {
+        let opt1 = document.createElement('option');
+        opt1.value = 'Trả máy';
+        opt1.textContent = 'Trả máy (Hoàn tiền)';
+        let opt2 = document.createElement('option');
+        opt2.value = 'Đổi máy';
+        opt2.textContent = 'Đổi máy (Đổi sang máy mới)';
+        loaiGDSelect.appendChild(opt1);
+        loaiGDSelect.appendChild(opt2);
+      } else {
+        let opt1 = document.createElement('option');
+        opt1.value = 'Trả hàng';
+        opt1.textContent = 'Trả hàng (Hoàn tiền)';
+        let opt2 = document.createElement('option');
+        opt2.value = 'Đổi hàng';
+        opt2.textContent = 'Đổi hàng (Đổi sang phụ kiện mới)';
+        loaiGDSelect.appendChild(opt1);
+        loaiGDSelect.appendChild(opt2);
+      }
+    }
+
+    onDoiTraLoaiGDChange();
+  }
+
+  function onDoiTraLoaiGDChange() {
+    let loai = document.getElementById('dt-loaiGD').value;
+    let group = document.getElementById('dt-newProductGroup');
+    let label = document.getElementById('dt-newProductLabel');
+    let input = document.getElementById('dt-maSP-Nhan');
+
+    if (loai === 'Đổi máy' || loai === 'Đổi hàng') {
+      group.style.display = 'block';
+      if (loai === 'Đổi máy') {
+        label.textContent = 'Điện thoại mới để đổi *';
+        input.placeholder = 'Tìm điện thoại còn hàng...';
+      } else if (loai === 'Đổi hàng') {
+        label.textContent = 'Phụ kiện mới để đổi *';
+        input.placeholder = 'Tìm phụ kiện còn hàng...';
+      }
+      onDoiTraBranchChange();
+    } else {
+      group.style.display = 'none';
+      input.value = '';
+    }
+    tinhDoiTraChenhLech();
+  }
+
+  window.toggleGiftInput = function(chk, code) {
+    let container = document.getElementById('dt-gift-input-container-' + code);
+    if (container) {
+      container.style.display = chk.checked ? 'block' : 'none';
+      if (!chk.checked) {
+        document.getElementById('dt-gift-new-' + code).value = '';
+      }
+    }
+    tinhDoiTraChenhLech();
+  };
+
+  function onDoiTraBranchChange() {
+    let branch = document.getElementById('dt-chiNhanh').value;
+    let loai = document.getElementById('dt-loaiGD').value;
+    let input = document.getElementById('dt-maSP-Nhan');
+    let list = document.getElementById('dt-maSP-Nhan-list');
+
+    if (loai !== 'Đổi máy' && loai !== 'Đổi hàng' && loai !== 'Đổi quà') return;
+    input.value = '';
+
+    if (!branch) {
+      input.placeholder = 'Chọn chi nhánh trước';
+      if (list) list.innerHTML = '';
+      return;
+    }
+
+    input.placeholder = 'Nhập ít nhất 4 ký tự để tìm...';
+    if (list) list.innerHTML = '';
+  }
+
+  function tinhDoiTraChenhLech() {
+    let loai = document.getElementById('dt-loaiGD').value;
+    let phi = Number(document.getElementById('dt-phiDoiTra').value) || 0;
+    let label = document.getElementById('dt-tienLabel');
+    let valInput = document.getElementById('dt-tienHoanTra');
+
+    if (!originalOrderData) {
+      valInput.value = 0;
+      return;
+    }
+
+    if (loai === 'Trả máy' || loai === 'Trả hàng') {
+      let hoanTien = originalOrderPrice - phi;
+      label.textContent = 'Tiền hoàn trả';
+      valInput.value = hoanTien;
+    } else if (loai === 'Đổi quà') {
+      label.textContent = 'Tiền thanh toán (Phí)';
+      valInput.value = phi;
+    } else {
+      let val = document.getElementById('dt-maSP-Nhan').value.trim();
+      let doiTuong = document.getElementById('dt-doiTuong').value;
+      
+      let items = [];
+      if (doiTuong === 'Quà tặng kèm') {
+        items = localCache.phuKien || [];
+      } else {
+        let loaiGD = document.getElementById('dt-loaiGD').value;
+        items = (loaiGD === 'Đổi máy') ? (localCache.dienThoai || []) : (localCache.phuKien || []);
+      }
+      
+      let giaMoi = 0;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].text === val || items[i].value === val) {
+          giaMoi = Number(items[i].giaBan) || 0;
+          break;
+        }
+      }
+
+      let diff = originalOrderPrice - giaMoi - phi;
+      if (diff >= 0) {
+        label.textContent = 'Tiền cửa hàng trả lại khách (VND)';
+        valInput.value = diff;
+      } else {
+        label.textContent = 'Tiền khách cần đóng thêm (VND)';
+        valInput.value = Math.abs(diff);
+      }
+    }
+    updateSplitPaymentAmounts('dt');
+  }
+
+  function submitDoiTra() {
+    let maDH = document.getElementById('dt-maDH').value.trim();
+    let doiTuong = document.getElementById('dt-doiTuong').value;
+    let loaiGD = document.getElementById('dt-loaiGD').value;
+    let chiNhanh = document.getElementById('dt-chiNhanh').value;
+    let maSP_Nhan = extractId(document.getElementById('dt-maSP-Nhan').value);
+    let phiDoiTra = Number(document.getElementById('dt-phiDoiTra').value) || 0;
+    let tienHoanTra = Number(document.getElementById('dt-tienHoanTra').value) || 0;
+    let hinhThucTT = getPaymentMethodString('dt');
+    let nguoiTH = extractId(document.getElementById('dt-nguoiThucHien').value);
+    let ghiChu = document.getElementById('dt-ghiChu').value.trim();
+
+    if (!maDH || !loaiGD || !chiNhanh || !nguoiTH) {
+      showAlertMsg('error', 'Vui lòng nhập Mã đơn hàng, Loại giao dịch, Chi nhánh và Người thực hiện!');
+      return;
+    }
+
+    let giftExchanges = [];
+    if (doiTuong === 'Quà tặng kèm' && loaiGD === 'Đổi quà') {
+      let checks = document.querySelectorAll('.dt-gift-check');
+      for (let i = 0; i < checks.length; i++) {
+        if (checks[i].checked) {
+          let oldCode = checks[i].value;
+          let oldName = checks[i].getAttribute('data-name');
+          let newValRaw = document.getElementById('dt-gift-new-' + oldCode).value.trim();
+          let newCode = extractId(newValRaw);
+          if (!newCode) {
+            showAlertMsg('error', 'Vui lòng chọn quà tặng mới thay thế cho quà ' + oldCode + '!');
+            return;
+          }
+          giftExchanges.push({
+            oldCode: oldCode,
+            oldName: oldName,
+            newCode: newCode,
+            newValRaw: newValRaw
+          });
+        }
+      }
+      if (giftExchanges.length === 0) {
+        showAlertMsg('error', 'Vui lòng chọn ít nhất 1 quà tặng kèm cần đổi!');
+        return;
+      }
+    } else {
+      if ((loaiGD === 'Đổi máy' || loaiGD === 'Đổi hàng') && !maSP_Nhan) {
+        showAlertMsg('error', 'Vui lòng chọn sản phẩm mới để đổi!');
+        return;
+      }
+    }
+
+    let imei_Nhan = extractImei(document.getElementById('dt-maSP-Nhan').value);
+
+    setLoading('btnDoiTra', true);
+    let data = {
+      maDH: maDH,
+      doiTuong: doiTuong,
+      loaiGiaoDich: loaiGD,
+      chiNhanh: chiNhanh,
+      maSP_Nhan: maSP_Nhan,
+      imei_Nhan: imei_Nhan,
+      phiDoiTra: phiDoiTra,
+      tienHoanTra: tienHoanTra,
+      hinhThucThanhToan: hinhThucTT,
+      nguoiThucHien: nguoiTH,
+      ghiChu: ghiChu,
+      congKho: document.getElementById('dt-congKho').checked,
+      giftExchanges: giftExchanges
+    };
+
+    google.script.run
+      .withSuccessHandler(function(maDT) {
+        setLoading('btnDoiTra', false);
+        showAlertMsg('success', 'Ghi nhận thành công! Mã giao dịch: <strong>' + escapeHtml(maDT) + '</strong>');
+        document.getElementById('dt-maDH').value = '';
+        document.getElementById('dt-infoBox').style.display = 'none';
+        document.getElementById('dt-doiTuongGroup').style.display = 'none';
+        document.getElementById('dt-phiDoiTra').value = 0;
+        document.getElementById('dt-tienHoanTra').value = 0;
+        document.getElementById('dt-ghiChu').value = '';
+        document.getElementById('dt-maSP-Nhan').value = '';
+        document.getElementById('dt-nguoiThucHien').value = '';
+        originalOrderData = null;
+        preloadInventoryData();
+      })
+      .withFailureHandler(function(err) {
+        setLoading('btnDoiTra', false);
+        showAlertMsg('error', 'Lỗi: ' + err.message);
+      })
+      .thucHienDoiTra(data);
+  }
+</script>

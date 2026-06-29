@@ -1,0 +1,69 @@
+<script>
+  function onChuyenKhoBranchOrNguonChange() {
+    let branch = document.getElementById('ck-cnNguon').value;
+    let source = document.getElementById('ck-nguonSP').value;
+    let spInput = document.getElementById('ck-maSP');
+    let spList = document.getElementById('ck-maSP-list');
+
+    if (source === 'Điện thoại') {
+      document.getElementById('ck-soLuong').value = 1;
+      document.getElementById('ck-soLuong').disabled = true;
+    } else {
+      document.getElementById('ck-soLuong').disabled = false;
+    }
+
+    spInput.value = '';
+
+    if (!branch) {
+      spInput.placeholder = 'Chọn chi nhánh nguồn trước';
+      if (spList) spList.innerHTML = '';
+      return;
+    }
+
+    spInput.placeholder = 'Nhập ít nhất 4 ký tự để tìm...';
+    if (spList) spList.innerHTML = '';
+  }
+
+  function submitChuyenKho() {
+    let nguonSP = document.getElementById('ck-nguonSP').value;
+    let cnNguon = document.getElementById('ck-cnNguon').value;
+    let cnDich = document.getElementById('ck-cnDich').value;
+    let maSP = extractId(document.getElementById('ck-maSP').value);
+    let imei = extractImei(document.getElementById('ck-maSP').value);
+    let soLuong = Number(document.getElementById('ck-soLuong').value) || 1;
+
+    if (!cnNguon || !cnDich || !maSP) {
+      showAlertMsg('error', 'Vui lòng chọn đầy đủ Chi nhánh nguồn, Chi nhánh đích và Sản phẩm!');
+      return;
+    }
+
+    if (cnNguon === cnDich) {
+      showAlertMsg('error', 'Chi nhánh nguồn và Chi nhánh đích phải khác nhau!');
+      return;
+    }
+
+    let data = {
+      nguonSP: nguonSP,
+      chiNhanhNguon: cnNguon,
+      chiNhanhDich: cnDich,
+      maSP: maSP,
+      imei: imei,
+      soLuong: soLuong
+    };
+
+    setLoading('btnChuyenKho', true);
+    google.script.run
+      .withSuccessHandler(function() {
+        setLoading('btnChuyenKho', false);
+        showAlertMsg('success', 'Đã chuyển kho thành công sản phẩm: ' + escapeHtml(maSP));
+        document.getElementById('ck-maSP').value = '';
+        document.getElementById('ck-soLuong').value = 1;
+        preloadInventoryData(onChuyenKhoBranchOrNguonChange);
+      })
+      .withFailureHandler(function(err) {
+        setLoading('btnChuyenKho', false);
+        showAlertMsg('error', 'Lỗi: ' + err.message);
+      })
+      .chuyenKho(data);
+  }
+</script>

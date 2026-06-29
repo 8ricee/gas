@@ -1,0 +1,80 @@
+<script>
+  function onHopDongChange() {
+    let maTG = extractId(document.getElementById('tt-maTG').value);
+    if (!maTG) return;
+
+    let kyInput = document.getElementById('tt-kySo');
+    let kyList = document.getElementById('tt-kySo-list');
+    kyInput.value = '';
+    kyInput.placeholder = 'Đang tải các kỳ...';
+
+    google.script.run.withSuccessHandler(function(items) {
+      kyInput.placeholder = 'Chọn hoặc nhập kỳ...';
+      populateDatalist('tt-kySo', 'tt-kySo-list', items);
+
+      kyInput.oninput = function() {
+        let val = this.value;
+        if (kyList) {
+          let opts = kyList.querySelectorAll('option');
+          for (let i = 0; i < opts.length; i++) {
+            if (opts[i].value === val) {
+              if (opts[i].dataset.soTienCanTra) {
+                document.getElementById('tt-soTien').value = opts[i].dataset.soTienCanTra;
+              }
+              break;
+            }
+          }
+        }
+      };
+    }).getKyChuaTra(maTG);
+  }
+
+  function submitThanhToan() {
+    let maTG = extractId(document.getElementById('tt-maTG').value);
+    let kySo = extractId(document.getElementById('tt-kySo').value);
+    let soTien = Number(document.getElementById('tt-soTien').value);
+
+    if (!maTG || !kySo || !soTien) {
+      showAlertMsg('error', 'Vui lòng chọn HĐ, kỳ và nhập số tiền!');
+      return;
+    }
+
+    let data = {
+      maTG: maTG,
+      kySo: Number(kySo),
+      soTien: soTien,
+      hinhThucThanhToan: getPaymentMethodString('tt'),
+      ghiChu: document.getElementById('tt-ghiChu').value.trim()
+    };
+
+    if (document.getElementById('tt-hinhThucTT').value === 'Hỗn hợp') {
+      data.splitTienMat = Number(document.getElementById('tt-split-tienMat').value) || 0;
+      data.splitChuyenKhoan = Number(document.getElementById('tt-split-chuyenKhoan').value) || 0;
+    }
+
+    setLoading('btnThanhToan', true);
+    google.script.run
+      .withSuccessHandler(function(result) {
+        setLoading('btnThanhToan', false);
+        showAlertMsg('success', 'Đã ghi nhận thanh toán kỳ ' + escapeHtml(kySo));
+        loadTraGopDropdown();
+        document.getElementById('tt-maTG').value = '';
+        document.getElementById('tt-kySo').value = '';
+        let kyList = document.getElementById('tt-kySo-list');
+        if (kyList) kyList.innerHTML = '';
+        document.getElementById('tt-soTien').value = 0;
+        document.getElementById('tt-ghiChu').value = '';
+      })
+      .withFailureHandler(function(err) {
+        setLoading('btnThanhToan', false);
+        showAlertMsg('error', 'Lỗi: ' + err.message);
+      })
+      .ghiNhanThanhToan(data);
+  }
+
+  function loadTraGopDropdown() {
+    google.script.run.withSuccessHandler(function(items) {
+      populateDatalist('tt-maTG', 'tt-maTG-list', items);
+    }).getTraGopDropdown();
+  }
+</script>

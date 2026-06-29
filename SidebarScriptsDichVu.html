@@ -1,0 +1,70 @@
+<script>
+  function onLoaiDVChange() {
+    let loai = document.getElementById('dv-loaiDV').value;
+    let freeNote = document.getElementById('dv-freeNote');
+    if (loai === 'Nạp thẻ điện thoại') {
+      freeNote.style.display = 'block';
+      document.getElementById('dv-phi').value = 0;
+      document.getElementById('dv-phi').disabled = true;
+    } else {
+      freeNote.style.display = 'none';
+      document.getElementById('dv-phi').disabled = false;
+    }
+  }
+
+  function submitDichVu() {
+    let chiNhanh = document.getElementById('dv-chiNhanh').value;
+    let nguoiTH = extractId(document.getElementById('dv-nguoiThucHien').value);
+    let soTien = Number(document.getElementById('dv-soTien').value);
+
+    if (!chiNhanh || !nguoiTH || !soTien) {
+      showAlertMsg('error', 'Vui lòng chọn Chi nhánh, KV và nhập số tiền!');
+      return;
+    }
+
+    let maKH = extractId(document.getElementById('dv-maKH').value);
+    let tenKH = extractCustomerName(document.getElementById('dv-maKH').value);
+
+    if (!maKH || !tenKH) {
+      showAlertMsg('error', 'Vui lòng chọn hoặc nhập Khách hàng!');
+      return;
+    }
+
+    let httt = getPaymentMethodString('dv');
+    let data = {
+      chiNhanh: chiNhanh,
+      loaiDichVu: document.getElementById('dv-loaiDV').value,
+      maKH: maKH,
+      tenKH: tenKH,
+      soTienGiaoDich: soTien,
+      phiDichVu: Number(document.getElementById('dv-phi').value) || 0,
+      hinhThucThanhToan: httt,
+      nguoiThucHien: nguoiTH,
+      ghiChu: document.getElementById('dv-ghiChu').value.trim()
+    };
+
+    if (httt === 'Hỗn hợp') {
+      data.splitTienMat = Number(document.getElementById('dv-split-tienMat').value) || 0;
+      data.splitChuyenKhoan = Number(document.getElementById('dv-split-chuyenKhoan').value) || 0;
+    }
+
+    setLoading('btnTaoDV', true);
+    google.script.run
+      .withSuccessHandler(function(maDV) {
+        setLoading('btnTaoDV', false);
+        showAlertMsg('success', 'Đã tạo dịch vụ: <strong>' + escapeHtml(maDV) + '</strong>');
+        document.getElementById('dv-maKH').value = '';
+        document.getElementById('dv-soTien').value = 0;
+        document.getElementById('dv-phi').value = 0;
+        document.getElementById('dv-ghiChu').value = '';
+        document.getElementById('dv-nguoiThucHien').value = '';
+        document.getElementById('dv-hinhThucTT').value = 'Tiền mặt';
+        onPaymentMethodChange('dv');
+      })
+      .withFailureHandler(function(err) {
+        setLoading('btnTaoDV', false);
+        showAlertMsg('error', 'Lỗi: ' + err.message);
+      })
+      .taoDichVu(data);
+  }
+</script>

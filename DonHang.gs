@@ -249,60 +249,55 @@ function _taoDonHangSingle(data, rollbackActions, ss) {
     tenQuaTang = tenQuaList.join(", ");
   }
 
-  const rowData = [];
-  rowData[COL_DH.MA_DH - 1] = maDH;
-  rowData[COL_DH.NGAY_BAN - 1] = new Date();
-  rowData[COL_DH.MA_KH - 1] = data.maKH || "";
-  rowData[COL_DH.TEN_KH - 1] = tenKH;
-  rowData[COL_DH.MA_SP - 1] = data.maSP || "";
-  rowData[COL_DH.TEN_SP - 1] = tenSP;
-  rowData[COL_DH.NGUON_SP - 1] = nguonSP;
-  rowData[COL_DH.THUONG_HIEU - 1] = thuongHieu;
-  rowData[COL_DH.SO_LUONG - 1] = soLuong;
-  rowData[COL_DH.DON_GIA - 1] = donGia;
-  rowData[COL_DH.THANH_TIEN - 1] = thanhTien;
-  rowData[COL_DH.HINH_THUC_BAN - 1] = data.hinhThucBan || "Bán thẳng";
-  rowData[COL_DH.HINH_THUC_TT - 1] = data.hinhThucThanhToan || PAYMENT_METHOD.CASH;
-  rowData[COL_DH.NGUOI_BAN - 1] = data.nguoiBan || "";
-  rowData[COL_DH.TEN_NGUOI_BAN - 1] = tenNguoiBan;
-  rowData[COL_DH.QUYEN_XUAT - 1] = coQuyenXuatMay;
-  rowData[COL_DH.NGUOI_HO_TRO - 1] = data.nguoiHoTro || "";
-  rowData[COL_DH.TEN_NGUOI_HO_TRO - 1] = tenNguoiHoTro;
-  rowData[COL_DH.TRANG_THAI - 1] = ORDER_STATUS.DONE;
-  rowData[COL_DH.GHI_CHU - 1] = data.ghiChu || "";
-  rowData[COL_DH.CHI_NHANH - 1] = chiNhanh;
-  rowData[COL_DH.MA_QUA_TANG - 1] = maQuaTang;
-  rowData[COL_DH.TEN_QUA_TANG - 1] = tenQuaTang;
-  rowData[COL_DH.CO_NHAN_QUA - 1] = coNhanQua;
-  rowData[COL_DH.TIEN_GIAM_GIA - 1] = tienGiamGia;
-  rowData[COL_DH.IMEI - 1] = data.imei || "";
-
-  rowData[COL_DH.TIEN_THU_MUA - 1] = deduction;
-
   const paidAmount = (data.hinhThucBan === "Trả góp" && data.traGop) ? (Number(data.traGop.traTruoc) || 0) : thanhTien;
   const splitResult = calculatePaymentSplit(data, paidAmount);
   const tienMat = splitResult.tienMat;
   const chuyenKhoan = splitResult.chuyenKhoan;
-  rowData[COL_DH.TIEN_MAT - 1] = tienMat;
-  rowData[COL_DH.CHUYEN_KHOAN - 1] = chuyenKhoan;
+
+  const rowData = buildRowData(COL_DH, {
+    MA_DH: maDH,
+    NGAY_BAN: new Date(),
+    MA_KH: data.maKH || "",
+    TEN_KH: tenKH,
+    MA_SP: data.maSP || "",
+    TEN_SP: tenSP,
+    NGUON_SP: nguonSP,
+    THUONG_HIEU: thuongHieu,
+    SO_LUONG: soLuong,
+    DON_GIA: donGia,
+    THANH_TIEN: thanhTien,
+    HINH_THUC_BAN: data.hinhThucBan || "Bán thẳng",
+    HINH_THUC_TT: data.hinhThucThanhToan || PAYMENT_METHOD.CASH,
+    NGUOI_BAN: data.nguoiBan || "",
+    TEN_NGUOI_BAN: tenNguoiBan,
+    QUYEN_XUAT: coQuyenXuatMay,
+    NGUOI_HO_TRO: data.nguoiHoTro || "",
+    TEN_NGUOI_HO_TRO: tenNguoiHoTro,
+    TRANG_THAI: ORDER_STATUS.DONE,
+    GHI_CHU: data.ghiChu || "",
+    CHI_NHANH: chiNhanh,
+    MA_QUA_TANG: maQuaTang,
+    TEN_QUA_TANG: tenQuaTang,
+    CO_NHAN_QUA: coNhanQua,
+    TIEN_GIAM_GIA: tienGiamGia,
+    IMEI: data.imei || "",
+    TIEN_THU_MUA: deduction,
+    TIEN_MAT: tienMat,
+    CHUYEN_KHOAN: chuyenKhoan
+  });
 
   const donHangSheet = ss.getSheetByName(SHEET_NAMES.DON_HANG);
   const donHangRow = appendRow(SHEET_NAMES.DON_HANG, rowData);
-  (function (capturedMaDH) {
-    rollbackActions.push(function () {
-      try {
-        const ssRollback = SpreadsheetApp.getActiveSpreadsheet();
-        const sheet = ssRollback.getSheetByName(SHEET_NAMES.DON_HANG);
-        const r = findRow(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, capturedMaDH);
-        if (r !== -1) {
-          sheet.deleteRow(r);
-          clearSheetCache(SHEET_NAMES.DON_HANG);
-        }
-      } catch (err) {
-        Logger.log("Rollback failed to delete order row: " + err.message);
-      }
-    });
-  })(maDH);
+
+  addRollback(rollbackActions, "Delete order record " + maDH, function () {
+    const ssRollback = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ssRollback.getSheetByName(SHEET_NAMES.DON_HANG);
+    const r = findRow(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH);
+    if (r !== -1) {
+      sheet.deleteRow(r);
+      clearSheetCache(SHEET_NAMES.DON_HANG);
+    }
+  });
 
   // Cập nhật kho sản phẩm
   strategy.updateStock(data, chiNhanh, soLuong, rollbackActions, ss);
@@ -318,13 +313,9 @@ function _taoDonHangSingle(data, rollbackActions, ss) {
         updatedGifts.push(code);
       }
     }
-    rollbackActions.push(function () {
+    addRollback(rollbackActions, "Restore gift stock for order " + maDH, function () {
       for (let j = 0; j < updatedGifts.length; j++) {
-        try {
-          updateTonKhoPhuKien(updatedGifts[j], 1, "nhap", chiNhanh);
-        } catch (err) {
-          Logger.log("Rollback failed to restore gift stock: " + err.message);
-        }
+        updateTonKhoPhuKien(updatedGifts[j], 1, "nhap", chiNhanh);
       }
     });
   }
@@ -348,32 +339,24 @@ function _taoDonHangSingle(data, rollbackActions, ss) {
       splitTienMat: data.splitTienMat,
       splitChuyenKhoan: data.splitChuyenKhoan,
     });
-    (function (capturedMaTG) {
-      rollbackActions.push(function () {
-        try {
-          const ss = SpreadsheetApp.getActiveSpreadsheet();
-          const tgSheet = ss.getSheetByName(SHEET_NAMES.TRA_GOP);
-          const tgRow = findRow(SHEET_NAMES.TRA_GOP, 1, capturedMaTG);
-          if (tgRow !== -1) {
-            tgSheet.deleteRow(tgRow);
-            clearSheetCache(SHEET_NAMES.TRA_GOP);
-            invalidateDropdownCache(SHEET_NAMES.TRA_GOP);
-          }
-          const lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
-          const lstgData = lstgSheet.getDataRange().getValues();
-          for (let rowIdx = lstgData.length - 1; rowIdx >= 1; rowIdx--) {
-            if (String(lstgData[rowIdx][1]) === capturedMaTG) {
-              lstgSheet.deleteRow(rowIdx + 1);
-            }
-          }
-          clearSheetCache(SHEET_NAMES.LICH_SU_TRA_GOP);
-        } catch (err) {
-          Logger.log(
-            "Rollback failed to delete installment contract: " + err.message,
-          );
+    addRollback(rollbackActions, "Delete installment contract " + maTG, function () {
+      const ssRollback = SpreadsheetApp.getActiveSpreadsheet();
+      const tgSheet = ssRollback.getSheetByName(SHEET_NAMES.TRA_GOP);
+      const tgRow = findRow(SHEET_NAMES.TRA_GOP, COL_TG.MA_TG, maTG);
+      if (tgRow !== -1) {
+        tgSheet.deleteRow(tgRow);
+        clearSheetCache(SHEET_NAMES.TRA_GOP);
+        invalidateDropdownCache(SHEET_NAMES.TRA_GOP);
+      }
+      const lstgSheet = ssRollback.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
+      const lstgData = lstgSheet.getDataRange().getValues();
+      for (let rowIdx = lstgData.length - 1; rowIdx >= 1; rowIdx--) {
+        if (String(lstgData[rowIdx][COL_LSTG.MA_TG - 1]) === maTG) {
+          lstgSheet.deleteRow(rowIdx + 1);
         }
-      });
-    })(maTG);
+      }
+      clearSheetCache(SHEET_NAMES.LICH_SU_TRA_GOP);
+    });
   }
 
   showToast(

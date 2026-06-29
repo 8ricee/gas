@@ -425,25 +425,7 @@ function getTrangThaiTraGop(maTG) {
   const r = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
   const obj = mapRowToObject(r, SHEET_NAMES.TRA_GOP);
 
-  const result = {
-    MaTG: String(obj.MA_TG),
-    MaDH: String(obj.MA_DH),
-    MaKH: String(obj.MA_KH),
-    TenKH: String(obj.TEN_KH),
-    TongTien: Number(obj.TONG_TIEN) || 0,
-    TraTruoc: Number(obj.TRA_TRUOC) || 0,
-    ConLai: Number(obj.CON_LAI) || 0,
-    SoKy: Number(obj.SO_KY) || 0,
-    TienMoiKy: Number(obj.TIEN_MOI_KY) || 0,
-    NgayBatDau: obj.NGAY_BAT_DAU,
-    NgayKetThuc: obj.NGAY_KET_THUC,
-    DaTraSoKy: Number(obj.DA_TRA_SO_KY) || 0,
-    DaTraSoTien: Number(obj.DA_TRA_SO_TIEN) || 0,
-    LoaiTraGop: String(obj.LOAI_TRA_GOP),
-    CongTyTC: String(obj.CONG_TY_TC),
-    TrangThai: String(obj.TRANG_THAI),
-    ChiNhanh: String(obj.CHI_NHANH || ""),
-  };
+  const result = toDTO(obj, SHEET_NAMES.TRA_GOP, "TRA_GOP_VIEW");
 
   // Lấy lịch sử thanh toán
   const allLSTG = getAllData(SHEET_NAMES.LICH_SU_TRA_GOP);

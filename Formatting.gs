@@ -58,9 +58,7 @@ function formatAllSheets() {
       headerRange.setHorizontalAlignment("left");
 
       // Auto resize columns
-      for (let col = 1; col <= lastCol; col++) {
-        sheet.autoResizeColumn(col);
-      }
+      sheet.autoResizeColumns(1, lastCol);
 
       // Tự động định dạng tiền tệ #,##0 và ngày giờ cho các cột tương ứng nếu thuộc danh sách sheet dữ liệu chuẩn
       if (standardDataSheets.indexOf(sheetName) !== -1 && maxRows > 1) {
@@ -336,9 +334,12 @@ function _applyLichSuTraGopFormatting(ss, colorMap) {
 
 function _applyNhapKhoFormatting(ss, colorMap, branches) {
   const sheet = ss.getSheetByName(SHEET_NAMES.NHAP_KHO);
+  const colNguonNhapLetter = columnToLetter(COL_NK.NGUON_NHAP);
+  const colChiNhanhLetter = columnToLetter(COL_NK.CHI_NHANH);
+
   _applyRulesForSheet(sheet, [
-    { range: "C2:C", values: ["Điện thoại", "Phụ kiện"] },
-    { range: "K2:K", values: branches },
+    { range: colNguonNhapLetter + "2:" + colNguonNhapLetter, values: ["Điện thoại", "Phụ kiện"] },
+    { range: colChiNhanhLetter + "2:" + colChiNhanhLetter, values: branches },
   ], colorMap);
 }
 

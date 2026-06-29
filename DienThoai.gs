@@ -19,24 +19,7 @@ function getAllDienThoai(filter) {
     const obj = mapRowToObject(row, SHEET_NAMES.DIEN_THOAI);
     if (!obj.MA_DT) return;
     if (!filter || String(obj.TRANG_THAI_KHO) === filter) {
-      result.push({
-        MaDT: String(obj.MA_DT),
-        TenSP: String(obj.TEN_SP),
-        ThuongHieu: String(obj.THUONG_HIEU),
-        IMEI: String(obj.IMEI),
-        IMEI2: String(obj.IMEI_2 || ""),
-        MauSac: String(obj.MAU_SAC),
-        DungLuong: String(obj.DUNG_LUONG),
-        TinhTrang: String(obj.TINH_TRANG),
-        GiaNhap: Number(obj.GIA_NHAP) || 0,
-        GiaBan: Number(obj.GIA_BAN) || 0,
-        GiaTraGop: Number(obj.GIA_TRA_GOP) || 0,
-        TrangThaiKho: String(obj.TRANG_THAI_KHO),
-        GhiChu: String(obj.GHI_CHU),
-        ChiNhanh: String(obj.CHI_NHANH || ""),
-        NgayNhap: obj.NGAY_NHAP ? new Date(obj.NGAY_NHAP) : null,
-        NgayXuat: obj.NGAY_XUAT ? new Date(obj.NGAY_XUAT) : null,
-      });
+      result.push(toDTO(obj, SHEET_NAMES.DIEN_THOAI, "DIEN_THOAI_VIEW"));
     }
   });
 
@@ -295,24 +278,7 @@ function searchDienThoai(keyword) {
       imei.indexOf(kw) !== -1 ||
       imei2.indexOf(kw) !== -1
     ) {
-      result.push({
-        MaDT: String(obj.MA_DT),
-        TenSP: String(obj.TEN_SP),
-        ThuongHieu: String(obj.THUONG_HIEU),
-        IMEI: String(obj.IMEI),
-        IMEI2: String(obj.IMEI_2 || ""),
-        MauSac: String(obj.MAU_SAC),
-        DungLuong: String(obj.DUNG_LUONG),
-        TinhTrang: String(obj.TINH_TRANG),
-        GiaNhap: Number(obj.GIA_NHAP) || 0,
-        GiaBan: Number(obj.GIA_BAN) || 0,
-        GiaTraGop: Number(obj.GIA_TRA_GOP) || 0,
-        TrangThaiKho: String(obj.TRANG_THAI_KHO),
-        GhiChu: String(obj.GHI_CHU),
-        ChiNhanh: String(obj.CHI_NHANH || ""),
-        NgayNhap: obj.NGAY_NHAP ? new Date(obj.NGAY_NHAP) : null,
-        NgayXuat: obj.NGAY_XUAT ? new Date(obj.NGAY_XUAT) : null,
-      });
+      result.push(toDTO(obj, SHEET_NAMES.DIEN_THOAI, "DIEN_THOAI_VIEW"));
     }
   });
 
@@ -395,18 +361,18 @@ function backfillDienThoaiDates(silent) {
     // A. Tìm Ngày nhập (nếu trống)
     if (!currentNgayNhap) {
       let ngayNhap = null;
-      // Thử tìm trong Nhập kho theo Mã điện thoại (cột 4, index 3)
+      // Thử tìm trong Nhập kho theo Mã điện thoại
       for (let j = 0; j < imports.length; j++) {
-        if (String(imports[j][3]) === maDT) {
-          ngayNhap = imports[j][1]; // Ngày nhập (cột 2, index 1)
+        if (String(imports[j][COL_NK.MA_SP - 1]) === maDT) {
+          ngayNhap = imports[j][COL_NK.NGAY_NHAP - 1];
           break;
         }
       }
-      // Nếu không thấy, tìm trong Thu mua theo IMEI (cột 8, index 7)
+      // Nếu không thấy, tìm trong Thu mua theo IMEI
       if (!ngayNhap && imei) {
         for (let k = 0; k < buybacks.length; k++) {
-          if (String(buybacks[k][7]) === imei) {
-            ngayNhap = buybacks[k][1]; // Ngày thu mua (cột 2, index 1)
+          if (String(buybacks[k][COL_TM.IMEI_THU - 1]) === imei) {
+            ngayNhap = buybacks[k][COL_TM.NGAY_TM - 1];
             break;
           }
         }
@@ -424,12 +390,12 @@ function backfillDienThoaiDates(silent) {
     if (status === "Đã bán" || status === "Đang trả góp") {
       if (!currentNgayXuat) {
         let ngayXuat = null;
-        // Tìm trong Đơn hàng theo Mã điện thoại (cột 5, index 4)
+        // Tìm trong Đơn hàng theo Mã điện thoại
         for (let j = 0; j < orders.length; j++) {
-          if (String(orders[j][4]) === maDT) {
-            const orderStatus = String(orders[j][18]);
-            if (orderStatus !== "Huỷ" && orderStatus !== "Đổi trả") {
-              ngayXuat = orders[j][1]; // Ngày bán (cột 2, index 1)
+          if (String(orders[j][COL_DH.MA_SP - 1]) === maDT) {
+            const orderStatus = String(orders[j][COL_DH.TRANG_THAI - 1]);
+            if (!isCancelStatus(orderStatus) && orderStatus !== ORDER_STATUS.EXCHANGED) {
+              ngayXuat = orders[j][COL_DH.NGAY_BAN - 1];
               break;
             }
           }

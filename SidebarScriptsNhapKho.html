@@ -1,0 +1,131 @@
+<script>
+  function onNhapKhoBranchOrNguonChange() {
+    updateNhapKhoPhuKienInfo();
+  }
+
+  function updateNhapKhoPhuKienInfo() {
+    let branch = document.getElementById('nk-chiNhanh').value;
+    let maPK = extractId(document.getElementById('nk-pkCu-maSP').value);
+    let infoBox = document.getElementById('nk-pkCu-info');
+
+    if (!maPK || !branch) {
+      infoBox.style.display = 'none';
+      return;
+    }
+
+    infoBox.style.display = 'block';
+    infoBox.innerHTML = 'Đang kiểm tra tồn kho...';
+
+    google.script.run.withSuccessHandler(function(stock) {
+      infoBox.innerHTML = 'Tồn kho hiện tại của mã này tại <strong>' + branch + '</strong> là: <strong>' + stock + '</strong> sản phẩm.';
+    }).getPhuKienStockAtBranch(maPK, branch);
+  }
+
+  function submitNhapKho() {
+    let chiNhanh = document.getElementById('nk-chiNhanh').value;
+    let nguonNhap = document.getElementById('nk-nguonNhap').value;
+
+    if (!chiNhanh) {
+      showAlertMsg('error', 'Vui lòng chọn Chi nhánh nhập kho!');
+      return;
+    }
+
+    let data = {
+      chiNhanh: chiNhanh,
+      nhaCungCap: document.getElementById('nk-nhaCungCap').value.trim(),
+      ghiChu: document.getElementById('nk-ghiChu').value.trim()
+    };
+
+    if (nguonNhap === 'Điện thoại') {
+      data.nguonNhap = 'Điện thoại';
+      data.tenSP = document.getElementById('nk-tenSP').value.trim();
+      data.thuongHieu = document.getElementById('nk-thuongHieu').value;
+      data.imei = document.getElementById('nk-imei').value.trim();
+      data.mauSac = document.getElementById('nk-mauSac').value.trim();
+      data.dungLuong = document.getElementById('nk-dungLuong').value.trim();
+      data.tinhTrang = document.getElementById('nk-tinhTrang').value;
+      data.giaNhap = Number(document.getElementById('nk-giaNhap').value) || 0;
+      data.giaBan = Number(document.getElementById('nk-giaBan').value) || 0;
+      data.giaTraGop = Number(document.getElementById('nk-giaTraGop').value) || 0;
+
+      if (!data.tenSP || !data.imei) {
+        showAlertMsg('error', 'Vui lòng nhập Tên SP and IMEI!');
+        return;
+      }
+    } else if (nguonNhap === 'Phụ kiện - Mới') {
+      data.nguonNhap = 'Phụ kiện';
+      data.tenSP = document.getElementById('nk-pk-tenSP').value.trim();
+      data.loaiPK = document.getElementById('nk-pk-loaiPK').value;
+      data.thuongHieu = document.getElementById('nk-pk-thuongHieu').value.trim();
+      data.giaNhap = Number(document.getElementById('nk-pk-giaNhap').value) || 0;
+      data.giaBan = Number(document.getElementById('nk-pk-giaBan').value) || 0;
+      data.soLuong = Number(document.getElementById('nk-pk-soLuong').value) || 1;
+      data.moTa = document.getElementById('nk-pk-moTa').value.trim();
+
+      if (!data.tenSP) {
+        showAlertMsg('error', 'Vui lòng nhập Tên phụ kiện!');
+        return;
+      }
+    } else {
+      data.nguonNhap = 'Phụ kiện';
+      data.maSP = extractId(document.getElementById('nk-pkCu-maSP').value);
+      data.soLuong = Number(document.getElementById('nk-pkCu-soLuong').value) || 1;
+      data.giaNhap = Number(document.getElementById('nk-pkCu-giaNhap').value) || 0;
+
+      if (!data.maSP) {
+        showAlertMsg('error', 'Vui lòng chọn phụ kiện!');
+        return;
+      }
+    }
+
+    setLoading('btnNhapKho', true);
+    google.script.run
+      .withSuccessHandler(function(maNK) {
+        setLoading('btnNhapKho', false);
+        showAlertMsg('success', 'Đã nhập kho: <strong>' + escapeHtml(maNK) + '</strong>');
+        resetFormNhapKho();
+        preloadInventoryData(loadPhuKienCuDropdown);
+      })
+      .withFailureHandler(function(err) {
+        setLoading('btnNhapKho', false);
+        showAlertMsg('error', 'Lỗi: ' + err.message);
+      })
+      .nhapKho(data);
+  }
+
+  function resetFormNhapKho() {
+    // Điện thoại
+    let tenSP = document.getElementById('nk-tenSP'); if (tenSP) tenSP.value = '';
+    let imei = document.getElementById('nk-imei'); if (imei) imei.value = '';
+    let mauSac = document.getElementById('nk-mauSac'); if (mauSac) mauSac.value = '';
+    let dungLuong = document.getElementById('nk-dungLuong'); if (dungLuong) dungLuong.value = '';
+    let tinhTrang = document.getElementById('nk-tinhTrang'); if (tinhTrang) tinhTrang.value = '';
+    let giaNhap = document.getElementById('nk-giaNhap'); if (giaNhap) giaNhap.value = 0;
+    let giaBan = document.getElementById('nk-giaBan'); if (giaBan) giaBan.value = 0;
+    let giaTraGop = document.getElementById('nk-giaTraGop'); if (giaTraGop) giaTraGop.value = 0;
+
+    // Phụ kiện mới
+    let pkTen = document.getElementById('nk-pk-tenSP'); if (pkTen) pkTen.value = '';
+    let pkThuongHieu = document.getElementById('nk-pk-thuongHieu'); if (pkThuongHieu) pkThuongHieu.value = '';
+    let pkGiaNhap = document.getElementById('nk-pk-giaNhap'); if (pkGiaNhap) pkGiaNhap.value = 0;
+    let pkGiaBan = document.getElementById('nk-pk-giaBan'); if (pkGiaBan) pkGiaBan.value = 0;
+    let pkSoLuong = document.getElementById('nk-pk-soLuong'); if (pkSoLuong) pkSoLuong.value = 1;
+    let pkMoTa = document.getElementById('nk-pk-moTa'); if (pkMoTa) pkMoTa.value = '';
+
+    // Phụ kiện cũ
+    let pkCuMa = document.getElementById('nk-pkCu-maSP'); if (pkCuMa) pkCuMa.value = '';
+    let pkCuSoLuong = document.getElementById('nk-pkCu-soLuong'); if (pkCuSoLuong) pkCuSoLuong.value = 1;
+    let pkCuGiaNhap = document.getElementById('nk-pkCu-giaNhap'); if (pkCuGiaNhap) pkCuGiaNhap.value = 0;
+
+    let infoBox = document.getElementById('nk-pkCu-info');
+    if (infoBox) {
+      infoBox.style.display = 'none';
+      infoBox.innerHTML = '';
+    }
+  }
+
+  function loadPhuKienCuDropdown() {
+    let items = localCache.phuKienUnique || [];
+    populateDatalist('nk-pkCu-maSP', 'nk-pkCu-maSP-list', items);
+  }
+</script>

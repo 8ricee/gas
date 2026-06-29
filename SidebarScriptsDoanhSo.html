@@ -1,0 +1,105 @@
+<script>
+  function xemBaoCaoDoanhSo() {
+    let thang = parseInt(document.getElementById('ds-thang').value);
+    let nam = parseInt(document.getElementById('ds-nam').value);
+
+    if (isNaN(thang) || isNaN(nam)) {
+      showAlertMsg('error', 'Vui lòng chọn Tháng và Năm hợp lệ!');
+      return;
+    }
+
+    setLoading('btnXemDS', true);
+    document.getElementById('ds-summaryArea').style.display = 'none';
+    document.getElementById('ds-reportArea').style.display = 'none';
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        setLoading('btnXemDS', false);
+        renderBaoCaoDoanhSo(result);
+      })
+      .withFailureHandler(function(err) {
+        setLoading('btnXemDS', false);
+        showAlertMsg('error', 'Lỗi tải báo cáo: ' + err.message);
+      })
+      .getBaoCaoDoanhSo(thang, nam);
+  }
+
+  function renderBaoCaoDoanhSo(result) {
+    if (!result || !result.nhanVien || result.nhanVien.length === 0) {
+      showAlertMsg('error', 'Không có dữ liệu doanh số cho tháng này. Vui lòng bấm "Chốt doanh số" trước!');
+      return;
+    }
+
+    document.getElementById('ds-tongMay').innerText = result.tongSoMayBan;
+    document.getElementById('ds-tongHH').innerText = formatNumber(result.tongHoaHong) + 'đ';
+    document.getElementById('ds-tongDV').innerText = formatNumber(result.tongDoanhThuDV) + 'đ';
+    document.getElementById('ds-tongThuNhap').innerText = formatNumber(result.tongThuNhap) + 'đ';
+    document.getElementById('ds-summaryArea').style.display = 'block';
+
+    let tbody = document.getElementById('ds-tableBody');
+    tbody.innerHTML = '';
+
+    result.nhanVien.forEach(function(nv) {
+      let tr = document.createElement('tr');
+      
+      let roleClass = '';
+      if (nv.vaiTro === 'Bán hàng') roleClass = 'role-banhang';
+      else if (nv.vaiTro === 'Kế toán') roleClass = 'role-ketoan';
+      else if (nv.vaiTro === 'Kỹ thuật') roleClass = 'role-kythuat';
+
+      let html = '';
+      html += '<td><strong>' + escapeHtml(nv.tenNV) + '</strong><br><span style="color:#5f6368;font-size:9px;">' + escapeHtml(nv.maNV) + '</span></td>';
+      html += '<td><span class="role-badge ' + roleClass + '">' + escapeHtml(nv.vaiTro) + '</span></td>';
+      html += '<td class="text-center">' + nv.soMayBan_Apple + '</td>';
+      html += '<td class="text-center">' + nv.soMayBan_Khac + '</td>';
+      html += '<td class="text-center">' + nv.soMayHoTro_Apple + '</td>';
+      html += '<td class="text-center">' + nv.soMayHoTro_Khac + '</td>';
+      html += '<td class="text-right">' + formatNumber(nv.hhBan) + 'đ</td>';
+      html += '<td class="text-right">' + formatNumber(nv.hhHoTro) + 'đ</td>';
+      html += '<td class="text-right">' + formatNumber(nv.doanhThuDV) + 'đ</td>';
+      html += '<td class="text-right">' + formatNumber(nv.thuong) + 'đ</td>';
+      html += '<td class="text-right" style="font-weight:bold;color:#137333;">' + formatNumber(nv.tongThuNhap) + 'đ</td>';
+
+      tr.innerHTML = html;
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById('ds-lblThangNam').innerText = result.thangNam;
+    document.getElementById('ds-reportArea').style.display = 'block';
+  }
+
+  function yeuCauChotDoanhSo() {
+    let thang = parseInt(document.getElementById('ds-thang').value);
+    let nam = parseInt(document.getElementById('ds-nam').value);
+
+    if (isNaN(thang) || isNaN(nam)) {
+      showAlertMsg('error', 'Vui lòng chọn Tháng và Năm hợp lệ!');
+      return;
+    }
+
+    let confirmMsg = 'Bạn có chắc chắn muốn chốt doanh số tháng ' + thang + '/' + nam + '?';
+    confirmMsg += '\nHành động này có thể ghi đè dữ liệu cũ trên sheet Doanh số nếu tháng này đã được chốt trước đó.';
+    
+    if (!confirm(confirmMsg)) {
+      return;
+    }
+
+    setLoading('btnChotDS', true);
+
+    google.script.run
+      .withSuccessHandler(function(success) {
+        setLoading('btnChotDS', false);
+        if (success) {
+          showAlertMsg('success', 'Đã chốt doanh số tháng ' + thang + '/' + nam + ' thành công!');
+          xemBaoCaoDoanhSo();
+        } else {
+          showAlertMsg('error', 'Chốt doanh số không thành công.');
+        }
+      })
+      .withFailureHandler(function(err) {
+        setLoading('btnChotDS', false);
+        showAlertMsg('error', 'Lỗi chốt doanh số: ' + err.message);
+      })
+      .chotDoanhSoThang(thang, nam);
+  }
+</script>

@@ -158,11 +158,19 @@ const DoiTraStrategy = {
         rollbackActions.push(function () {
           if (data.congKho !== false) {
             returnedGiftsList.forEach(function (code) {
-              try { updateTonKhoPhuKien(code, 1, "xuat", originalBranch); } catch (err) {}
+              try {
+                updateTonKhoPhuKien(code, 1, "xuat", originalBranch);
+              } catch (err) {
+                Logger.log("Rollback returned gift " + code + " failed: " + err.message);
+              }
             });
           }
           issuedGiftsList.forEach(function (code) {
-            try { updateTonKhoPhuKien(code, 1, "nhap", chiNhanh); } catch (err) {}
+            try {
+              updateTonKhoPhuKien(code, 1, "nhap", chiNhanh);
+            } catch (err) {
+              Logger.log("Rollback issued gift " + code + " failed: " + err.message);
+            }
           });
         });
         
@@ -197,7 +205,11 @@ const DoiTraStrategy = {
           }
           rollbackActions.push(function () {
             returnedGiftsList.forEach(function (code) {
-              try { updateTonKhoPhuKien(code, 1, "xuat", originalBranch); } catch (err) {}
+              try {
+                updateTonKhoPhuKien(code, 1, "xuat", originalBranch);
+              } catch (err) {
+                Logger.log("Rollback returned gift " + code + " failed: " + err.message);
+              }
             });
           });
         }
@@ -211,7 +223,11 @@ const DoiTraStrategy = {
         }
         rollbackActions.push(function () {
           issuedGiftsList.forEach(function (code) {
-            try { updateTonKhoPhuKien(code, 1, "nhap", chiNhanh); } catch (err) {}
+            try {
+              updateTonKhoPhuKien(code, 1, "nhap", chiNhanh);
+            } catch (err) {
+              Logger.log("Rollback issued gift " + code + " failed: " + err.message);
+            }
           });
         });
       }
@@ -240,7 +256,9 @@ const DoiTraStrategy = {
           updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.MA_QUA_TANG, oldMaQua);
           updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.TEN_QUA_TANG, oldTenQua);
           updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.GHI_CHU, oldNote);
-        } catch (err) {}
+        } catch (err) {
+          Logger.log("Rollback original order gift info failed: " + err.message);
+        }
       });
 
       const rowData = [];
@@ -282,7 +300,9 @@ const DoiTraStrategy = {
               sheet.deleteRow(r);
               clearSheetCache(SHEET_NAMES.DOI_TRA);
             }
-          } catch (err) {}
+          } catch (err) {
+            Logger.log("Rollback failed to delete exchange record " + capturedMaDT + ": " + err.message);
+          }
         });
       })(maDT);
 
@@ -373,7 +393,9 @@ const DoiTraStrategy = {
             COL_DH.TRANG_THAI,
             oldDHStatus,
           );
-        } catch (err) {}
+        } catch (err) {
+          Logger.log("Rollback original order status failed: " + err.message);
+        }
       });
 
       // 2. Hoàn trả kho phụ kiện cũ vào chi nhánh của đơn hàng gốc (nếu chọn cộng kho)
@@ -385,7 +407,9 @@ const DoiTraStrategy = {
         rollbackActions.push(function () {
           try {
             updateTonKhoPhuKien(maSP_Tra, soLuong, "xuat", originalBranch);
-          } catch (err) {}
+          } catch (err) {
+            Logger.log("Rollback returned accessory stock failed: " + err.message);
+          }
         });
       }
 
@@ -414,7 +438,9 @@ const DoiTraStrategy = {
               oSheet.deleteRow(oRow);
               clearSheetCache(SHEET_NAMES.DON_HANG);
             }
-          } catch (err) {}
+          } catch (err) {
+            Logger.log("Rollback failed to delete new exchange order " + maDHMoi + ": " + err.message);
+          }
         });
 
         data.ghiChu =
@@ -464,7 +490,9 @@ const DoiTraStrategy = {
               sheet.deleteRow(r);
               clearSheetCache(SHEET_NAMES.DOI_TRA);
             }
-          } catch (err) {}
+          } catch (err) {
+            Logger.log("Rollback failed to delete exchange record " + capturedMaDT + ": " + err.message);
+          }
         });
       })(maDT);
 
@@ -497,7 +525,9 @@ const DoiTraStrategy = {
             COL_DH.TRANG_THAI,
             oldDHStatus,
           );
-        } catch (err) {}
+        } catch (err) {
+          Logger.log("Rollback original order status failed: " + err.message);
+        }
       });
 
       // 2. Hoàn trả kho máy trả về trạng thái "Máy lỗi" (nếu chọn cộng kho)
@@ -519,7 +549,9 @@ const DoiTraStrategy = {
         rollbackActions.push(function () {
           try {
             updateTrangThaiKhoDT(imei_Tra || maSP_Tra, oldPhoneStatus);
-          } catch (err) {}
+          } catch (err) {
+            Logger.log("Rollback phone stock status failed: " + err.message);
+          }
         });
       }
 
@@ -567,7 +599,9 @@ const DoiTraStrategy = {
             });
             clearSheetCache(SHEET_NAMES.LICH_SU_TRA_GOP);
           }
-        } catch (err) {}
+        } catch (err) {
+          Logger.log("Rollback installment contract status failed for TG " + maTG + ": " + err.message);
+        }
       });
 
       let tenSP_Nhan = "";
@@ -645,7 +679,9 @@ const DoiTraStrategy = {
               oSheet.deleteRow(oRow);
               clearSheetCache(SHEET_NAMES.DON_HANG);
             }
-          } catch (err) {}
+          } catch (err) {
+            Logger.log("Rollback failed to delete new exchange order " + maDHMoi + ": " + err.message);
+          }
         });
 
         data.ghiChu =
@@ -695,7 +731,9 @@ const DoiTraStrategy = {
               sheet.deleteRow(r);
               clearSheetCache(SHEET_NAMES.DOI_TRA);
             }
-          } catch (err) {}
+          } catch (err) {
+            Logger.log("Rollback failed to delete exchange record " + capturedMaDT + ": " + err.message);
+          }
         });
       })(maDT);
 

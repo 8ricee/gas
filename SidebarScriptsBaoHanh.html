@@ -1,0 +1,55 @@
+<script>
+  function submitBaoHanh() {
+    let maKH = extractId(document.getElementById('bh-maKH').value);
+    let tenKH = extractCustomerName(document.getElementById('bh-maKH').value);
+
+    let data = {
+      chiNhanh: document.getElementById('bh-chiNhanh').value,
+      loaiDichVu: document.getElementById('bh-loaiDichVu').value,
+      maKH: maKH,
+      tenKH: tenKH,
+      tenSP: document.getElementById('bh-tenSP').value,
+      tinhTrangLoi: document.getElementById('bh-tinhTrangLoi').value,
+      phiSuaChua: Number(document.getElementById('bh-phiSuaChua').value) || 0,
+      hinhThucThanhToan: document.getElementById('bh-hinhThucTT').value,
+      splitTienMat: Number(document.getElementById('bh-split-tienMat').value) || 0,
+      splitChuyenKhoan: Number(document.getElementById('bh-split-chuyenKhoan').value) || 0,
+      nguoiTiepNhan: extractId(document.getElementById('bh-nguoiTiepNhan').value),
+      nguoiSua: extractId(document.getElementById('bh-nguoiSua').value),
+      ghiChu: document.getElementById('bh-ghiChu').value
+    };
+
+    if (!data.chiNhanh) return showAlertMsg('error', 'Vui lòng chọn chi nhánh!');
+    if (!data.tenKH) return showAlertMsg('error', 'Vui lòng nhập tên khách hàng!');
+    if (!data.tenSP) return showAlertMsg('error', 'Vui lòng nhập tên sản phẩm!');
+    if (!data.tinhTrangLoi) return showAlertMsg('error', 'Vui lòng nhập tình trạng lỗi!');
+    if (!data.nguoiTiepNhan) return showAlertMsg('error', 'Vui lòng chọn người tiếp nhận!');
+
+    if (data.hinhThucThanhToan === 'Hỗn hợp') {
+      if (Math.abs(data.splitTienMat + data.splitChuyenKhoan - data.phiSuaChua) > 1) {
+        return showAlertMsg('error', 'Tổng số tiền chia không khớp với Phí sửa chữa!');
+      }
+    }
+
+    setLoading('btnTaoBH', true);
+    google.script.run
+      .withSuccessHandler(function(res) {
+        setLoading('btnTaoBH', false);
+        showAlertMsg('success', 'Tạo Phiếu Tiếp Nhận thành công: ' + escapeHtml(res));
+        document.getElementById('bh-maKH').value = '';
+        document.getElementById('bh-tenSP').value = '';
+        document.getElementById('bh-tinhTrangLoi').value = '';
+        document.getElementById('bh-phiSuaChua').value = '0';
+        document.getElementById('bh-split-tienMat').value = '0';
+        document.getElementById('bh-split-chuyenKhoan').value = '0';
+        document.getElementById('bh-nguoiSua').value = '';
+        document.getElementById('bh-ghiChu').value = '';
+        updateSplitPaymentAmounts('bh');
+      })
+      .withFailureHandler(function(err) {
+        setLoading('btnTaoBH', false);
+        showAlertMsg('error', err.message);
+      })
+      .taoBaoHanh(data);
+  }
+</script>
