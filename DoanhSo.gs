@@ -16,7 +16,7 @@ function chotDoanhSoThang(thang, nam) {
   const thangNam = ("0" + thang).slice(-2) + "/" + nam;
 
   // Kiểm tra đã chốt chưa
-  const daChot = lookupValue(SHEET_NAMES.DOANH_SO, 1, thangNam, 16);
+  const daChot = lookupValue(SHEET_NAMES.DOANH_SO, COL_DS.THANG_NAM, thangNam, COL_DS.TRANG_THAI);
   if (daChot === "Đã chốt") {
     try {
       const ui = SpreadsheetApp.getUi();
@@ -68,13 +68,13 @@ function chotDoanhSoThang(thang, nam) {
   const nvDoanhSo = {};
 
   allNV.forEach(function (nv) {
-    if (String(nv[7]) === "Nghỉ việc") return;
+    if (String(nv[COL_NV.TRANG_THAI - 1]) === "Nghỉ việc") return;
 
-    const maNV = String(nv[0]);
+    const maNV = String(nv[COL_NV.MA_NV - 1]);
     nvDoanhSo[maNV] = {
-      tenNV: nv[1],
-      vaiTro: String(nv[4]),
-      coQuyenXuatMay: String(nv[5]) === "✓",
+      tenNV: nv[COL_NV.HO_TEN - 1],
+      vaiTro: String(nv[COL_NV.VAI_TRO - 1]),
+      coQuyenXuatMay: String(nv[COL_NV.QUYEN_XUAT - 1]) === "✓",
       soMayBan_Apple: 0,
       soMayBan_Khac: 0,
       soMayHoTro_Apple: 0,
@@ -201,7 +201,7 @@ function _xoaDoanhSoThang(thangNam) {
   const data = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
   // Xóa từ dưới lên để tránh lệch index
   for (let i = data.length - 1; i >= 0; i--) {
-    if (formatMonthYear(data[i][0]) === thangNam) {
+    if (formatMonthYear(data[i][COL_DS.THANG_NAM - 1]) === thangNam) {
       sheet.deleteRow(i + 2);
     }
   }
@@ -227,22 +227,22 @@ function getBaoCaoDoanhSo(thang, nam) {
   };
 
   data.forEach(function (row) {
-    if (formatMonthYear(row[0]) === thangNam) {
+    if (formatMonthYear(row[COL_DS.THANG_NAM - 1]) === thangNam) {
       const nv = {
-        maNV: String(row[1]),
-        tenNV: String(row[2]),
-        vaiTro: String(row[3]),
-        coQuyenXuatMay: String(row[4]) === "✓",
-        soMayBan_Apple: Number(row[5]) || 0,
-        soMayBan_Khac: Number(row[6]) || 0,
-        soMayHoTro_Apple: Number(row[7]) || 0,
-        soMayHoTro_Khac: Number(row[8]) || 0,
-        hhBan: Number(row[9]) || 0,
-        hhHoTro: Number(row[10]) || 0,
-        tongHoaHong: Number(row[11]) || 0,
-        doanhThuDV: Number(row[12]) || 0,
-        thuong: Number(row[13]) || 0,
-        tongThuNhap: Number(row[14]) || 0,
+        maNV: String(row[COL_DS.MA_NV - 1]),
+        tenNV: String(row[COL_DS.TEN_NV - 1]),
+        vaiTro: String(row[COL_DS.VAI_TRO - 1]),
+        coQuyenXuatMay: String(row[COL_DS.QUYEN_XUAT - 1]) === "✓",
+        soMayBan_Apple: Number(row[COL_DS.SO_MAY_BAN_AP - 1]) || 0,
+        soMayBan_Khac: Number(row[COL_DS.SO_MAY_BAN_KHAC - 1]) || 0,
+        soMayHoTro_Apple: Number(row[COL_DS.SO_MAY_HT_AP - 1]) || 0,
+        soMayHoTro_Khac: Number(row[COL_DS.SO_MAY_HT_KHAC - 1]) || 0,
+        hhBan: Number(row[COL_DS.HOA_HONG_BAN - 1]) || 0,
+        hhHoTro: Number(row[COL_DS.HOA_HONG_HT - 1]) || 0,
+        tongHoaHong: Number(row[COL_DS.TONG_HOA_HONG - 1]) || 0,
+        doanhThuDV: Number(row[COL_DS.DOANH_THU_DV - 1]) || 0,
+        thuong: Number(row[COL_DS.THUONG - 1]) || 0,
+        tongThuNhap: Number(row[COL_DS.TONG_THU_NHAP - 1]) || 0,
       };
 
       result.nhanVien.push(nv);
@@ -429,12 +429,18 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
     sheet = ss.insertSheet(SHEET_NAMES.BAO_CAO_DOANH_SO);
   }
 
-  // 1. Dọn dẹp dữ liệu cũ (từ dòng 6 trở đi)
+  const REPORT_LAYOUT = {
+    SUMMARY_START_ROW: 6,
+    DETAIL_START_ROW: 13,
+    COLUMNS_COUNT: 12
+  };
+
+  // 1. Dọn dẹp dữ liệu cũ (từ dòng SUMMARY_START_ROW trở đi)
   const lastRow = sheet.getLastRow();
   const lastCol = sheet.getLastColumn();
-  if (lastRow >= 6) {
+  if (lastRow >= REPORT_LAYOUT.SUMMARY_START_ROW) {
     sheet
-      .getRange(6, 1, lastRow - 5, Math.max(lastCol, 12))
+      .getRange(REPORT_LAYOUT.SUMMARY_START_ROW, 1, lastRow - (REPORT_LAYOUT.SUMMARY_START_ROW - 1), Math.max(lastCol, REPORT_LAYOUT.COLUMNS_COUNT))
       .clearContent()
       .clearFormat();
   }
@@ -471,8 +477,8 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
     tongThuNhap += nv.tongThuNhap;
   });
 
-  // 4. Ghi bảng tổng hợp chỉ tiêu tài chính (dòng 6 -> 10)
-  const summaryTitleRange = sheet.getRange(6, 1, 1, 2);
+  // 4. Ghi bảng tổng hợp chỉ tiêu tài chính
+  const summaryTitleRange = sheet.getRange(REPORT_LAYOUT.SUMMARY_START_ROW, 1, 1, 2);
   summaryTitleRange.merge();
   summaryTitleRange
     .setValue("TỔNG HỢP CHỈ TIÊU DOANH SỐ & COMMISSION")
@@ -488,17 +494,17 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
     ["3. Tổng doanh thu dịch vụ", tongDoanhThuDV],
     ["4. Tổng thu nhập nhân viên", tongThuNhap],
   ];
-  sheet.getRange(7, 1, summaryData.length, 2).setValues(summaryData);
+  sheet.getRange(REPORT_LAYOUT.SUMMARY_START_ROW + 1, 1, summaryData.length, 2).setValues(summaryData);
   sheet
-    .getRange(7, 1, 1, 2)
+    .getRange(REPORT_LAYOUT.SUMMARY_START_ROW + 1, 1, 1, 2)
     .setFontWeight("bold")
     .setBackground("#e8f0fe")
     .setHorizontalAlignment("left");
-  sheet.getRange(8, 2, summaryData.length - 1, 1).setNumberFormat("#,##0");
-  sheet.getRange(8, 1, summaryData.length - 1, 2).setFontWeight("bold");
-  sheet.getRange(11, 1, 1, 2).setFontColor("#1a73e8").setFontWeight("bold");
+  sheet.getRange(REPORT_LAYOUT.SUMMARY_START_ROW + 2, 2, summaryData.length - 1, 1).setNumberFormat("#,##0");
+  sheet.getRange(REPORT_LAYOUT.SUMMARY_START_ROW + 2, 1, summaryData.length - 1, 2).setFontWeight("bold");
+  sheet.getRange(REPORT_LAYOUT.SUMMARY_START_ROW + summaryData.length, 1, 1, 2).setFontColor("#1a73e8").setFontWeight("bold");
   sheet
-    .getRange(6, 1, summaryData.length + 1, 2)
+    .getRange(REPORT_LAYOUT.SUMMARY_START_ROW, 1, summaryData.length + 1, 2)
     .setBorder(
       true,
       true,
@@ -510,8 +516,8 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
       SpreadsheetApp.BorderStyle.SOLID,
     );
 
-  // 5. Ghi bảng chi tiết nhân viên (bắt đầu từ dòng 13)
-  const startRow = 13;
+  // 5. Ghi bảng chi tiết nhân viên (bắt đầu từ dòng DETAIL_START_ROW)
+  const startRow = REPORT_LAYOUT.DETAIL_START_ROW;
   const detailTitleRange = sheet.getRange(startRow, 1, 1, 12);
   detailTitleRange.merge();
   const periodStr = formatDate(startDate) + " - " + formatDate(endDate);
@@ -536,12 +542,10 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
     "Doanh thu DV",
     "Tổng thu nhập",
   ];
-  sheet.getRange(startRow + 1, 1, 1, 12).setValues([detailHeaders]);
-  sheet
-    .getRange(startRow + 1, 1, 1, 12)
+  sheet.getRange(startRow + 1, 1, 1, 12)
+    .setValues([detailHeaders])
     .setFontWeight("bold")
-    .setBackground("#e8f0fe")
-    .setHorizontalAlignment("left");
+    .setBackground("#f8f9fa");
 
   let totalRowIdx = startRow + 2;
 
@@ -604,9 +608,7 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
           sumDV,
           sumTongTN,
         ],
-      ]);
-    sheet
-      .getRange(totalRowIdx, 5, 1, 8)
+      ])
       .setNumberFormat("#,##0")
       .setFontWeight("bold");
     sheet
@@ -690,10 +692,10 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
 
   const nvMap = {};
   allNV.forEach(function (nv) {
-    nvMap[String(nv[0])] = {
-      tenNV: String(nv[1]),
-      vaiTro: String(nv[4]),
-      coQuyenXuatMay: String(nv[5]) === "✓",
+    nvMap[String(nv[COL_NV.MA_NV - 1])] = {
+      tenNV: String(nv[COL_NV.HO_TEN - 1]),
+      vaiTro: String(nv[COL_NV.VAI_TRO - 1]),
+      coQuyenXuatMay: String(nv[COL_NV.QUYEN_XUAT - 1]) === "✓",
     };
   });
 
@@ -1022,14 +1024,14 @@ function _tinhDoanhSoTuNgayDenNgay(startDate, endDate) {
   const nvDoanhSo = {};
 
   allNV.forEach(function (nv) {
-    if (String(nv[7]) === "Nghỉ việc") return;
+    if (String(nv[COL_NV.TRANG_THAI - 1]) === "Nghỉ việc") return;
 
-    const maNV = String(nv[0]);
+    const maNV = String(nv[COL_NV.MA_NV - 1]);
     nvDoanhSo[maNV] = {
       maNV: maNV,
-      tenNV: nv[1],
-      vaiTro: String(nv[4]),
-      coQuyenXuatMay: String(nv[5]) === "✓",
+      tenNV: nv[COL_NV.HO_TEN - 1],
+      vaiTro: String(nv[COL_NV.VAI_TRO - 1]),
+      coQuyenXuatMay: String(nv[COL_NV.QUYEN_XUAT - 1]) === "✓",
       soMayBan_Apple: 0,
       soMayBan_Khac: 0,
       soMayHoTro_Apple: 0,
@@ -1144,22 +1146,22 @@ function getBaoCaoDoanhSoDong(params) {
     const dataDS = getAllData(SHEET_NAMES.DOANH_SO);
     const records = [];
     dataDS.forEach(function (row) {
-      if (formatMonthYear(row[0]) === thangNam) {
+      if (formatMonthYear(row[COL_DS.THANG_NAM - 1]) === thangNam) {
         records.push({
-          maNV: String(row[1]),
-          tenNV: String(row[2]),
-          vaiTro: String(row[3]),
-          coQuyenXuatMay: String(row[4]) === "✓",
-          soMayBan_Apple: Number(row[5]) || 0,
-          soMayBan_Khac: Number(row[6]) || 0,
-          soMayHoTro_Apple: Number(row[7]) || 0,
-          soMayHoTro_Khac: Number(row[8]) || 0,
-          hhBan: Number(row[9]) || 0,
-          hhHoTro: Number(row[10]) || 0,
-          tongHoaHong: Number(row[11]) || 0,
-          doanhThuDV: Number(row[12]) || 0,
-          thuong: Number(row[13]) || 0,
-          tongThuNhap: Number(row[14]) || 0,
+          maNV: String(row[COL_DS.MA_NV - 1]),
+          tenNV: String(row[COL_DS.TEN_NV - 1]),
+          vaiTro: String(row[COL_DS.VAI_TRO - 1]),
+          coQuyenXuatMay: String(row[COL_DS.QUYEN_XUAT - 1]) === "✓",
+          soMayBan_Apple: Number(row[COL_DS.SO_MAY_BAN_AP - 1]) || 0,
+          soMayBan_Khac: Number(row[COL_DS.SO_MAY_BAN_KHAC - 1]) || 0,
+          soMayHoTro_Apple: Number(row[COL_DS.SO_MAY_HT_AP - 1]) || 0,
+          soMayHoTro_Khac: Number(row[COL_DS.SO_MAY_HT_KHAC - 1]) || 0,
+          hhBan: Number(row[COL_DS.HOA_HONG_BAN - 1]) || 0,
+          hhHoTro: Number(row[COL_DS.HOA_HONG_HT - 1]) || 0,
+          tongHoaHong: Number(row[COL_DS.TONG_HOA_HONG - 1]) || 0,
+          doanhThuDV: Number(row[COL_DS.DOANH_THU_DV - 1]) || 0,
+          thuong: Number(row[COL_DS.THUONG - 1]) || 0,
+          tongThuNhap: Number(row[COL_DS.TONG_THU_NHAP - 1]) || 0,
         });
       }
     });

@@ -20,11 +20,12 @@
 function taoDichVu(data) {
   return withDocumentLock(function () {
     const maDV = generateId("DV", SHEET_NAMES.DICH_VU);
+    validateRequiredFields(data, [
+      { key: "maKH", label: "Mã khách hàng" },
+      { key: "loaiDichVu", label: "Loại dịch vụ" },
+      { key: "chiNhanh", label: "Chi nhánh" }
+    ]);
     const chiNhanh = data.chiNhanh;
-
-    if (!chiNhanh) {
-      throw new Error("Vui lòng chọn chi nhánh thực hiện giao dịch!");
-    }
 
     // Auto lookup tên NV
     const tenNguoiThucHien = getNhanVienName(data.nguoiThucHien);

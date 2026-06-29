@@ -218,3 +218,22 @@ function _setupBaoHanhValidations(ss, chiNhanhRule) {
   setColumnListValidation(bhSheet, COL_BH.TRANG_THAI, [ORDER_STATUS.PROCESSING, ORDER_STATUS.DONE, ORDER_STATUS.CANCELLED]);
   bhSheet.getRange(columnToLetter(COL_BH.CHI_NHANH) + "2:" + columnToLetter(COL_BH.CHI_NHANH)).setDataValidation(chiNhanhRule);
 }
+
+/**
+ * Kiểm tra các trường dữ liệu bắt buộc và throw lỗi chuẩn hóa nếu bị thiếu
+ * @param {Object} data Đối tượng chứa các trường dữ liệu cần kiểm tra
+ * @param {Array<{key: string, label: string}>} fields Danh sách các trường cần kiểm tra
+ */
+function validateRequiredFields(data, fields) {
+  if (!data) throw new Error("Dữ liệu đầu vào không hợp lệ!");
+  const missing = [];
+  fields.forEach(function(field) {
+    const val = data[field.key];
+    if (val === undefined || val === null || String(val).trim() === "") {
+      missing.push(field.label);
+    }
+  });
+  if (missing.length > 0) {
+    throw new Error("Vui lòng điền/chọn đầy đủ các thông tin bắt buộc: " + missing.join(", ") + "!");
+  }
+}

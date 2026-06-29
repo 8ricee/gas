@@ -52,6 +52,7 @@ function initializeColumnEnums() {
       Object.assign(COL_KH, data.COL_KH);
       Object.assign(COL_BH, data.COL_BH);
       Object.assign(COL_NV, data.COL_NV || {});
+      Object.assign(COL_DS, data.COL_DS || {});
       _columnEnumsInitialized = true;
       _loadingColumnEnums = false;
       return;
@@ -85,6 +86,7 @@ function reconcileAllSchemas() {
   enumMapping[SHEET_NAMES.KHACH_HANG] = COL_KH;
   enumMapping[SHEET_NAMES.BAO_HANH] = COL_BH;
   enumMapping[SHEET_NAMES.NHAN_VIEN] = COL_NV;
+  enumMapping[SHEET_NAMES.DOANH_SO] = COL_DS;
 
   for (const sheetName in SCHEMA) {
     const colEnum = enumMapping[sheetName];
@@ -120,7 +122,8 @@ function reconcileAllSchemas() {
     COL_DT_TRA: COL_DT_TRA,
     COL_KH: COL_KH,
     COL_BH: COL_BH,
-    COL_NV: COL_NV
+    COL_NV: COL_NV,
+    COL_DS: COL_DS
   };
 
   const cache = CacheService.getScriptCache();
@@ -382,28 +385,38 @@ function getNewIdCounter(prefix, sheetName) {
 }
 
 function generateId(prefix, sheetName) {
-  const lock = LockService.getScriptLock();
-  // Chờ tối đa 5 giây nếu có người khác đang tạo ID
-  lock.waitLock(5000);
+  const hasLock = _LockState.depth > 0;
+  let lock = null;
+  if (!hasLock) {
+    lock = LockService.getDocumentLock();
+    try {
+      lock.waitLock(10000); // 10s wait
+    } catch (e) {
+      throw new Error("Hệ thống hiện đang bận xử lý giao dịch khác. Vui lòng thử lại sau vài giây!");
+    }
+  }
   try {
-    const props = PropertiesService.getScriptProperties();
+    const props = PropertiesService.getDocumentProperties();
     const key = "id_counter_" + prefix + "_" + sheetName;
-    // Đọc counter cũ, nếu chưa có thì gán là 0, sau đó cộng 1
     let count = Number(props.getProperty(key) || "0");
     
-    // Tự phục hồi: nếu counter < max trong sheet -> seed lại
-    const maxInSheet = getNewIdCounter(prefix, sheetName); // đã có sẵn
-    if (count < maxInSheet) count = maxInSheet;
+    // Tự phục hồi: nếu counter = 0 -> seed lại từ dữ liệu sheet
+    if (count === 0) {
+      count = getNewIdCounter(prefix, sheetName);
+    }
 
     count += 1;
-    // Lưu counter mới lại ngay lập tức
     props.setProperty(key, String(count));
-    // Định dạng số thành 5 chữ số (00001, 00002...)
     const padded = ("00000" + count).slice(-5);
     return prefix + padded; 
   } finally {
-    // Luôn luôn giải phóng khóa dù có lỗi xảy ra hay không
-    lock.releaseLock(); 
+    if (lock) {
+      try {
+        lock.releaseLock();
+      } catch (err) {
+        Logger.log("Không thể giải phóng khóa trong generateId: " + err.message);
+      }
+    }
   }
 }
 /**
@@ -1138,7 +1151,29 @@ function getColEnum(sheetName) {
     case SHEET_NAMES.KHACH_HANG: return COL_KH;
     case SHEET_NAMES.BAO_HANH: return COL_BH;
     case SHEET_NAMES.NHAN_VIEN: return COL_NV;
+    case SHEET_NAMES.DOANH_SO: return COL_DS;
     default: return null;
+  }
+}
+
+/**
+ * Thực thi logic có bọc cơ chế rollback tự động khi xảy ra lỗi
+ * @param {Function} fn
+ * @return {*}
+ */
+function _executeWithRollback(fn) {
+  const rollbackActions = [];
+  try {
+    return fn(rollbackActions);
+  } catch (e) {
+    for (let i = rollbackActions.length - 1; i >= 0; i--) {
+      try {
+        rollbackActions[i]();
+      } catch (err) {
+        Logger.log("Rollback failed: " + err.message);
+      }
+    }
+    throw e;
   }
 }
 
@@ -1212,4 +1247,18 @@ function buildRowData(colEnum, fieldMap) {
     }
   }
   return rowData;
+}
+
+/**
+ * Tính toán thành tiền của một sản phẩm hoặc dòng đơn hàng
+ * @param {number} soLuong
+ * @param {number} donGia
+ * @param {number} [giamGia=0]
+ * @param {number} [tienThuMua=0]
+ * @return {number}
+ */
+function calcThanhTien(soLuong, donGia, giamGia, tienThuMua) {
+  return (Number(soLuong) || 0) * (Number(donGia) || 0)
+       - (Number(giamGia) || 0)
+       - (Number(tienThuMua) || 0);
 }

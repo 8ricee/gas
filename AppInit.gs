@@ -140,7 +140,9 @@ function setupSheets() {
   if (defaultSheet && defaultSheet.getLastRow() === 0) {
     try {
       ss.deleteSheet(defaultSheet);
-    } catch (e) {}
+    } catch (e) {
+      Logger.log("[WARN] Không thể xóa sheet mặc định: " + e.message);
+    }
   }
 
   showAlert(

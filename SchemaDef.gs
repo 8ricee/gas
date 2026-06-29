@@ -316,5 +316,6 @@ const COL_DT_TRA = createEnumProxy(getDefaultSchemaIndices(SHEET_NAMES.DOI_TRA))
 const COL_KH = createEnumProxy(getDefaultSchemaIndices(SHEET_NAMES.KHACH_HANG));
 const COL_BH = createEnumProxy(getDefaultSchemaIndices(SHEET_NAMES.BAO_HANH));
 const COL_NV = createEnumProxy(getDefaultSchemaIndices(SHEET_NAMES.NHAN_VIEN));
+const COL_DS = createEnumProxy(getDefaultSchemaIndices(SHEET_NAMES.DOANH_SO));
 
 populateSheetHeaders();

@@ -29,11 +29,11 @@ function nhapKho(data) {
     let tenSP = "";
     let soLuong = Number(data.soLuong) || 1;
     const giaNhap = Number(data.giaNhap) || 0;
+    
+    validateRequiredFields(data, [
+      { key: "chiNhanh", label: "Chi nhánh" }
+    ]);
     const chiNhanh = data.chiNhanh;
-
-    if (!chiNhanh) {
-      throw new Error("Vui lòng chọn chi nhánh nhập kho!");
-    }
 
     if (nguonNhap === "Điện thoại") {
       // Tạo sản phẩm mới trong danh mục điện thoại

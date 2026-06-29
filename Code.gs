@@ -174,6 +174,7 @@ function onOpen() {
  */
 function doGet(e) {
   const html = HtmlService.createTemplateFromFile("Sidebar");
+  html.mode = (e && e.parameter && e.parameter.mode) || "donHang";
   return html
     .evaluate()
     .setTitle("VanTran Mobile — Hệ thống Dịch vụ & Buôn bán Trả góp")
@@ -224,6 +225,5 @@ function getInitialSidebarData() {
     staff: getNhanVienDropdown(),
     financeCompanies: getFinanceCompaniesDropdown(),
     brands: getBrandsDropdown(),
-    storeInterestRate: getInterestRateConfig(),
   };
 }

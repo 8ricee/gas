@@ -71,6 +71,9 @@
     var initialMode = '<?!= (typeof mode !== "undefined" ? mode : "donHang") ?>';
   </script>
   <?!= HtmlService.createHtmlOutputFromFile('SidebarScriptsCommon').getContent(); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('SidebarScriptsSearch').getContent(); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('SidebarScriptsPayment').getContent(); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('SidebarScriptsComponents').getContent(); ?>
   <?!= HtmlService.createHtmlOutputFromFile('SidebarScriptsDonHang').getContent(); ?>
   <?!= HtmlService.createHtmlOutputFromFile('SidebarScriptsKhachHang').getContent(); ?>
   <?!= HtmlService.createHtmlOutputFromFile('SidebarScriptsNhapKho').getContent(); ?>

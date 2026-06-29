@@ -86,15 +86,10 @@ const ProductStrategy = {
         trangThaiMoi = STOCK_STATUS.INSTALLMENT;
       }
       updateTrangThaiKhoDT(data.imei || data.maSP, trangThaiMoi);
-      (function (key) {
-        rollbackActions.push(function () {
-          try {
-            updateTrangThaiKhoDT(key, STOCK_STATUS.IN_STOCK);
-          } catch (err) {
-            Logger.log("Rollback failed to restore phone status: " + err.message);
-          }
-        });
-      })(data.imei || data.maSP);
+      const key = data.imei || data.maSP;
+      addRollback(rollbackActions, "Restore phone status to IN_STOCK", function () {
+        updateTrangThaiKhoDT(key, STOCK_STATUS.IN_STOCK);
+      });
     },
     restoreStock: function(data, chiNhanh, soLuong) {
       updateTrangThaiKhoDT(data.imei || data.maSP, STOCK_STATUS.IN_STOCK);
@@ -129,17 +124,12 @@ const ProductStrategy = {
     },
     updateStock: function(data, chiNhanh, soLuong, rollbackActions, ss) {
       updateTonKhoPhuKien(data.maSP, soLuong, "xuat", chiNhanh);
-      (function (maSP, qty, branch) {
-        rollbackActions.push(function () {
-          try {
-            updateTonKhoPhuKien(maSP, qty, "nhap", branch);
-          } catch (err) {
-            Logger.log(
-              "Rollback failed to restore accessory stock: " + err.message,
-            );
-          }
-        });
-      })(data.maSP, soLuong, chiNhanh);
+      const maSP = data.maSP;
+      const qty = soLuong;
+      const branch = chiNhanh;
+      addRollback(rollbackActions, "Restore accessory stock", function () {
+        updateTonKhoPhuKien(maSP, qty, "nhap", branch);
+      });
     },
     restoreStock: function(data, chiNhanh, soLuong) {
       updateTonKhoPhuKien(data.maSP, soLuong, "nhap", chiNhanh);

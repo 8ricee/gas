@@ -1,0 +1,272 @@
+<script>
+  let originalOrderPrice = 0;
+  let originalOrderData = null;
+
+  function getAmountToPay(prefix) {
+    if (prefix === 'dh') {
+      let htb = document.getElementById('dh-hinhThucBan').value;
+      if (htb === 'Trả góp') {
+        let httt = document.getElementById('dh-hinhThucTT') ? document.getElementById('dh-hinhThucTT').value : '';
+        if (httt === 'Hỗn hợp') {
+          let tm = Number(document.getElementById('dh-split-tienMat').value) || 0;
+          let ck = Number(document.getElementById('dh-split-chuyenKhoan').value) || 0;
+          return tm + ck;
+        }
+        return Number(document.getElementById('tg-traTruoc').value) || 0;
+      }
+      return getDonHangThanhTien();
+    } else if (prefix === 'tm-Thu') {
+      let giaThu = Number(document.getElementById('tm-giaThuMua').value) || 0;
+      let loai = document.getElementById('tm-loaiGD').value;
+      if (loai === 'Thu cũ đổi mới') {
+        let hoTro = Number(document.getElementById('tm-tienHoTro').value) || 0;
+        let truAmt = Number(document.getElementById('tm-truDonMoiAmt').value) || 0;
+        return Math.max(0, giaThu + hoTro - truAmt);
+      }
+      return giaThu;
+    } else if (prefix === 'tm-Moi') {
+      let htb = document.getElementById('tm-hinhThucBan').value;
+      if (htb === 'Trả góp') {
+        return Number(document.getElementById('tm-tg-traTruoc').value) || 0;
+      }
+      let giaMoi = getThuMuaGiaMayMoi();
+      let giamGia = Number(document.getElementById('tm-tienGiamGia').value) || 0;
+      return Math.max(0, giaMoi - giamGia);
+    } else if (prefix === 'dt') {
+      return Math.abs(Number(document.getElementById('dt-tienHoanTra').value) || 0);
+    } else if (prefix === 'tt') {
+      return Number(document.getElementById('tt-soTien').value) || 0;
+    } else if (prefix === 'dv') {
+      let soTien = Number(document.getElementById('dv-soTien').value) || 0;
+      let phi = Number(document.getElementById('dv-phi').value) || 0;
+      return soTien + phi;
+    } else if (prefix === 'bh') {
+      return Number(document.getElementById('bh-phiSuaChua').value) || 0;
+    }
+    return 0;
+  }
+
+  function validateSplitPayment(prefix, inputName) {
+    let activeId = document.activeElement ? document.activeElement.id : '';
+    let edited = inputName;
+    if (!edited) {
+      if (activeId === prefix + '-split-chuyenKhoan') {
+        edited = 'chuyenKhoan';
+      } else {
+        edited = 'tienMat';
+      }
+    }
+
+    let tmInput = document.getElementById(prefix + '-split-tienMat');
+    let ckInput = document.getElementById(prefix + '-split-chuyenKhoan');
+    if (!tmInput || !ckInput) return;
+
+    let tm = Number(tmInput.value) || 0;
+    let ck = Number(ckInput.value) || 0;
+
+    let htb = '';
+    if (prefix === 'dh') {
+      htb = document.getElementById('dh-hinhThucBan') ? document.getElementById('dh-hinhThucBan').value : '';
+    } else if (prefix === 'tm') {
+      htb = document.getElementById('tm-hinhThucBan') ? document.getElementById('tm-hinhThucBan').value : '';
+    }
+    
+    let httt = document.getElementById(prefix + '-hinhThucTT') ? document.getElementById(prefix + '-hinhThucTT').value : '';
+
+    if (htb === 'Trả góp' && httt === 'Hỗn hợp') {
+      if (prefix === 'dh') {
+        let thanhTien = getDonHangThanhTien();
+        let maxAllowed = Math.max(0, thanhTien - 1000);
+        if (edited === 'tienMat') {
+          if (tm < 0) tm = 0;
+          if (tm > maxAllowed) tm = maxAllowed;
+          if (tm + ck > maxAllowed) {
+            ck = maxAllowed - tm;
+          }
+        } else {
+          if (ck < 0) ck = 0;
+          if (ck > maxAllowed) ck = maxAllowed;
+          if (tm + ck > maxAllowed) {
+            tm = maxAllowed - ck;
+          }
+        }
+        tmInput.value = tm;
+        ckInput.value = ck;
+        tinhTraGop();
+      } else if (prefix === 'tm') {
+        let giaThu = Number(document.getElementById('tm-giaThuMua').value) || 0;
+        let giaMoi = getThuMuaGiaMayMoi();
+        let hoTro = Number(document.getElementById('tm-tienHoTro').value) || 0;
+        let giamGia = Number(document.getElementById('tm-tienGiamGia').value) || 0;
+        let giaMayMoi = giaMoi - giamGia - hoTro;
+        
+        let minPayback = Math.max(0, giaThu - giaMayMoi + 1000);
+        let maxPayback = giaThu;
+
+        if (edited === 'tienMat') {
+          if (tm < 0) tm = 0;
+          if (tm > maxPayback) tm = maxPayback;
+          if (tm + ck > maxPayback) {
+            ck = maxPayback - tm;
+          } else if (tm + ck < minPayback) {
+            ck = minPayback - tm;
+          }
+        } else {
+          if (ck < 0) ck = 0;
+          if (ck > maxPayback) ck = maxPayback;
+          if (tm + ck > maxPayback) {
+            tm = maxPayback - ck;
+          } else if (tm + ck < minPayback) {
+            tm = minPayback - ck;
+          }
+        }
+        tmInput.value = tm;
+        ckInput.value = ck;
+        tinhThuMuaTraGop();
+      }
+    } else {
+      let total = getAmountToPay(prefix);
+      if (edited === 'tienMat') {
+        if (tm > total) {
+          tm = total;
+        } else if (tm < 0) {
+          tm = 0;
+        }
+        tmInput.value = tm;
+        ckInput.value = total - tm;
+      } else {
+        if (ck > total) {
+          ck = total;
+        } else if (ck < 0) {
+          ck = 0;
+        }
+        ckInput.value = ck;
+        tmInput.value = total - ck;
+      }
+    }
+  }
+
+  function updateSplitPaymentAmounts(prefix) {
+    let htttSelect = document.getElementById(prefix + '-hinhThucTT');
+    if (!htttSelect) return;
+    let httt = htttSelect.value;
+    if (httt !== 'Hỗn hợp') return;
+
+    let htb = '';
+    if (prefix === 'dh') {
+      htb = document.getElementById('dh-hinhThucBan') ? document.getElementById('dh-hinhThucBan').value : '';
+    } else if (prefix === 'tm') {
+      htb = document.getElementById('tm-hinhThucBan') ? document.getElementById('tm-hinhThucBan').value : '';
+    }
+
+    let tmInput = document.getElementById(prefix + '-split-tienMat');
+    let ckInput = document.getElementById(prefix + '-split-chuyenKhoan');
+    if (!tmInput || !ckInput) return;
+
+    if (htb === 'Trả góp' && httt === 'Hỗn hợp') {
+      validateSplitPayment(prefix, 'tienMat');
+      return;
+    }
+
+    let total = getAmountToPay(prefix);
+    let tm = Number(tmInput.value) || 0;
+    let ck = total - tm;
+    if (ck < 0) {
+      ck = 0;
+      tm = total;
+    }
+    tmInput.value = tm;
+    ckInput.value = ck;
+  }
+
+  function formatPaymentAmount(n) {
+    return Math.round(Number(n) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  }
+
+  function getPaymentMethodString(prefix) {
+    return document.getElementById(prefix + '-hinhThucTT').value;
+  }
+
+  function formatNumber(n) {
+    return Number(n).toLocaleString('vi-VN');
+  }
+
+  function onPaymentMethodChange(prefix) {
+    let selectEl = document.getElementById(prefix + '-hinhThucTT');
+    let httt = selectEl.value;
+    let splitRow = document.getElementById(prefix + '-split-payment-row');
+    if (!splitRow) return;
+
+    if (httt === 'Hỗn hợp') {
+      splitRow.style.display = 'flex';
+      
+      let htb = '';
+      if (prefix === 'dh') {
+        htb = document.getElementById('dh-hinhThucBan') ? document.getElementById('dh-hinhThucBan').value : '';
+      } else if (prefix === 'tm-Moi') {
+        htb = document.getElementById('tm-hinhThucBan') ? document.getElementById('tm-hinhThucBan').value : '';
+      }
+
+      let total = 0;
+      if (htb === 'Trả góp' && prefix === 'dh') {
+        total = getDonHangThanhTien();
+      } else {
+        total = getAmountToPay(prefix);
+      }
+
+      document.getElementById(prefix + '-split-tienMat').value = total;
+      document.getElementById(prefix + '-split-chuyenKhoan').value = 0;
+
+      if (prefix === 'dh' || prefix === 'tt' || prefix === 'dv' || prefix === 'tm-Moi') {
+        selectEl.style.background = '#e8f0fe';
+        selectEl.style.borderColor = '#a8c7fa';
+      } else if (prefix === 'tm-Thu') {
+        selectEl.style.background = '#f1f3f4';
+        selectEl.style.borderColor = '#dadce0';
+      } else if (prefix === 'dt') {
+        selectEl.style.background = '#fdf3f3';
+        selectEl.style.borderColor = '#f5c6cb';
+      }
+    } else {
+      splitRow.style.display = 'none';
+      document.getElementById(prefix + '-split-tienMat').value = 0;
+      document.getElementById(prefix + '-split-chuyenKhoan').value = 0;
+
+      selectEl.style.background = '#fff';
+      selectEl.style.borderColor = '#dadce0';
+
+      if (httt === 'Trừ vào đơn mới') {
+        selectEl.style.background = '#fef7e0';
+        selectEl.style.borderColor = '#f9ab00';
+      }
+    }
+
+    if (prefix === 'dh') {
+      let htb = document.getElementById('dh-hinhThucBan') ? document.getElementById('dh-hinhThucBan').value : '';
+      let traTruocGroup = document.getElementById('tg-traTruoc') ? document.getElementById('tg-traTruoc').closest('.form-group') : null;
+      if (traTruocGroup) {
+        if (htb === 'Trả góp' && httt === 'Hỗn hợp') {
+          traTruocGroup.style.display = 'none';
+        } else {
+          traTruocGroup.style.display = '';
+        }
+      }
+      if (htb === 'Trả góp') {
+        tinhTraGop();
+      }
+    } else if (prefix === 'tm') {
+      let htb = document.getElementById('tm-hinhThucBan') ? document.getElementById('tm-hinhThucBan').value : '';
+      let traTruocGroup = document.getElementById('tm-tg-traTruoc') ? document.getElementById('tm-tg-traTruoc').closest('.form-group') : null;
+      if (traTruocGroup) {
+        if (htb === 'Trả góp' && httt === 'Hỗn hợp') {
+          traTruocGroup.style.display = 'none';
+        } else {
+          traTruocGroup.style.display = '';
+        }
+      }
+      if (htb === 'Trả góp') {
+        tinhThuMuaTraGop();
+      }
+    }
+  }
+</script>

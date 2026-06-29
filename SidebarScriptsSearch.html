@@ -1,0 +1,105 @@
+<script>
+  let branchesCached = [];
+  let localCache = {
+    dienThoai: [],
+    phuKien: [],
+    phuKienUnique: [],
+    khachHang: null
+  };
+
+  function removeAccents(str) {
+    if (!str) return '';
+    return str.normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '')
+              .replace(/đ/g, 'd')
+              .replace(/Đ/g, 'D');
+  }
+
+  function matchSearchKeyword(text, keyword) {
+    if (!text || !keyword) return false;
+    let normText = removeAccents(text.toLowerCase());
+    let normKeyword = removeAccents(keyword.toLowerCase());
+    let words = normKeyword.split(/\s+/).filter(Boolean);
+    return words.every(function(word) {
+      return normText.indexOf(word) !== -1;
+    });
+  }
+
+  function searchDienThoaiLocal(branch, keyword) {
+    if (!branch) return [];
+    let items = localCache.dienThoai || [];
+    return items.filter(function(item) {
+      if (String(item.chiNhanh || "").toLowerCase() !== String(branch).toLowerCase()) {
+        return false;
+      }
+      if (!keyword) return true;
+      return matchSearchKeyword(item.text, keyword) || matchSearchKeyword(item.value, keyword);
+    });
+  }
+
+  function searchKhachHangLocal(keyword) {
+    let items = localCache.khachHang || [];
+    if (!keyword) return items.slice(0, 100);
+    return items.filter(function(item) {
+      return matchSearchKeyword(item.text, keyword) || matchSearchKeyword(item.value, keyword);
+    }).slice(0, 100);
+  }
+
+  function searchPhuKienLocal(branch, keyword) {
+    if (!branch) return [];
+    let items = localCache.phuKien || [];
+    return items.filter(function(item) {
+      if (String(item.chiNhanh || "").toLowerCase() !== String(branch).toLowerCase()) {
+        return false;
+      }
+      if (!keyword) return true;
+      return matchSearchKeyword(item.text, keyword) || matchSearchKeyword(item.value, keyword);
+    });
+  }
+
+  // searchPhuKienUniqueLocal: Tìm kiếm phụ kiện không phân biệt chi nhánh
+  function searchPhuKienUniqueLocal(keyword) {
+    let items = localCache.phuKienUnique || [];
+    if (!keyword) return items;
+    return items.filter(function(item) {
+      return matchSearchKeyword(item.text, keyword) || matchSearchKeyword(item.value, keyword);
+    });
+  }
+
+  function preloadInventoryData(callback) {
+    google.script.run.withSuccessHandler(function(data) {
+      if (data) {
+        localCache.dienThoai = data.dienThoai || [];
+        localCache.phuKien = data.phuKien || [];
+        localCache.phuKienUnique = data.phuKienUnique || [];
+        window.storeInterestRate = data.storeInterestRate || 0;
+      }
+      if (callback) callback();
+    }).getPreloadData();
+  }
+
+  function refreshSystemData(e) {
+    if (e) e.stopPropagation();
+    let btn = e ? e.target : null;
+    let originalHTML = btn ? btn.innerHTML : "Làm mới";
+    if (btn) {
+      btn.innerHTML = 'Đang nạp';
+      btn.style.pointerEvents = 'none';
+      btn.style.opacity = '0.6';
+    }
+    showAlertMsg('info', 'Đang làm mới bộ nhớ đệm hệ thống...');
+    google.script.run.withSuccessHandler(function() {
+      preloadInventoryData(function() {
+        if (btn) {
+          btn.innerHTML = originalHTML;
+          btn.style.pointerEvents = 'auto';
+          btn.style.opacity = '1';
+        }
+        showAlertMsg('success', 'Đã làm mới bộ nhớ đệm thành công!');
+        if (typeof onDonHangBranchOrNguonChange === 'function') {
+          onDonHangBranchOrNguonChange();
+        }
+      });
+    }).clearAllCaches();
+  }
+</script>

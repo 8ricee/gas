@@ -13,17 +13,16 @@
  */
 function chuyenKho(data) {
   return withDocumentLock(function () {
+    validateRequiredFields(data, [
+      { key: "maSP", label: "Sản phẩm" },
+      { key: "chiNhanhNguon", label: "Chi nhánh nguồn" },
+      { key: "chiNhanhDich", label: "Chi nhánh đích" }
+    ]);
     const nguonSP = data.nguonSP || "Điện thoại";
     const maSP = data.maSP;
     const cnNguon = data.chiNhanhNguon;
     const cnDich = data.chiNhanhDich;
     const soLuong = Number(data.soLuong) || 1;
-
-    if (!maSP || !cnNguon || !cnDich) {
-      throw new Error(
-        "Vui lòng chọn đầy đủ sản phẩm, chi nhánh nguồn và chi nhánh đích!",
-      );
-    }
 
     if (cnNguon === cnDich) {
       throw new Error("Chi nhánh nguồn và chi nhánh đích phải khác nhau!");

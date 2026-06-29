@@ -1,0 +1,335 @@
+<script>
+  function populateSelect(selectId, items, addEmpty) {
+    let sel = document.getElementById(selectId);
+    if (!sel) return;
+    let firstOption = sel.options[0];
+    sel.innerHTML = '';
+    if (firstOption) {
+      sel.appendChild(firstOption);
+    }
+
+    if (addEmpty) {
+      let emptyOpt = document.createElement('option');
+      emptyOpt.value = '';
+      emptyOpt.textContent = '-- Không --';
+      sel.insertBefore(emptyOpt, sel.firstChild);
+    }
+
+    items.forEach(function(item) {
+      let opt = document.createElement('option');
+      opt.value = item.value;
+      opt.textContent = item.text;
+      if (item.giaBan !== undefined) opt.dataset.giaBan = item.giaBan;
+      if (item.giaTraGop !== undefined) opt.dataset.giaTraGop = item.giaTraGop;
+      if (item.soTienCanTra !== undefined) opt.dataset.soTienCanTra = item.soTienCanTra;
+      if (item.tienMoiKy !== undefined) opt.dataset.tienMoiKy = item.tienMoiKy;
+      sel.appendChild(opt);
+    });
+  }
+
+  function extractId(val, isMulti) {
+    if (!val) return '';
+    if (isMulti && val.indexOf(',') !== -1) {
+      return val.split(',').map(function(item) {
+        return extractIdSingle(item.trim());
+      }).filter(Boolean).join(', ');
+    }
+    return extractIdSingle(val);
+  }
+
+  function extractImei(val) {
+    if (!val) return '';
+    let match = val.match(/IMEI:\s*([^\s\|)]+)/i);
+    return match ? match[1].trim() : '';
+  }
+
+  function extractIdSingle(val) {
+    if (!val) return '';
+    let parts = val.split(' - ');
+    let prefix = parts[0].trim();
+    if (prefix.indexOf('Kỳ') === 0) {
+      return prefix.replace('Kỳ', '').trim();
+    }
+    return prefix;
+  }
+
+  function setupMultiSelectDatalist(inputId, listId) {
+    let originalInput = document.getElementById(inputId);
+    if (!originalInput) return;
+
+    let container = document.createElement('div');
+    container.className = 'tag-container';
+    
+    let tagInput = document.createElement('input');
+    tagInput.type = 'text';
+    tagInput.className = 'tag-input-field';
+    tagInput.placeholder = originalInput.placeholder || 'Gõ để tìm...';
+    tagInput.setAttribute('list', listId);
+
+    originalInput.parentNode.insertBefore(container, originalInput);
+    container.appendChild(tagInput);
+    originalInput.style.display = 'none';
+
+    let tags = [];
+
+    function syncValue() {
+      let joinedVal = tags.map(function(t) { return t.text; }).join(', ');
+      let descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+      descriptor.set.call(originalInput, joinedVal);
+      
+      let event = document.createEvent('HTMLEvents');
+      event.initEvent('change', true, false);
+      originalInput.dispatchEvent(event);
+    }
+
+    function addTag(text) {
+      text = text.trim();
+      if (!text) return;
+      
+      if (text.indexOf(',') !== -1) {
+        let parts = text.split(',');
+        parts.forEach(function(p) {
+          addTag(p);
+        });
+        tagInput.value = '';
+        return;
+      }
+
+      let exists = tags.some(function(t) { return t.text === text; });
+      if (exists) {
+        tagInput.value = '';
+        return;
+      }
+      
+      let tagEl = document.createElement('span');
+      tagEl.className = 'tag';
+      tagEl.textContent = text;
+      
+      let closeBtn = document.createElement('span');
+      closeBtn.className = 'tag-close';
+      closeBtn.innerHTML = '&times;';
+      closeBtn.onclick = function(e) {
+        e.stopPropagation();
+        if (tagEl.parentNode) {
+          container.removeChild(tagEl);
+        }
+        tags = tags.filter(function(t) { return t.element !== tagEl; });
+        syncValue();
+      };
+      
+      tagEl.appendChild(closeBtn);
+      container.insertBefore(tagEl, tagInput);
+      
+      tags.push({ text: text, element: tagEl });
+      tagInput.value = '';
+      syncValue();
+    }
+
+    originalInput.clearTags = function() {
+      tags.forEach(function(t) {
+        if (t.element.parentNode) {
+          container.removeChild(t.element);
+        }
+      });
+      tags = [];
+      tagInput.value = '';
+      let descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+      descriptor.set.call(originalInput, '');
+    };
+
+    originalInput.setTagsFromValue = function(val) {
+      tags.forEach(function(t) {
+        if (t.element.parentNode) {
+          container.removeChild(t.element);
+        }
+      });
+      tags = [];
+      
+      if (val) {
+        let parts = val.split(',');
+        parts.forEach(function(p) {
+          addTag(p.trim());
+        });
+      }
+    };
+
+    let nativeValueDesc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+    Object.defineProperty(originalInput, 'value', {
+      get: function() {
+        return nativeValueDesc.get.call(originalInput);
+      },
+      set: function(val) {
+        nativeValueDesc.set.call(originalInput, val);
+        originalInput.setTagsFromValue(val);
+      },
+      configurable: true
+    });
+
+    tagInput.addEventListener('input', function() {
+      let val = tagInput.value;
+      let dl = document.getElementById(listId);
+      if (!dl) return;
+      let opts = dl.querySelectorAll('option');
+      for (let i = 0; i < opts.length; i++) {
+        if (opts[i].value === val) {
+          addTag(val);
+          break;
+        }
+      }
+    });
+
+    tagInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addTag(tagInput.value);
+      } else if (e.key === ',') {
+        e.preventDefault();
+        addTag(tagInput.value);
+      } else if (e.key === 'Backspace' && tagInput.value === '') {
+        if (tags.length > 0) {
+          let lastTag = tags.pop();
+          if (lastTag.element.parentNode) {
+            container.removeChild(lastTag.element);
+          }
+          syncValue();
+        }
+      }
+    });
+
+    container.addEventListener('click', function() {
+      tagInput.focus();
+    });
+  }
+
+  function populateDatalist(inputId, listId, items, addEmpty) {
+    let dl = document.getElementById(listId);
+    if (!dl) return;
+    dl.innerHTML = '';
+
+    if (addEmpty) {
+      let emptyOpt = document.createElement('option');
+      emptyOpt.value = '';
+      dl.appendChild(emptyOpt);
+    }
+
+    items.forEach(function(item) {
+      let opt = document.createElement('option');
+      opt.value = item.text || item.value;
+      opt.dataset.id = item.value;
+      if (item.giaBan !== undefined) opt.dataset.giaBan = item.giaBan;
+      if (item.giaTraGop !== undefined) opt.dataset.giaTraGop = item.giaTraGop;
+      if (item.soTienCanTra !== undefined) opt.dataset.soTienCanTra = item.soTienCanTra;
+      if (item.tienMoiKy !== undefined) opt.dataset.tienMoiKy = item.tienMoiKy;
+      dl.appendChild(opt);
+    });
+  }
+
+  function setupDatalistSearch(inputId, listId, searchFunc) {
+    let input = document.getElementById(inputId);
+    if (!input) return;
+
+    let debounceTimeout = null;
+
+    input.addEventListener('input', function() {
+      let val = input.value.trim();
+      let dl = document.getElementById(listId);
+      if (!dl) return;
+
+      let isKhachHang = (inputId === 'dh-maKH' || inputId === 'tm-maKH' || inputId === 'bh-maKH' || inputId === 'dv-maKH');
+      let isLocal = (inputId === 'dh-maSP' || inputId === 'ck-maSP' || inputId === 'dt-maSP-Nhan' || inputId === 'tm-maSP-Moi' || inputId === 'nk-pkCu-maSP') || (isKhachHang && localCache.khachHang);
+      let minLength = isLocal ? 1 : 4;
+
+      if (val.length < minLength) {
+        dl.innerHTML = '';
+        return;
+      }
+
+      if (isLocal) {
+        let items = [];
+        if (inputId === 'dh-maSP') {
+          let source = document.getElementById('dh-nguonSP').value;
+          items = (source === 'Điện thoại') ? (localCache.dienThoai || []) : (localCache.phuKien || []);
+        } else if (inputId === 'ck-maSP' || inputId === 'tm-maSP-Moi') {
+          items = localCache.dienThoai || [];
+        } else if (inputId === 'dt-maSP-Nhan') {
+          let doiTuong = document.getElementById('dt-doiTuong').value;
+          if (doiTuong === 'Quà tặng kèm') {
+            items = localCache.phuKien || [];
+          } else {
+            let loaiGD = document.getElementById('dt-loaiGD').value;
+            items = (loaiGD === 'Đổi máy') ? (localCache.dienThoai || []) : (localCache.phuKien || []);
+          }
+        } else if (inputId === 'nk-pkCu-maSP') {
+          items = localCache.phuKien || [];
+        } else if (isKhachHang) {
+          items = localCache.khachHang || [];
+        }
+
+        let exactMatch = items.some(function(item) {
+          return item.text === val;
+        });
+
+        if (exactMatch) {
+          dl.innerHTML = '';
+          return;
+        }
+      }
+
+      clearTimeout(debounceTimeout);
+
+      if (isLocal) {
+        searchFunc(val, function(items) {
+          populateDatalist(inputId, listId, items || []);
+        });
+      } else {
+        dl.innerHTML = '';
+        let loadOpt = document.createElement('option');
+        loadOpt.value = '\u23F3 \u0110ang t\u00ECm ki\u1EBFm...';
+        dl.appendChild(loadOpt);
+
+        debounceTimeout = setTimeout(function() {
+          searchFunc(val, function(items) {
+            populateDatalist(inputId, listId, items || []);
+          });
+        }, 500);
+      }
+    });
+  }
+
+  function extractCustomerName(str) {
+    if (!str) return '';
+    let parts = str.split(' - ');
+    if (parts.length > 1) {
+      let namePart = parts[1].trim();
+      return namePart.replace(/\s*\(.*?\)$/, '');
+    }
+    return str;
+  }
+
+  function onKHChange(prefix) {
+    let inputEl = document.getElementById(prefix + '-khachHang');
+    let maKHEl = document.getElementById(prefix + '-maKH');
+    let sdtEl = document.getElementById(prefix + '-sdtKH');
+    if (!inputEl) return;
+
+    let val = inputEl.value;
+    if (!val) {
+      if (maKHEl) maKHEl.value = '';
+      if (sdtEl) sdtEl.value = '';
+      return;
+    }
+
+    let parts = val.split(' - ');
+    let maKH = parts[0].trim();
+    if (maKHEl) maKHEl.value = maKH;
+
+    if (sdtEl) {
+      let match = val.match(/\((.*?)\)$/);
+      if (match) {
+        sdtEl.value = match[1].trim();
+      } else if (/^\d+$/.test(maKH)) {
+        sdtEl.value = maKH;
+      }
+    }
+  }
+</script>

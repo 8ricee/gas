@@ -756,16 +756,15 @@ function thucHienDoiTra(data) {
     assertPaymentMatches(data, expectedPaid);
 
     const maDT = generateId("DT", SHEET_NAMES.DOI_TRA);
+    validateRequiredFields(data, [
+      { key: "maDH", label: "Mã đơn hàng" },
+      { key: "loaiGiaoDich", label: "Loại giao dịch" },
+      { key: "chiNhanh", label: "Chi nhánh" }
+    ]);
     const maDH = data.maDH;
     const loaiGD = data.loaiGiaoDich;
     const chiNhanh = data.chiNhanh;
     const doiTuong = data.doiTuong || "Sản phẩm chính";
-
-    if (!maDH || !loaiGD || !chiNhanh) {
-      throw new Error(
-        "Vui lòng điền đầy đủ Mã đơn hàng, Loại giao dịch và Chi nhánh!",
-      );
-    }
 
     // 1. Tìm đơn hàng gốc
     const dhRow = findRow(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH);

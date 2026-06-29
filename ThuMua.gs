@@ -21,26 +21,26 @@
 function thucHienThuMua(data) {
   return withDocumentLock(function () {
     clearSheetCache();
-    const maTM = generateId("TM", SHEET_NAMES.THU_MUA);
-    const chiNhanh = data.chiNhanh;
-    const loaiGD = data.loaiGiaoDich;
+    return _executeWithRollback(function (rollbackActions) {
+      const maTM = generateId("TM", SHEET_NAMES.THU_MUA);
+      validateRequiredFields(data, [
+        { key: "maKH", label: "Mã khách hàng" },
+        { key: "loaiGiaoDich", label: "Loại giao dịch" },
+        { key: "imei_Thu", label: "IMEI máy thu mua" },
+        { key: "chiNhanh", label: "Chi nhánh" }
+      ]);
+      const chiNhanh = data.chiNhanh;
+      const loaiGD = data.loaiGiaoDich;
 
-    if (!data.maKH || !loaiGD || !data.imei_Thu || !chiNhanh) {
-      throw new Error(
-        "Vui lòng nhập đầy đủ Mã khách hàng, IMEI máy thu mua, Loại giao dịch và Chi nhánh!",
-      );
-    }
+      const tenKH = ensureKhachHangExists(data.maKH, data.tenKH);
+      let giaThuMua = Number(data.giaThuMua) || 0;
+      let tienHoTro = Number(data.tienHoTro) || 0;
+      const tongTienTraKhach = giaThuMua + tienHoTro;
+      const tradeInDeduction = Number(data.tradeInDeduction) || 0;
+      const payoutAmount = Math.max(0, tongTienTraKhach - tradeInDeduction);
 
-    const tenKH = ensureKhachHangExists(data.maKH, data.tenKH);
-    let giaThuMua = Number(data.giaThuMua) || 0;
-    let tienHoTro = Number(data.tienHoTro) || 0;
-    const tongTienTraKhach = giaThuMua + tienHoTro;
-    const tradeInDeduction = Number(data.tradeInDeduction) || 0;
-    const payoutAmount = Math.max(0, tongTienTraKhach - tradeInDeduction);
-
-    const rollbackActions = [];
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    try {
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      
       // 1. Không cần tự động đưa máy thu mua vào kho Điện thoại theo yêu cầu của người dùng
       // Dữ liệu chỉ cần lưu lại ở sheet Thu mua.
 
@@ -158,29 +158,19 @@ function thucHienThuMua(data) {
 
       const tmSheet = ss.getSheetByName(SHEET_NAMES.THU_MUA);
       const tmRow = appendRow(SHEET_NAMES.THU_MUA, rowData);
-      (function (capturedMaTM) {
-        rollbackActions.push(function () {
-          try {
-            const ssRollback = SpreadsheetApp.getActiveSpreadsheet();
-            const tmSheetRollback = ssRollback.getSheetByName(SHEET_NAMES.THU_MUA);
-            const r = findRow(SHEET_NAMES.THU_MUA, COL_TM.MA_TM, capturedMaTM);
-            if (r !== -1) {
-              tmSheetRollback.deleteRow(r);
-              clearSheetCache(SHEET_NAMES.THU_MUA);
-            }
-          } catch (err) {
-            Logger.log("Rollback failed to delete buyback row: " + err.message);
-          }
-        });
-      })(maTM);
-    } catch (e) {
-      for (let rIdx = rollbackActions.length - 1; rIdx >= 0; rIdx--) {
-        rollbackActions[rIdx]();
-      }
-      throw e;
-    }
+      const tmId = maTM;
+      addRollback(rollbackActions, "Delete buyback row: " + tmId, function () {
+        const ssRollback = SpreadsheetApp.getActiveSpreadsheet();
+        const tmSheetRollback = ssRollback.getSheetByName(SHEET_NAMES.THU_MUA);
+        const r = findRow(SHEET_NAMES.THU_MUA, COL_TM.MA_TM, tmId);
+        if (r !== -1) {
+          tmSheetRollback.deleteRow(r);
+          clearSheetCache(SHEET_NAMES.THU_MUA);
+        }
+      });
 
-    showToast("✅ Đã ghi nhận thu mua thành công: " + maTM);
-    return maTM;
+      showToast("✅ Đã ghi nhận thu mua thành công: " + maTM);
+      return maTM;
+    });
   });
 }

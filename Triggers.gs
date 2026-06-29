@@ -28,30 +28,56 @@ function onEdit(e) {
   const row = e.range.getRow();
   const col = e.range.getColumn();
 
-  // Kiểm tra xem cột được sửa đổi có liên quan đến các bộ xử lý (EDIT_HANDLERS) không.
+  // 1. Kiểm tra xem có cần xóa cache dropdown/sheet không
+  let shouldInvalidateCache = false;
+  let shouldInvalidateDropdown = false;
+
+  if (sheetName === SHEET_NAMES.DIEN_THOAI) {
+    shouldInvalidateCache = true;
+    shouldInvalidateDropdown = (col === COL_DT.IMEI || col === COL_DT.TEN_SP || col === COL_DT.TRANG_THAI_KHO || col === COL_DT.GIA_BAN || col === COL_DT.CHI_NHANH);
+  } else if (sheetName === SHEET_NAMES.PHU_KIEN) {
+    shouldInvalidateCache = true;
+    shouldInvalidateDropdown = (col === COL_PK.MA_PK || col === COL_PK.TEN_SP || col === COL_PK.SO_LUONG_TON || col === COL_PK.GIA_BAN || col === COL_PK.CHI_NHANH);
+  } else if (sheetName === SHEET_NAMES.KHACH_HANG) {
+    shouldInvalidateCache = true;
+    shouldInvalidateDropdown = (col === COL_KH.MA_KH || col === COL_KH.HO_TEN || col === COL_KH.SO_DIEN_THOAI);
+  } else if (sheetName === SHEET_NAMES.NHAN_VIEN) {
+    shouldInvalidateCache = true;
+    shouldInvalidateDropdown = (col === COL_NV.MA_NV || col === COL_NV.HO_TEN || col === COL_NV.TRANG_THAI);
+  }
+
+  // 2. Kiểm tra xem cột được sửa đổi có liên quan đến các bộ xử lý (EDIT_HANDLERS) không.
   // Tránh xoá cache và chạy xử lý vô ích đối với các cột không cần auto-lookup/auto-calculate.
   let isRelevant = false;
   if (sheetName === SHEET_NAMES.DON_HANG) {
     isRelevant = (col === COL_DH.SO_LUONG || col === COL_DH.DON_GIA || col === COL_DH.TIEN_GIAM_GIA || col === COL_DH.TIEN_THU_MUA ||
                   col === COL_DH.MA_KH || col === COL_DH.MA_SP || col === COL_DH.NGUOI_BAN || col === COL_DH.NGUOI_HO_TRO);
+    shouldInvalidateCache = isRelevant;
   } else if (sheetName === SHEET_NAMES.NHAP_KHO) {
     isRelevant = (col === COL_NK.SO_LUONG || col === COL_NK.GIA_NHAP || col === COL_NK.MA_SP);
+    shouldInvalidateCache = isRelevant;
   } else if (sheetName === SHEET_NAMES.LICH_SU_TRA_GOP) {
     isRelevant = (col === COL_LSTG.SO_TIEN_DA_TRA || col === COL_LSTG.TRANG_THAI);
+    shouldInvalidateCache = isRelevant;
   } else if (sheetName === SHEET_NAMES.BAO_CAO_NGAY) {
     isRelevant = (row === 3 && col === 2);
   } else if (sheetName === SHEET_NAMES.BAO_CAO_DOANH_SO) {
     isRelevant = (row === 3 && (col === 2 || col === 4 || col === 6 || col === 8));
   } else if (sheetName === SHEET_NAMES.CAU_HINH) {
     isRelevant = true; // Luôn chạy khi sửa đổi cấu hình để cập nhật validation
+    shouldInvalidateCache = true;
   }
 
-  if (!isRelevant) return;
+  if (!isRelevant && !shouldInvalidateCache) return;
 
   try {
-    clearSheetCache(sheetName);
-    invalidateDropdownCache(sheetName);
-    if (EDIT_HANDLERS[sheetName]) {
+    if (shouldInvalidateCache) {
+      clearSheetCache(sheetName);
+    }
+    if (shouldInvalidateDropdown) {
+      invalidateDropdownCache(sheetName);
+    }
+    if (isRelevant && EDIT_HANDLERS[sheetName]) {
       EDIT_HANDLERS[sheetName](sheet, row, col, e);
     }
   } catch (err) {
@@ -132,7 +158,7 @@ function _onEditDonHang(sheet, row, col, e) {
     const donGia = Number(v[COL_DH.DON_GIA - 1]) || 0;
     const giamGia = Number(v[COL_DH.TIEN_GIAM_GIA - 1]) || 0;
     const tienThuMua = Number(v[COL_DH.TIEN_THU_MUA - 1]) || 0;
-    v[COL_DH.THANH_TIEN - 1] = soLuong * donGia - giamGia - tienThuMua;
+    v[COL_DH.THANH_TIEN - 1] = calcThanhTien(soLuong, donGia, giamGia, tienThuMua);
   }
 
   // Auto lookup TenKH khi nhập MaKH
@@ -167,7 +193,7 @@ function _onEditDonHang(sheet, row, col, e) {
         const soLuong = Number(v[COL_DH.SO_LUONG - 1]) || 0;
         const donGia = Number(v[COL_DH.DON_GIA - 1]) || 0;
         const giamGia = Number(v[COL_DH.TIEN_GIAM_GIA - 1]) || 0;
-        v[COL_DH.THANH_TIEN - 1] = soLuong * donGia - giamGia;
+        v[COL_DH.THANH_TIEN - 1] = calcThanhTien(soLuong, donGia, giamGia, 0);
       } else {
         // Thử tìm trong Phụ kiện
         const tenPK = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, maSP, COL_PK.TEN_SP);
@@ -188,7 +214,7 @@ function _onEditDonHang(sheet, row, col, e) {
           const soLuong = Number(v[COL_DH.SO_LUONG - 1]) || 0;
           const donGia = Number(v[COL_DH.DON_GIA - 1]) || 0;
           const giamGia = Number(v[COL_DH.TIEN_GIAM_GIA - 1]) || 0;
-          v[COL_DH.THANH_TIEN - 1] = soLuong * donGia - giamGia;
+          v[COL_DH.THANH_TIEN - 1] = calcThanhTien(soLuong, donGia, giamGia, 0);
         }
       }
     }
@@ -230,7 +256,7 @@ function _onEditNhapKho(sheet, row, col, e) {
   if (col === COL_NK.SO_LUONG || col === COL_NK.GIA_NHAP) {
     const soLuong = Number(v[COL_NK.SO_LUONG - 1]) || 0;
     const giaNhap = Number(v[COL_NK.GIA_NHAP - 1]) || 0;
-    v[COL_NK.THANH_TIEN - 1] = soLuong * giaNhap;
+    v[COL_NK.THANH_TIEN - 1] = calcThanhTien(soLuong, giaNhap, 0, 0);
   }
 
   // Auto lookup TenSP khi nhập MaSP

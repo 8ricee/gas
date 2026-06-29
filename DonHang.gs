@@ -67,7 +67,7 @@ function taoDonHang(data) {
           const item = data.items[i];
           const itemDiscount =
             discountPerItem + (i === 0 ? remainingDiscount : 0);
-          const itemThanhTien = item.soLuong * item.donGia - itemDiscount;
+          const itemThanhTien = calcThanhTien(item.soLuong, item.donGia, itemDiscount, 0);
 
           let itemCK = 0;
           let itemTM = 0;
@@ -133,34 +133,15 @@ function taoDonHang(data) {
 function _calcNetPayable(data) {
   if (data.items && data.items.length > 0) {
     const total = data.items.reduce((sum, i) => sum + i.soLuong * i.donGia, 0);
-    return Math.max(0, total - (Number(data.tienGiamGia) || 0));
+    return Math.max(0, calcThanhTien(1, total, data.tienGiamGia, 0));
   }
   return Math.max(
     0,
-    (Number(data.soLuong) || 1) * (Number(data.donGia) || 0) -
-      (Number(data.tienGiamGia) || 0),
+    calcThanhTien(data.soLuong || 1, data.donGia || 0, data.tienGiamGia || 0, 0),
   );
 }
 
-/**
- * Thực thi logic có bọc cơ chế rollback tự động khi xảy ra lỗi
- * @private
- */
-function _executeWithRollback(fn) {
-  const rollbackActions = [];
-  try {
-    return fn(rollbackActions);
-  } catch (e) {
-    for (let i = rollbackActions.length - 1; i >= 0; i--) {
-      try {
-        rollbackActions[i]();
-      } catch (err) {
-        Logger.log("Rollback failed: " + err.message);
-      }
-    }
-    throw e;
-  }
-}
+
 
 /**
  * Thực thi logic tạo một đơn hàng đơn lẻ và ghi nhận các hành động rollback
@@ -168,11 +149,10 @@ function _executeWithRollback(fn) {
  */
 function _taoDonHangSingle(data, rollbackActions, ss) {
   const maDH = generateId("DH", SHEET_NAMES.DON_HANG);
+  validateRequiredFields(data, [
+    { key: "chiNhanh", label: "Chi nhánh" }
+  ]);
   const chiNhanh = data.chiNhanh;
-
-  if (!chiNhanh) {
-    throw new Error("Vui lòng chọn chi nhánh tạo đơn hàng!");
-  }
 
   // Lookup thông tin (Tự động thêm KH nếu chưa có)
   const tenKH = ensureKhachHangExists(data.maKH, data.tenKH);
@@ -194,7 +174,7 @@ function _taoDonHangSingle(data, rollbackActions, ss) {
   const donGia = Number(data.donGia) || 0;
   const tienGiamGia = Number(data.tienGiamGia) || 0;
   const deduction = Number(data.tradeInDeduction) || 0;
-  const thanhTien = soLuong * donGia - tienGiamGia - deduction;
+  const thanhTien = calcThanhTien(soLuong, donGia, tienGiamGia, deduction);
 
   if (nguonSP === "Phụ kiện" && data.hinhThucBan === "Trả góp") {
     throw new Error(
@@ -474,27 +454,20 @@ function huyDonHang(maDH) {
       strategy.restoreStock(prodData, chiNhanh, soLuong);
 
       if (nguonSP === "Điện thoại") {
-        (function (key, status) {
-          rollbackActions.push(function () {
-            try {
-              if (status !== null) {
-                updateTrangThaiKhoDT(key, status);
-              }
-            } catch (err) {
-              Logger.log("Rollback failed to restore phone status: " + err.message);
-            }
-          });
-        })(prodData.imei || prodData.maSP, oldPhoneStatus);
+        const key = prodData.imei || prodData.maSP;
+        const status = oldPhoneStatus;
+        addRollback(rollbackActions, "Restore phone status", function () {
+          if (status !== null) {
+            updateTrangThaiKhoDT(key, status);
+          }
+        });
       } else {
-        (function (code, qty, branch) {
-          rollbackActions.push(function () {
-            try {
-              updateTonKhoPhuKien(code, qty, "xuat", branch);
-            } catch (err) {
-              Logger.log("Rollback failed to restore accessory stock: " + err.message);
-            }
-          });
-        })(maSP, soLuong, chiNhanh);
+        const code = maSP;
+        const qty = soLuong;
+        const branch = chiNhanh;
+        addRollback(rollbackActions, "Restore accessory stock", function () {
+          updateTonKhoPhuKien(code, qty, "xuat", branch);
+        });
       }
 
       // Hoàn kho quà tặng nếu có nhận quà
@@ -510,31 +483,23 @@ function huyDonHang(maDH) {
             returnedGifts.push(code);
           }
         }
-        (function (gifts, branch) {
-          rollbackActions.push(function () {
-            for (let i = 0; i < gifts.length; i++) {
-              try {
-                updateTonKhoPhuKien(gifts[i], 1, "xuat", branch);
-              } catch (err) {
-                Logger.log("Rollback failed to restore gift stock: " + err.message);
-              }
-            }
-          });
-        })(returnedGifts, chiNhanh);
+        const gifts = returnedGifts;
+        const branch = chiNhanh;
+        addRollback(rollbackActions, "Restore gift stock", function () {
+          for (let i = 0; i < gifts.length; i++) {
+            updateTonKhoPhuKien(gifts[i], 1, "xuat", branch);
+          }
+        });
       }
 
       // Đánh dấu huỷ
       updateCell(SHEET_NAMES.DON_HANG, row, COL_DH.TRANG_THAI, ORDER_STATUS.CANCELLED);
 
-      (function (rowNum, oldStatus) {
-        rollbackActions.push(function () {
-          try {
-            updateCell(SHEET_NAMES.DON_HANG, rowNum, COL_DH.TRANG_THAI, oldStatus);
-          } catch (err) {
-            Logger.log("Rollback failed to restore order status: " + err.message);
-          }
-        });
-      })(row, currentTT);
+      const rowNum = row;
+      const oldStatus = currentTT;
+      addRollback(rollbackActions, "Restore order status", function () {
+        updateCell(SHEET_NAMES.DON_HANG, rowNum, COL_DH.TRANG_THAI, oldStatus);
+      });
 
       // Kiểm tra nếu có trả góp → cập nhật trạng thái hợp đồng và các kỳ liên quan
       const hinhThuc = rowValues[COL_DH.HINH_THUC_BAN - 1];
@@ -569,27 +534,24 @@ function huyDonHang(maDH) {
 
         huyHopDongTraGop(maDH);
 
-        (function (tgId, tgStatus, lstgStates) {
-          rollbackActions.push(function () {
-            try {
-              if (tgId) {
-                const tgRow = findRow(SHEET_NAMES.TRA_GOP, COL_TG.MA_TG, tgId);
-                if (tgRow !== -1) {
-                  updateCell(SHEET_NAMES.TRA_GOP, tgRow, COL_TG.TRANG_THAI, tgStatus);
-                }
-                const lstgSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
-                if (lstgSheet) {
-                  lstgStates.forEach(function (item) {
-                    lstgSheet.getRange(item.row, COL_LSTG.TRANG_THAI).setValue(item.status);
-                  });
-                  clearSheetCache(SHEET_NAMES.LICH_SU_TRA_GOP);
-                }
-              }
-            } catch (err) {
-              Logger.log("Rollback failed to restore installment contract status: " + err.message);
+        const tgId = maTG;
+        const tgStatus = oldTGStatus;
+        const lstgStates = oldLSTGStates;
+        addRollback(rollbackActions, "Restore installment contract status", function () {
+          if (tgId) {
+            const tgRow = findRow(SHEET_NAMES.TRA_GOP, COL_TG.MA_TG, tgId);
+            if (tgRow !== -1) {
+              updateCell(SHEET_NAMES.TRA_GOP, tgRow, COL_TG.TRANG_THAI, tgStatus);
             }
-          });
-        })(maTG, oldTGStatus, oldLSTGStates);
+            const lstgSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
+            if (lstgSheet) {
+              lstgStates.forEach(function (item) {
+                lstgSheet.getRange(item.row, COL_LSTG.TRANG_THAI).setValue(item.status);
+              });
+              clearSheetCache(SHEET_NAMES.LICH_SU_TRA_GOP);
+            }
+          }
+        });
       }
 
       showToast("✅ Đã huỷ đơn hàng: " + maDH + " và hoàn kho sản phẩm/quà tặng.");

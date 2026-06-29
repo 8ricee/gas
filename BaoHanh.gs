@@ -14,11 +14,14 @@
 function taoBaoHanh(data) {
   return withDocumentLock(function () {
     const maBH = generateId("BH", SHEET_NAMES.BAO_HANH);
+    validateRequiredFields(data, [
+      { key: "chiNhanh", label: "Chi nhánh" },
+      { key: "tenKH", label: "Tên khách hàng" },
+      { key: "tenSP", label: "Tên sản phẩm" },
+      { key: "tinhTrangLoi", label: "Tình trạng lỗi" },
+      { key: "nguoiTiepNhan", label: "Người tiếp nhận" }
+    ]);
     const chiNhanh = data.chiNhanh;
-
-    if (!chiNhanh) {
-      throw new Error("Vui lòng chọn chi nhánh!");
-    }
 
     const tenNguoiTiepNhan = getNhanVienName(data.nguoiTiepNhan);
     const tenKH = ensureKhachHangExists(data.maKH, data.tenKH);
