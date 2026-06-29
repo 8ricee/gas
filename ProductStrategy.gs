@@ -95,6 +95,9 @@ const ProductStrategy = {
           }
         });
       })(data.imei || data.maSP);
+    },
+    restoreStock: function(data, chiNhanh, soLuong) {
+      updateTrangThaiKhoDT(data.imei || data.maSP, STOCK_STATUS.IN_STOCK);
     }
   },
   "Phụ kiện": {
@@ -137,6 +140,9 @@ const ProductStrategy = {
           }
         });
       })(data.maSP, soLuong, chiNhanh);
+    },
+    restoreStock: function(data, chiNhanh, soLuong) {
+      updateTonKhoPhuKien(data.maSP, soLuong, "nhap", chiNhanh);
     }
   }
 };

@@ -322,49 +322,43 @@ function huyHopDongTraGop(maDH) {
  *
  * @return {Object[]} Danh sách kỳ trả góp đã quá hạn
  */
+/**
+ * Lấy danh sách trả góp quá hạn (Hàm đọc thuần - Query)
+ *
+ * @return {Object[]} Danh sách kỳ trả góp đã quá hạn
+ */
 function getTraGopQuaHan() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
-  if (!lstgSheet) return [];
-
-  const lastRow = lstgSheet.getLastRow();
-  if (lastRow <= 1) return [];
-
-  const lastCol = lstgSheet.getLastColumn();
-  const allData = lstgSheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  const data = getAllData(SHEET_NAMES.LICH_SU_TRA_GOP);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const result = [];
 
-  allData.forEach(function (row, index) {
+  data.forEach(function (row) {
     const obj = mapRowToObject(row, SHEET_NAMES.LICH_SU_TRA_GOP);
     const trangThai = String(obj.TRANG_THAI);
     const ngayCanTra = obj.NGAY_CAN_TRA;
 
     if (trangThai === LSTG_STATUS.UNPAID && ngayCanTra instanceof Date) {
-      ngayCanTra.setHours(0, 0, 0, 0);
-      if (ngayCanTra < today) {
-        // Đánh dấu quá hạn
-        lstgSheet.getRange(index + 2, COL_LSTG.TRANG_THAI).setValue(LSTG_STATUS.LATE);
-
+      const cellDate = new Date(ngayCanTra);
+      cellDate.setHours(0, 0, 0, 0);
+      if (cellDate < today) {
         const overdueObj = {
           MaLS: String(obj.MA_LS),
           MaTG: String(obj.MA_TG),
           KySo: Number(obj.KY_SO),
           SoTienCanTra: Number(obj.SO_TIEN_CAN_TRA),
           SoTienDaTra: Number(obj.SO_TIEN_DA_TRA),
-          NgayCanTra: obj.NGAY_CAN_TRA,
+          NgayCanTra: ngayCanTra,
           NgayThucTra: obj.NGAY_THUC_TRA,
           HinhThucThanhToan: String(obj.HINH_THUC_TT),
-          TrangThai: LSTG_STATUS.LATE,
+          TrangThai: LSTG_STATUS.LATE, // Trả về UI hiển thị trạng thái Quá hạn
           GhiChu: String(obj.GHI_CHU),
         };
 
-        // Thêm thông tin KH
         const maTG = String(obj.MA_TG);
         overdueObj.TenKH = lookupValue(SHEET_NAMES.TRA_GOP, COL_TG.MA_TG, maTG, COL_TG.TEN_KH) || "";
         overdueObj.SoNgayQuaHan = Math.floor(
-          (today - ngayCanTra) / (1000 * 60 * 60 * 24),
+          (today - cellDate) / (1000 * 60 * 60 * 24)
         );
 
         result.push(overdueObj);
@@ -373,6 +367,51 @@ function getTraGopQuaHan() {
   });
 
   return result;
+}
+
+/**
+ * Đánh dấu các kỳ trả góp quá hạn vào Sheet (Hàm ghi - Command)
+ *
+ * @return {number} Số lượng kỳ đã được cập nhật trạng thái Quá hạn
+ */
+function markOverdueInstallments() {
+  return withDocumentLock(function () {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
+    if (!lstgSheet) return 0;
+
+    const lastRow = lstgSheet.getLastRow();
+    if (lastRow <= 1) return 0;
+
+    const lastCol = lstgSheet.getLastColumn();
+    const range = lstgSheet.getRange(2, 1, lastRow - 1, lastCol);
+    const allData = range.getValues();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    let updatedCount = 0;
+
+    for (let i = 0; i < allData.length; i++) {
+      const row = allData[i];
+      const trangThai = String(row[COL_LSTG.TRANG_THAI - 1]);
+      const ngayCanTra = row[COL_LSTG.NGAY_CAN_TRA - 1];
+
+      if (trangThai === LSTG_STATUS.UNPAID && ngayCanTra instanceof Date) {
+        const cellDate = new Date(ngayCanTra);
+        cellDate.setHours(0, 0, 0, 0);
+        if (cellDate < today) {
+          allData[i][COL_LSTG.TRANG_THAI - 1] = LSTG_STATUS.LATE;
+          updatedCount++;
+        }
+      }
+    }
+
+    if (updatedCount > 0) {
+      range.setValues(allData);
+      clearSheetCache(SHEET_NAMES.LICH_SU_TRA_GOP);
+      Logger.log("Đã cập nhật trạng thái Quá hạn cho " + updatedCount + " kỳ trả góp.");
+    }
+    return updatedCount;
+  });
 }
 
 /**

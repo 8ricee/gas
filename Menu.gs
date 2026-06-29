@@ -63,6 +63,7 @@ function showSidebar() {
  * Hiển thị danh sách trả góp quá hạn
  */
 function menuTraGopQuaHan() {
+  markOverdueInstallments();
   const quaHan = getTraGopQuaHan();
 
   if (quaHan.length === 0) {

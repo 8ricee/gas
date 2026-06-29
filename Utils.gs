@@ -8,7 +8,7 @@
 // Cache lưu trữ dữ liệu của các sheet trong một lần chạy để tối ưu hiệu năng đọc
 let _sheetDataCache = {};
 let _sheetIndexCache = {};
-let _holdsLock = false;
+const _LockState = { depth: 0, lock: null };
 
 function clearSheetCache(sheetName) {
   if (sheetName) {
@@ -1012,25 +1012,28 @@ function getInterestRateConfig() {
  * @return {*} Kết quả trả về của callback
  */
 function withDocumentLock(callback) {
-  if (_holdsLock) {
-    return callback();
-  }
-  const lock = LockService.getDocumentLock();
-  try {
-    lock.waitLock(15000);
-  } catch (e) {
-    throw new Error("Hệ thống hiện đang bận xử lý giao dịch khác. Vui lòng thử lại sau vài giây!");
+  const reentrant = _LockState.depth > 0;
+  if (!reentrant) {
+    _LockState.lock = LockService.getDocumentLock();
+    try {
+      _LockState.lock.waitLock(15000);
+    } catch (e) {
+      throw new Error("Hệ thống hiện đang bận xử lý giao dịch khác. Vui lòng thử lại sau vài giây!");
+    }
   }
   
-  _holdsLock = true;
+  _LockState.depth++;
   try {
     return callback();
   } finally {
-    _holdsLock = false;
-    try {
-      lock.releaseLock();
-    } catch (err) {
-      Logger.log("Không thể giải phóng khóa: " + err.message);
+    _LockState.depth--;
+    if (_LockState.depth === 0 && _LockState.lock) {
+      try {
+        _LockState.lock.releaseLock();
+      } catch (err) {
+        Logger.log("Không thể giải phóng khóa: " + err.message);
+      }
+      _LockState.lock = null;
     }
   }
 }
@@ -1159,4 +1162,19 @@ function mapRowToObject(row, sheetName) {
     }
   }
   return obj;
+}
+
+/**
+ * Lấy toàn bộ giá trị của một dòng dưới dạng mảng 1 chiều
+ * @param {string} sheetName - Tên sheet
+ * @param {number} row - Số dòng (1-indexed)
+ * @return {Array} Mảng giá trị
+ */
+function getRowValues(sheetName, row) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(sheetName);
+  if (!sheet) return [];
+  const lastCol = sheet.getLastColumn();
+  if (lastCol === 0) return [];
+  return sheet.getRange(row, 1, 1, lastCol).getValues()[0];
 }

@@ -295,13 +295,17 @@ function _onEditLichSuTraGop(sheet, row, col, e) {
  * Auto-calculate cho sheet DonHang (Đơn hàng)
  */
 function _onEditDonHang(sheet, row, col, e) {
+  const lastCol = sheet.getLastColumn();
+  if (lastCol === 0) return;
+  const range = sheet.getRange(row, 1, 1, lastCol);
+  const v = range.getValues()[0];
 
   // Auto tính ThanhTien khi SoLuong hoặc DonGia hoặc TienGiamGia thay đổi
   if (col === COL_DH.SO_LUONG || col === COL_DH.DON_GIA || col === COL_DH.TIEN_GIAM_GIA) {
-    const soLuong = sheet.getRange(row, COL_DH.SO_LUONG).getValue() || 0;
-    const donGia = sheet.getRange(row, COL_DH.DON_GIA).getValue() || 0;
-    const giamGia = sheet.getRange(row, COL_DH.TIEN_GIAM_GIA).getValue() || 0;
-    sheet.getRange(row, COL_DH.THANH_TIEN).setValue(soLuong * donGia - giamGia);
+    const soLuong = Number(v[COL_DH.SO_LUONG - 1]) || 0;
+    const donGia = Number(v[COL_DH.DON_GIA - 1]) || 0;
+    const giamGia = Number(v[COL_DH.TIEN_GIAM_GIA - 1]) || 0;
+    v[COL_DH.THANH_TIEN - 1] = soLuong * donGia - giamGia;
   }
 
   // Auto lookup TenKH khi nhập MaKH
@@ -309,7 +313,7 @@ function _onEditDonHang(sheet, row, col, e) {
     const maKH = e.value;
     if (maKH) {
       const tenKH = lookupValue(SHEET_NAMES.KHACH_HANG, COL_KH.MA_KH, maKH, COL_KH.HO_TEN);
-      sheet.getRange(row, COL_DH.TEN_KH).setValue(tenKH || "");
+      v[COL_DH.TEN_KH - 1] = tenKH || "";
     }
   }
 
@@ -320,23 +324,44 @@ function _onEditDonHang(sheet, row, col, e) {
       // Thử tìm trong Điện thoại trước
       const tenDT = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP, COL_DT.TEN_SP);
       if (tenDT) {
-        sheet.getRange(row, COL_DH.TEN_SP).setValue(tenDT);
-        sheet.getRange(row, COL_DH.NGUON_SP).setValue("Điện thoại");
+        v[COL_DH.TEN_SP - 1] = tenDT;
+        v[COL_DH.NGUON_SP - 1] = "Điện thoại";
         const thuongHieu = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP, COL_DT.THUONG_HIEU);
-        sheet.getRange(row, COL_DH.THUONG_HIEU).setValue(thuongHieu || "");
-        const giaBan = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP, COL_DT.GIA_BAN);
-        sheet.getRange(row, COL_DH.DON_GIA).setValue(giaBan || 0);
-        sheet.getRange(row, COL_DH.SO_LUONG).setValue(1); // Điện thoại luôn SL = 1
+        v[COL_DH.THUONG_HIEU - 1] = thuongHieu || "";
+        // Chỉ điền giá trị mặc định nếu ô đó hiện đang trống (tránh ghi đè giá/SL tay đã nhập trước đó)
+        if (!v[COL_DH.DON_GIA - 1]) {
+          const giaBan = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP, COL_DT.GIA_BAN);
+          v[COL_DH.DON_GIA - 1] = giaBan || 0;
+        }
+        if (!v[COL_DH.SO_LUONG - 1]) {
+          v[COL_DH.SO_LUONG - 1] = 1; // Điện thoại luôn mặc định SL = 1
+        }
+        // Tính lại thành tiền
+        const soLuong = Number(v[COL_DH.SO_LUONG - 1]) || 0;
+        const donGia = Number(v[COL_DH.DON_GIA - 1]) || 0;
+        const giamGia = Number(v[COL_DH.TIEN_GIAM_GIA - 1]) || 0;
+        v[COL_DH.THANH_TIEN - 1] = soLuong * donGia - giamGia;
       } else {
         // Thử tìm trong Phụ kiện
         const tenPK = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, maSP, COL_PK.TEN_SP);
         if (tenPK) {
-          sheet.getRange(row, COL_DH.TEN_SP).setValue(tenPK);
-          sheet.getRange(row, COL_DH.NGUON_SP).setValue("Phụ kiện");
+          v[COL_DH.TEN_SP - 1] = tenPK;
+          v[COL_DH.NGUON_SP - 1] = "Phụ kiện";
           const thuongHieuPK = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, maSP, COL_PK.THUONG_HIEU);
-          sheet.getRange(row, COL_DH.THUONG_HIEU).setValue(thuongHieuPK || "");
-          const giaBanPK = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, maSP, COL_PK.GIA_BAN);
-          sheet.getRange(row, COL_DH.DON_GIA).setValue(giaBanPK || 0);
+          v[COL_DH.THUONG_HIEU - 1] = thuongHieuPK || "";
+          // Chỉ điền giá trị mặc định nếu ô đó hiện đang trống
+          if (!v[COL_DH.DON_GIA - 1]) {
+            const giaBanPK = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, maSP, COL_PK.GIA_BAN);
+            v[COL_DH.DON_GIA - 1] = giaBanPK || 0;
+          }
+          if (!v[COL_DH.SO_LUONG - 1]) {
+            v[COL_DH.SO_LUONG - 1] = 1;
+          }
+          // Tính lại thành tiền
+          const soLuong = Number(v[COL_DH.SO_LUONG - 1]) || 0;
+          const donGia = Number(v[COL_DH.DON_GIA - 1]) || 0;
+          const giamGia = Number(v[COL_DH.TIEN_GIAM_GIA - 1]) || 0;
+          v[COL_DH.THANH_TIEN - 1] = soLuong * donGia - giamGia;
         }
       }
     }
@@ -347,9 +372,9 @@ function _onEditDonHang(sheet, row, col, e) {
     const maNVBan = e.value;
     if (maNVBan) {
       const tenNVBan = lookupValue(SHEET_NAMES.NHAN_VIEN, COL_NV.MA_NV, maNVBan, COL_NV.HO_TEN);
-      sheet.getRange(row, COL_DH.TEN_NGUOI_BAN).setValue(tenNVBan || "");
+      v[COL_DH.TEN_NGUOI_BAN - 1] = tenNVBan || "";
       const quyenXM = lookupValue(SHEET_NAMES.NHAN_VIEN, COL_NV.MA_NV, maNVBan, COL_NV.QUYEN_XUAT);
-      sheet.getRange(row, COL_DH.QUYEN_XUAT).setValue(quyenXM || "✗");
+      v[COL_DH.QUYEN_XUAT - 1] = quyenXM || "✗";
     }
   }
 
@@ -358,38 +383,45 @@ function _onEditDonHang(sheet, row, col, e) {
     const maNVHT = e.value;
     if (maNVHT) {
       const tenNVHT = lookupValue(SHEET_NAMES.NHAN_VIEN, COL_NV.MA_NV, maNVHT, COL_NV.HO_TEN);
-      sheet.getRange(row, COL_DH.TEN_NGUOI_HO_TRO).setValue(tenNVHT || "");
+      v[COL_DH.TEN_NGUOI_HO_TRO - 1] = tenNVHT || "";
     }
   }
 
+  range.setValues([v]);
 }
 
 /**
  * Auto-calculate cho sheet NhapKho (Nhập kho)
  */
 function _onEditNhapKho(sheet, row, col, e) {
+  const lastCol = sheet.getLastColumn();
+  if (lastCol === 0) return;
+  const range = sheet.getRange(row, 1, 1, lastCol);
+  const v = range.getValues()[0];
 
   // Auto tính ThanhTien khi SoLuong hoặc GiaNhap thay đổi
   if (col === COL_NK.SO_LUONG || col === COL_NK.GIA_NHAP) {
-    const soLuong = sheet.getRange(row, COL_NK.SO_LUONG).getValue() || 0;
-    const giaNhap = sheet.getRange(row, COL_NK.GIA_NHAP).getValue() || 0;
-    sheet.getRange(row, COL_NK.THANH_TIEN).setValue(soLuong * giaNhap);
+    const soLuong = Number(v[COL_NK.SO_LUONG - 1]) || 0;
+    const giaNhap = Number(v[COL_NK.GIA_NHAP - 1]) || 0;
+    v[COL_NK.THANH_TIEN - 1] = soLuong * giaNhap;
   }
 
   // Auto lookup TenSP khi nhập MaSP
   if (col === COL_NK.MA_SP) {
     const maSP = e.value;
-    const nguonNhap = sheet.getRange(row, COL_NK.NGUON_NHAP).getValue();
+    const nguonNhap = v[COL_NK.NGUON_NHAP - 1];
     if (maSP) {
       if (nguonNhap === "Điện thoại") {
         const tenDT = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP, COL_DT.TEN_SP);
-        sheet.getRange(row, COL_NK.TEN_SP).setValue(tenDT || "");
+        v[COL_NK.TEN_SP - 1] = tenDT || "";
       } else {
         const tenPK = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, maSP, COL_PK.TEN_SP);
-        sheet.getRange(row, COL_NK.TEN_SP).setValue(tenPK || "");
+        v[COL_NK.TEN_SP - 1] = tenPK || "";
       }
     }
   }
+
+  range.setValues([v]);
 }
 
 // ======================== TỒN KHO & TEMPLATE UTILITIES ========================

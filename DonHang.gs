@@ -464,27 +464,28 @@ function huyDonHang(maDH) {
       const soLuong = Number(rowValues[COL_DH.SO_LUONG - 1]);
       const chiNhanh = rowValues[COL_DH.CHI_NHANH - 1];
 
+      const strategy = ProductStrategy[nguonSP];
+      if (!strategy) {
+        throw new Error("Loại sản phẩm không hợp lệ: " + nguonSP);
+      }
+
+      const prodData = {
+        maSP: maSP,
+        imei: rowValues[COL_DH.IMEI - 1] || ""
+      };
+
+      let oldPhoneStatus = null;
       if (nguonSP === "Điện thoại") {
-        const imei = rowValues[COL_DH.IMEI - 1] || "";
-        const targetPhoneKey = imei || maSP;
-
-        let oldPhoneStatus = lookupValue(
-          SHEET_NAMES.DIEN_THOAI,
-          COL_DT.IMEI,
-          targetPhoneKey,
-          COL_DT.TRANG_THAI_KHO
-        );
+        const targetPhoneKey = prodData.imei || prodData.maSP;
+        oldPhoneStatus = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.IMEI, targetPhoneKey, COL_DT.TRANG_THAI_KHO);
         if (oldPhoneStatus === null) {
-          oldPhoneStatus = lookupValue(
-            SHEET_NAMES.DIEN_THOAI,
-            COL_DT.MA_DT,
-            targetPhoneKey,
-            COL_DT.TRANG_THAI_KHO
-          );
+          oldPhoneStatus = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, targetPhoneKey, COL_DT.TRANG_THAI_KHO);
         }
+      }
 
-        updateTrangThaiKhoDT(targetPhoneKey, STOCK_STATUS.IN_STOCK);
+      strategy.restoreStock(prodData, chiNhanh, soLuong);
 
+      if (nguonSP === "Điện thoại") {
         (function (key, status) {
           rollbackActions.push(function () {
             try {
@@ -495,10 +496,8 @@ function huyDonHang(maDH) {
               Logger.log("Rollback failed to restore phone status: " + err.message);
             }
           });
-        })(targetPhoneKey, oldPhoneStatus);
+        })(prodData.imei || prodData.maSP, oldPhoneStatus);
       } else {
-        updateTonKhoPhuKien(maSP, soLuong, "nhap", chiNhanh);
-
         (function (code, qty, branch) {
           rollbackActions.push(function () {
             try {
@@ -653,39 +652,10 @@ function getDonHangDetails(maDH) {
   const row = findRow(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH);
   if (row === -1) return null;
 
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(SHEET_NAMES.DON_HANG);
-  const values = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
-  const obj = mapRowToObject(values, SHEET_NAMES.DON_HANG);
-
-  return {
-    maDH: String(obj.MA_DH),
-    ngayBan: formatDate(
-      obj.NGAY_BAN instanceof Date ? obj.NGAY_BAN : new Date(obj.NGAY_BAN),
-    ),
-    maKH: String(obj.MA_KH),
-    tenKH: String(obj.TEN_KH),
-    maSP: String(obj.MA_SP),
-    tenSP: String(obj.TEN_SP),
-    nguonSP: String(obj.NGUON_SP),
-    thuongHieu: String(obj.THUONG_HIEU),
-    soLuong: Number(obj.SO_LUONG) || 0,
-    donGia: Number(obj.DON_GIA) || 0,
-    thanhTien: Number(obj.THANH_TIEN) || 0,
-    hinhThucBan: String(obj.HINH_THUC_BAN),
-    hinhThucThanhToan: String(obj.HINH_THUC_TT),
-    nguoiBan: String(obj.NGUOI_BAN),
-    tenNguoiBan: String(obj.TEN_NGUOI_BAN),
-    coQuyenXuatMay: String(obj.QUYEN_XUAT),
-    nguoiHoTro: String(obj.NGUOI_HO_TRO),
-    tenNguoiHoTro: String(obj.TEN_NGUOI_HO_TRO),
-    trangThai: String(obj.TRANG_THAI),
-    ghiChu: String(obj.GHI_CHU),
-    chiNhanh: String(obj.CHI_NHANH || ""),
-    maQuaTang: String(obj.MA_QUA_TANG || ""),
-    tenQuaTang: String(obj.TEN_QUA_TANG || ""),
-    coNhanQua: String(obj.CO_NHAN_QUA || "✗"),
-    tienGiamGia: Number(obj.TIEN_GIAM_GIA || 0),
-    imei: String(obj.IMEI || ""),
-  };
+  const values = getRowValues(SHEET_NAMES.DON_HANG, row);
+  const dto = toDTO(values, SHEET_NAMES.DON_HANG, "DON_HANG_FULL");
+  if (dto.ngayBan) {
+    dto.ngayBan = formatDate(dto.ngayBan);
+  }
+  return dto;
 }
