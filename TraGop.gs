@@ -23,12 +23,8 @@ function taoHopDongTraGop(data) {
   const loaiTraGop = data.loaiTraGop || "Cửa hàng";
   const isCTTC = loaiTraGop === "Công ty tài chính";
 
-  // Nếu là công ty tài chính, sử dụng số tiền đóng mỗi kỳ truyền lên (đã bao gồm lãi)
-  // Nếu là cửa hàng, tính tiền mỗi kỳ = tiền gốc mỗi tháng + tiền lãi mỗi tháng
-  const interestRate = getInterestRateConfig();
-  const tienMoiKy = isCTTC
-    ? Number(data.tienMoiKy) || 0
-    : Math.ceil(conLai / soKy) + Math.round(conLai * (interestRate / 100));
+  // Sử dụng số tiền đóng mỗi kỳ được nhập tay truyền từ giao diện (cho cả Cửa hàng và CTTC)
+  const tienMoiKy = Number(data.tienMoiKy) || 0;
 
   const tenKH = lookupValue(SHEET_NAMES.KHACH_HANG, COL_KH.MA_KH, data.maKH, COL_KH.HO_TEN) || "";
 

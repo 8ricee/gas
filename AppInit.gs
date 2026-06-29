@@ -48,6 +48,12 @@ function setupSheets() {
     }
   });
 
+  // Chèn cột "Trừ tiền thu máy" ở đúng vị trí mới (nếu có dữ liệu cũ cần dịch chuyển)
+  migrateTienThuMuaColumnPosition(ss);
+
+  // Chèn cột "Trạng thái" ở sheet Thu mua ở đúng vị trí mới (nếu cần)
+  migrateThuMuaStatusColumn(ss);
+
   // Đồng bộ tiêu đề cột cho tất cả các sheet (cũ & mới)
   syncSheetHeaders(ss);
 
@@ -255,6 +261,45 @@ function migrateDeletePhoneColumns(ss) {
 }
 
 /**
+ * Migration function to move or insert the "Trừ tiền thu máy" column to its correct position (between "Đơn giá" and "Thành tiền")
+ */
+function migrateTienThuMuaColumnPosition(ss) {
+  if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAMES.DON_HANG);
+  if (!sheet) return;
+
+  const lastCol = sheet.getLastColumn();
+  if (lastCol <= 0) return;
+
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function (h) {
+    return String(h).trim();
+  });
+
+  const currentIdx = headers.indexOf("Trừ tiền thu máy");
+  const donGiaIdx = headers.indexOf("Đơn giá");
+
+  if (donGiaIdx === -1) return;
+
+  const targetColNum = donGiaIdx + 2; // Column L (Index 12)
+
+  if (currentIdx !== -1) {
+    const currentColNum = currentIdx + 1;
+    if (currentColNum === targetColNum) {
+      // Already in the correct position
+      return;
+    }
+    // Delete the column from its incorrect position
+    sheet.deleteColumn(currentColNum);
+  }
+
+  // Insert the column at the correct position
+  sheet.insertColumnBefore(targetColNum);
+  sheet.getRange(1, targetColNum).setValue("Trừ tiền thu máy");
+  
+  clearSheetCache(SHEET_NAMES.DON_HANG);
+}
+
+/**
  * Đảm bảo các cấu hình mặc định (bao gồm cả các cấu hình mới thêm sau này)
  * tồn tại trong sheet Cấu hình.
  */
@@ -378,5 +423,65 @@ function migrateImeiToColumn(ss) {
     "Thành công",
     "Đã di chuyển cột IMEI cạnh Tên sản phẩm, thiết lập định dạng text thuần và tách IMEI thành công cho " + migratedCount + " đơn hàng!"
   );
+}
+
+/**
+ * Migration function to move or insert the "Trạng thái" column in Thu mua sheet
+ */
+function migrateThuMuaStatusColumn(ss) {
+  if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAMES.THU_MUA);
+  if (!sheet) return;
+
+  const lastCol = sheet.getLastColumn();
+  if (lastCol <= 0) return;
+
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function (h) {
+    return String(h).trim();
+  });
+
+  const currentIdx = headers.indexOf("Trạng thái");
+  const nguoiThucHienIdx = headers.indexOf("Người thực hiện");
+
+  if (nguoiThucHienIdx === -1) return;
+
+  const targetColNum = nguoiThucHienIdx + 2; // Right after Người thực hiện
+
+  if (currentIdx !== -1) {
+    const currentColNum = currentIdx + 1;
+    if (currentColNum === targetColNum) {
+      // Already in the correct position
+      return;
+    }
+    // Delete the column from its incorrect position
+    sheet.deleteColumn(currentColNum);
+  }
+
+  // Insert the column at the correct position
+  sheet.insertColumnBefore(targetColNum);
+  sheet.getRange(1, targetColNum).setValue("Trạng thái");
+  
+  clearSheetCache(SHEET_NAMES.THU_MUA);
+
+  // Điền giá trị mặc định "Đang xử lý" cho các dòng cũ
+  const lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    clearColumnEnumsCache();
+    initializeColumnEnums();
+
+    const range = sheet.getRange(2, COL_TM.TRANG_THAI, lastRow - 1, 1);
+    const values = range.getValues();
+    let updated = false;
+    for (let i = 0; i < values.length; i++) {
+      if (!values[i][0]) {
+        values[i][0] = "Đang xử lý";
+        updated = true;
+      }
+    }
+    if (updated) {
+      range.setValues(values);
+      clearSheetCache(SHEET_NAMES.THU_MUA);
+    }
+  }
 }
 

@@ -986,11 +986,43 @@
     let loaiGDSelect = document.getElementById('dt-loaiGD');
     loaiGDSelect.innerHTML = '';
 
+    let giftContainer = document.getElementById('dt-giftExchangeContainer');
+    let giftList = document.getElementById('dt-giftExchangeList');
+    giftContainer.style.display = 'none';
+    giftList.innerHTML = '';
+
     if (doiTuong === 'Quà tặng kèm') {
       let opt = document.createElement('option');
       opt.value = 'Đổi quà';
       opt.textContent = 'Đổi quà (Đổi sang quà tặng mới)';
       loaiGDSelect.appendChild(opt);
+
+      // Render gift items
+      if (originalOrderData && originalOrderData.maQuaTang) {
+        let maList = String(originalOrderData.maQuaTang).split(',');
+        let tenList = String(originalOrderData.tenQuaTang || '').split(',');
+        
+        let html = '';
+        for (let i = 0; i < maList.length; i++) {
+          let code = maList[i].trim();
+          let name = (tenList[i] || '').trim() || '(Không tên)';
+          if (!code) continue;
+          
+          html += 
+            '<div class="gift-exchange-row" style="margin-bottom:12px; border-bottom:1px solid #e1e9ec; padding-bottom:10px;">' +
+              '<label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:500; margin-bottom:4px;">' +
+                '<input type="checkbox" class="dt-gift-check" value="' + escapeHtml(code) + '" data-name="' + escapeHtml(name) + '" onchange="toggleGiftInput(this, \'' + escapeHtml(code) + '\')" style="width:auto; margin:0;">' +
+                '<span><strong>' + escapeHtml(code) + '</strong> - ' + escapeHtml(name) + '</span>' +
+              '</label>' +
+              '<div id="dt-gift-input-container-' + escapeHtml(code) + '" style="display:none; margin-top:6px; padding-left:22px;">' +
+                '<label style="font-size:11px; color:#555; display:block; margin-bottom:4px;">Thay thế bằng quà mới: <span class="required">*</span></label>' +
+                '<input type="text" class="dt-gift-new-input" id="dt-gift-new-' + escapeHtml(code) + '" list="dt-maSP-Nhan-list" placeholder="Tìm quà tặng mới..." oninput="tinhDoiTraChenhLech()" style="margin-bottom:0;">' +
+              '</div>' +
+            '</div>';
+        }
+        giftList.innerHTML = html;
+        giftContainer.style.display = 'block';
+      }
     } else {
       if (originalOrderData.nguonSP === 'Điện thoại') {
         let opt1 = document.createElement('option');
@@ -1022,7 +1054,7 @@
     let label = document.getElementById('dt-newProductLabel');
     let input = document.getElementById('dt-maSP-Nhan');
 
-    if (loai === 'Đổi máy' || loai === 'Đổi hàng' || loai === 'Đổi quà') {
+    if (loai === 'Đổi máy' || loai === 'Đổi hàng') {
       group.style.display = 'block';
       if (loai === 'Đổi máy') {
         label.textContent = 'Điện thoại mới để đổi *';
@@ -1030,9 +1062,6 @@
       } else if (loai === 'Đổi hàng') {
         label.textContent = 'Phụ kiện mới để đổi *';
         input.placeholder = 'Tìm phụ kiện còn hàng...';
-      } else {
-        label.textContent = 'Quà tặng mới để đổi *';
-        input.placeholder = 'Tìm quà tặng (phụ kiện) còn hàng...';
       }
       onDoiTraBranchChange();
     } else {
@@ -1041,6 +1070,17 @@
     }
     tinhDoiTraChenhLech();
   }
+
+  window.toggleGiftInput = function(chk, code) {
+    let container = document.getElementById('dt-gift-input-container-' + code);
+    if (container) {
+      container.style.display = chk.checked ? 'block' : 'none';
+      if (!chk.checked) {
+        document.getElementById('dt-gift-new-' + code).value = '';
+      }
+    }
+    tinhDoiTraChenhLech();
+  };
 
   function onDoiTraBranchChange() {
     let branch = document.getElementById('dt-chiNhanh').value;
@@ -1074,7 +1114,7 @@
 
     if (loai === 'Trả máy' || loai === 'Trả hàng') {
       let hoanTien = originalOrderPrice - phi;
-      label.textContent = 'Tiền hoàn trả cho khách (VND)';
+      label.textContent = 'Tiền hoàn trả';
       valInput.value = hoanTien;
     } else if (loai === 'Đổi quà') {
       label.textContent = 'Tiền thanh toán (Phí)';
@@ -1118,15 +1158,23 @@
     let htbGroup = document.getElementById('tm-hinhThucBanGroup');
     let htttMoiGroup = document.getElementById('tm-Moi-hinhThucTTGroup');
 
+    let optionTru = document.querySelector("#tm-Thu-hinhThucTT option[value='Trừ vào đơn mới']");
+    if (optionTru) {
+      optionTru.style.display = (loai === 'Thu cũ đổi mới') ? '' : 'none';
+    }
+
     if (loai === 'Thu cũ đổi mới') {
       fields.style.display = 'block';
       htbGroup.style.display = 'block';
       htttMoiGroup.style.display = 'block';
       onThuMuaBranchChange();
+      onThuMuaHinhThucTTChange();
     } else {
       fields.style.display = 'none';
       htbGroup.style.display = 'none';
       htttMoiGroup.style.display = 'none';
+      document.getElementById('tm-truDonMoiGroup').style.display = 'none';
+      document.getElementById('tm-truDonMoiAmt').value = 0;
       document.getElementById('tm-hinhThucBan').value = 'Bán thẳng';
       document.getElementById('tm-maSP-Moi').value = '';
       document.getElementById('tm-tienHoTro').value = 0;
@@ -1138,6 +1186,13 @@
       document.getElementById('tm-Moi-hinhThucTT').value = 'Tiền mặt';
       onPaymentMethodChange('tm-Moi');
       onThuMuaHinhThucBanChange();
+
+      // Nếu đang chọn "Trừ vào đơn mới", reset về Tiền mặt khi chuyển sang Bán thẳng
+      let htttThuSel = document.getElementById('tm-Thu-hinhThucTT');
+      if (htttThuSel && htttThuSel.value === 'Trừ vào đơn mới') {
+        htttThuSel.value = 'Tiền mặt';
+        onPaymentMethodChange('tm-Thu');
+      }
     }
     tinhThuMuaChenhLech();
   }
@@ -1166,6 +1221,32 @@
   }
 
   function onThuMuaHinhThucTTChange() {
+    let loaiGD = document.getElementById('tm-loaiGD').value;
+    let htttThu = document.getElementById('tm-Thu-hinhThucTT').value;
+    let truGroup = document.getElementById('tm-truDonMoiGroup');
+    let truAmtInput = document.getElementById('tm-truDonMoiAmt');
+
+    let giaThu = Number(document.getElementById('tm-giaThuMua').value) || 0;
+    let hoTro = Number(document.getElementById('tm-tienHoTro').value) || 0;
+    let maxTru = giaThu + hoTro;
+
+    if (loaiGD === 'Thu cũ đổi mới') {
+      if (htttThu === 'Trừ vào đơn mới') {
+        truGroup.style.display = 'none';
+        truAmtInput.value = maxTru;
+      } else {
+        truGroup.style.display = 'block';
+        let currentVal = Number(truAmtInput.value) || 0;
+        if (currentVal === 0 || currentVal > maxTru) {
+          truAmtInput.value = maxTru;
+        }
+      }
+    } else {
+      truGroup.style.display = 'none';
+      truAmtInput.value = 0;
+    }
+
+    tinhThuMuaChenhLech();
     let hinhThuc = document.getElementById('tm-hinhThucBan').value;
     if (hinhThuc === 'Trả góp') {
       tinhThuMuaTraGop();
@@ -1202,17 +1283,19 @@
   }
 
   function tinhThuMuaTraGop(customChenhLech) {
-    let giaThu = Number(document.getElementById('tm-giaThuMua').value) || 0;
     let giaMoi = getThuMuaGiaMayMoi();
     let hoTro = Number(document.getElementById('tm-tienHoTro').value) || 0;
     let giamGia = Number(document.getElementById('tm-tienGiamGia').value) || 0;
     let giaMayMoi = giaMoi - giamGia - hoTro;
 
+    // Tiền thu cũ khấu trừ trực tiếp vào đơn mới (truAmt)
+    let truAmt = Number(document.getElementById('tm-truDonMoiAmt').value) || 0;
+    let thucCanThanhToan = Math.max(0, giaMayMoi - truAmt);
+
     let loai = document.getElementById('tm-tg-loai').value;
     let isCTTC = (loai === 'Công ty tài chính');
 
     document.getElementById('tm-tg-congTyTCGroup').style.display = isCTTC ? 'block' : 'none';
-    document.getElementById('tm-tg-tienMoiKyGroup').style.display = isCTTC ? 'block' : 'none';
 
     let httt = document.getElementById('tm-Moi-hinhThucTT') ? document.getElementById('tm-Moi-hinhThucTT').value : '';
     let traTruoc = 0;
@@ -1225,50 +1308,41 @@
     }
 
     let soKy = Number(document.getElementById('tm-tg-soKy').value) || 1;
-    let conLai = giaMayMoi - traTruoc;
+    let conLai = thucCanThanhToan - traTruoc;
 
     if (conLai <= 0) {
       document.getElementById('tm-tg-summary').style.display = 'none';
-      showAlertMsg('error', 'Số tiền trả trước phải nhỏ hơn giá máy mới để mua trả góp!');
+      showAlertMsg('error', 'Số tiền trả trước phải nhỏ hơn số tiền thực cần thanh toán để mua trả góp!');
       return;
     }
 
-    let tienMoiKy = 0;
-    if (isCTTC) {
-      tienMoiKy = Number(document.getElementById('tm-tg-tienMoiKyInput').value) || 0;
-    } else {
-      let rate = window.storeInterestRate || 0;
-      let laiMoiThang = Math.round(conLai * (rate / 100));
-      let gocMoiThang = Math.ceil(conLai / soKy);
-      tienMoiKy = gocMoiThang + laiMoiThang;
-      document.getElementById('tm-tg-tienMoiKyInput').value = tienMoiKy;
+    let activeId = document.activeElement ? document.activeElement.id : '';
+    let tienMoiKyInput = document.getElementById('tm-tg-tienMoiKyInput');
+    let tienMoiKy = Number(tienMoiKyInput.value) || 0;
+
+    if (activeId !== 'tm-tg-tienMoiKyInput') {
+      tienMoiKy = Math.ceil(conLai / soKy);
+      tienMoiKyInput.value = tienMoiKy;
     }
 
     let summary = document.getElementById('tm-tg-summary');
     summary.style.display = 'block';
 
     let html =
-      '<div class="summary-row"><span>Giá máy mới:</span><span>' + formatNumber(giaMayMoi) + ' đ</span></div>' +
+      '<div class="summary-row"><span>Giá máy mới:</span><span>' + formatNumber(giaMayMoi) + ' đ</span></div>';
+
+    if (truAmt > 0) {
+      html +=
+        '<div class="summary-row" style="color:#b06000;"><span>Trừ tiền thu mua:</span><span>-' + formatNumber(truAmt) + ' đ</span></div>' +
+        '<div class="summary-row" style="font-weight:bold;"><span>Thực cần thanh toán:</span><span>' + formatNumber(thucCanThanhToan) + ' đ</span></div>';
+    }
+
+    html +=
       '<div class="summary-row"><span>Trả trước:</span><span>' + formatNumber(traTruoc) + ' đ</span></div>' +
       '<div class="summary-row"><span>Còn lại cần góp:</span><span>' + formatNumber(conLai) + ' đ</span></div>' +
-      '<div class="summary-row"><span>Số kỳ:</span><span>' + soKy + ' kỳ</span></div>';
+      '<div class="summary-row"><span>Số kỳ:</span><span>' + soKy + ' kỳ</span></div>' +
+      '<div class="summary-row summary-total"><span>Mỗi kỳ (thực đóng):</span><span>' + formatNumber(tienMoiKy) + ' đ</span></div>';
 
-    if (isCTTC) {
-      html += '<div class="summary-row summary-total"><span>Mỗi kỳ (thực đóng):</span><span>' + formatNumber(tienMoiKy) + ' đ</span></div>';
-    } else {
-      let rate = window.storeInterestRate || 0;
-      if (rate > 0) {
-        let laiMoiThang = Math.round(conLai * (rate / 100));
-        let gocMoiThang = Math.ceil(conLai / soKy);
-        html += 
-          '<div class="summary-row"><span>Lãi suất cửa hàng:</span><span>' + rate + '% / tháng</span></div>' +
-          '<div class="summary-row"><span>Tiền gốc / kỳ:</span><span>' + formatNumber(gocMoiThang) + ' đ</span></div>' +
-          '<div class="summary-row"><span>Tiền lãi / kỳ:</span><span>' + formatNumber(laiMoiThang) + ' đ</span></div>' +
-          '<div class="summary-row summary-total"><span>Mỗi kỳ (Gốc + Lãi):</span><span>' + formatNumber(tienMoiKy) + ' đ</span></div>';
-      } else {
-        html += '<div class="summary-row summary-total"><span>Mỗi kỳ:</span><span>' + formatNumber(tienMoiKy) + ' đ</span></div>';
-      }
-    }
     summary.innerHTML = html;
     updateSplitPaymentAmounts('tm');
   }
@@ -1317,6 +1391,8 @@
   function tinhThuMuaChenhLech() {
     let loai = document.getElementById('tm-loaiGD').value;
     let giaThu = Number(document.getElementById('tm-giaThuMua').value) || 0;
+    let hoTro = Number(document.getElementById('tm-tienHoTro').value) || 0;
+    let maxTru = giaThu + hoTro;
     let summary = document.getElementById('tm-summary');
 
     if (loai === 'Bán thẳng') {
@@ -1324,25 +1400,39 @@
       return;
     }
 
-    let giaMoi = getThuMuaGiaMayMoi();
+    let truAmtInput = document.getElementById('tm-truDonMoiAmt');
+    let truAmt = Number(truAmtInput.value) || 0;
+    if (truAmt < 0) truAmt = 0;
+    if (truAmt > maxTru) truAmt = maxTru;
+    truAmtInput.value = truAmt;
 
-    let hoTro = Number(document.getElementById('tm-tienHoTro').value) || 0;
+    let giaMoi = getThuMuaGiaMayMoi();
     let giamGia = Number(document.getElementById('tm-tienGiamGia').value) || 0;
     let valueMoiSauGiam = giaMoi - giamGia;
-    let chenhLech = (valueMoiSauGiam - hoTro) - giaThu;
+    
+    // Số tiền khách cần thanh toán thêm cho máy mới
+    let chenhLech = valueMoiSauGiam - truAmt;
+
+    // Số tiền cửa hàng thanh toán thực tế cho khách qua Thu mua
+    let traKhachConLai = maxTru - truAmt;
 
     let html = '<strong>Giá bán máy mới:</strong> ' + formatNumber(giaMoi) + ' đ<br>';
     if (giamGia > 0) {
       html += '<strong>Giảm giá máy mới:</strong> -' + formatNumber(giamGia) + ' đ<br>';
       html += '<strong>Giá sau giảm:</strong> ' + formatNumber(valueMoiSauGiam) + ' đ<br>';
     }
-    html += '<strong>Tiền hỗ trợ:</strong> -' + formatNumber(hoTro) + ' đ<br>' +
-               '<strong>Giá thu mua máy cũ:</strong> -' + formatNumber(giaThu) + ' đ<br>';
+    html += '<strong>Tổng giá trị thu máy cũ:</strong> ' + formatNumber(maxTru) + ' đ (Hỗ trợ: ' + formatNumber(hoTro) + ' đ)<br>';
+    html += '<strong>Trừ vào đơn mới:</strong> -' + formatNumber(truAmt) + ' đ<br>';
+
+    if (traKhachConLai > 0) {
+      let htttThu = document.getElementById('tm-Thu-hinhThucTT').value;
+      html += '<strong style="color: #b06000;">Trả lại khách (tiền thừa thu máy) qua ' + htttThu + ': ' + formatNumber(traKhachConLai) + ' đ</strong><br>';
+    }
 
     if (chenhLech >= 0) {
-      html += '<strong style="color: #1a73e8;">Khách cần trả thêm: ' + formatNumber(chenhLech) + ' đ</strong>';
+      html += '<strong style="color: #1a73e8;">Khách cần thanh toán thêm cho máy mới: ' + formatNumber(chenhLech) + ' đ</strong>';
     } else {
-      html += '<strong style="color: #137333;">Cửa hàng trả lại khách: ' + formatNumber(Math.abs(chenhLech)) + ' đ</strong>';
+      html += '<strong style="color: #137333;">Cửa hàng trả lại khách chênh lệch máy: ' + formatNumber(Math.abs(chenhLech)) + ' đ</strong>';
     }
 
     summary.innerHTML = html;
@@ -1406,17 +1496,14 @@
     let isCTTC = (loai === 'Công ty tài chính');
 
     document.getElementById('tg-congTyTCGroup').style.display = isCTTC ? 'block' : 'none';
-    document.getElementById('tg-tienMoiKyGroup').style.display = isCTTC ? 'block' : 'none';
 
-    let tienMoiKy = 0;
-    if (isCTTC) {
-      tienMoiKy = Number(document.getElementById('tg-tienMoiKyInput').value) || 0;
-    } else {
-      let rate = window.storeInterestRate || 0;
-      let laiMoiThang = Math.round(conLai * (rate / 100));
-      let gocMoiThang = Math.ceil(conLai / soKy);
-      tienMoiKy = gocMoiThang + laiMoiThang;
-      document.getElementById('tg-tienMoiKyInput').value = tienMoiKy;
+    let activeId = document.activeElement ? document.activeElement.id : '';
+    let tienMoiKyInput = document.getElementById('tg-tienMoiKyInput');
+    let tienMoiKy = Number(tienMoiKyInput.value) || 0;
+
+    if (activeId !== 'tg-tienMoiKyInput') {
+      tienMoiKy = Math.ceil(conLai / soKy);
+      tienMoiKyInput.value = tienMoiKy;
     }
 
     let summary = document.getElementById('tg-summary');
@@ -1426,24 +1513,9 @@
       '<div class="summary-row"><span>Tổng tiền:</span><span>' + formatNumber(thanhTien) + ' đ</span></div>' +
       '<div class="summary-row"><span>Trả trước:</span><span>' + formatNumber(traTruoc) + ' đ</span></div>' +
       '<div class="summary-row"><span>Còn lại (Tiền vay):</span><span>' + formatNumber(conLai) + ' đ</span></div>' +
-      '<div class="summary-row"><span>Số kỳ:</span><span>' + soKy + ' kỳ</span></div>';
+      '<div class="summary-row"><span>Số kỳ:</span><span>' + soKy + ' kỳ</span></div>' +
+      '<div class="summary-row summary-total"><span>Mỗi kỳ (thực đóng):</span><span>' + formatNumber(tienMoiKy) + ' đ</span></div>';
 
-    if (isCTTC) {
-      html += '<div class="summary-row summary-total"><span>Mỗi kỳ (thực đóng):</span><span>' + formatNumber(tienMoiKy) + ' đ</span></div>';
-    } else {
-      let rate = window.storeInterestRate || 0;
-      if (rate > 0) {
-        let laiMoiThang = Math.round(conLai * (rate / 100));
-        let gocMoiThang = Math.ceil(conLai / soKy);
-        html += 
-          '<div class="summary-row"><span>Lãi suất cửa hàng:</span><span>' + rate + '% / tháng</span></div>' +
-          '<div class="summary-row"><span>Tiền gốc / kỳ:</span><span>' + formatNumber(gocMoiThang) + ' đ</span></div>' +
-          '<div class="summary-row"><span>Tiền lãi / kỳ:</span><span>' + formatNumber(laiMoiThang) + ' đ</span></div>' +
-          '<div class="summary-row summary-total"><span>Mỗi kỳ (Gốc + Lãi):</span><span>' + formatNumber(tienMoiKy) + ' đ</span></div>';
-      } else {
-        html += '<div class="summary-row summary-total"><span>Mỗi kỳ:</span><span>' + formatNumber(tienMoiKy) + ' đ</span></div>';
-      }
-    }
     summary.innerHTML = html;
     updateSplitPaymentAmounts('dh');
   }
@@ -1586,7 +1658,7 @@
           showAlertMsg('success', 'Đã huỷ đơn hàng <strong>' + escapeHtml(maDH) + '</strong> thành công.');
           document.getElementById('cancel-maDH').value = '';
         } else {
-          showAlertMsg('error', 'Không thể huỷ đơn hàng ' + maDH + '. Hãy kiểm tra log.');
+          showAlertMsg('error', 'Không thể huỷ đơn hàng ' + maDH );
         }
       })
       .withFailureHandler(function(err) {
@@ -1930,9 +2002,36 @@
       return;
     }
 
-    if ((loaiGD === 'Đổi máy' || loaiGD === 'Đổi hàng' || loaiGD === 'Đổi quà') && !maSP_Nhan) {
-      showAlertMsg('error', 'Vui lòng chọn sản phẩm mới để đổi!');
-      return;
+    let giftExchanges = [];
+    if (doiTuong === 'Quà tặng kèm' && loaiGD === 'Đổi quà') {
+      let checks = document.querySelectorAll('.dt-gift-check');
+      for (let i = 0; i < checks.length; i++) {
+        if (checks[i].checked) {
+          let oldCode = checks[i].value;
+          let oldName = checks[i].getAttribute('data-name');
+          let newValRaw = document.getElementById('dt-gift-new-' + oldCode).value.trim();
+          let newCode = extractId(newValRaw);
+          if (!newCode) {
+            showAlertMsg('error', 'Vui lòng chọn quà tặng mới thay thế cho quà ' + oldCode + '!');
+            return;
+          }
+          giftExchanges.push({
+            oldCode: oldCode,
+            oldName: oldName,
+            newCode: newCode,
+            newValRaw: newValRaw
+          });
+        }
+      }
+      if (giftExchanges.length === 0) {
+        showAlertMsg('error', 'Vui lòng chọn ít nhất 1 quà tặng kèm cần đổi!');
+        return;
+      }
+    } else {
+      if ((loaiGD === 'Đổi máy' || loaiGD === 'Đổi hàng') && !maSP_Nhan) {
+        showAlertMsg('error', 'Vui lòng chọn sản phẩm mới để đổi!');
+        return;
+      }
     }
 
     let imei_Nhan = extractImei(document.getElementById('dt-maSP-Nhan').value);
@@ -1949,7 +2048,9 @@
       tienHoanTra: tienHoanTra,
       hinhThucThanhToan: hinhThucTT,
       nguoiThucHien: nguoiTH,
-      ghiChu: ghiChu
+      ghiChu: ghiChu,
+      congKho: document.getElementById('dt-congKho').checked,
+      giftExchanges: giftExchanges
     };
 
     google.script.run
@@ -2012,6 +2113,10 @@
     if (htttThu === 'Hỗn hợp') {
       data.splitTienMat = Number(document.getElementById('tm-Thu-split-tienMat').value) || 0;
       data.splitChuyenKhoan = Number(document.getElementById('tm-Thu-split-chuyenKhoan').value) || 0;
+    } else if (htttThu === 'Trừ vào đơn mới' && loaiGD !== 'Thu cũ đổi mới') {
+      // "Trừ vào đơn mới" chỉ hợp lệ khi Thu cũ đổi mới
+      showAlertMsg('error', 'Hình thức "Trừ vào đơn mới" chỉ áp dụng cho giao dịch Thu cũ đổi mới!');
+      return;
     }
 
     if (loaiGD === 'Thu cũ đổi mới') {
@@ -2025,6 +2130,12 @@
       data.tienGiamGia = Number(document.getElementById('tm-tienGiamGia').value) || 0;
       data.hinhThucBan = htb;
       data.hinhThucThanhToanPhu = htttMoi;
+      data.tradeInDeduction = Number(document.getElementById('tm-truDonMoiAmt').value) || 0;
+
+      if (htttMoi === 'Hỗn hợp') {
+        data.splitTienMatPhu = Number(document.getElementById('tm-Moi-split-tienMat').value) || 0;
+        data.splitChuyenKhoanPhu = Number(document.getElementById('tm-Moi-split-chuyenKhoan').value) || 0;
+      }
 
       if (!data.maSP_Moi) {
         showAlertMsg('error', 'Vui lòng chọn điện thoại mới để đổi lên đời!');
@@ -2057,8 +2168,13 @@
         let giaMoi = getThuMuaGiaMayMoi();
         let giaMayMoi = giaMoi - data.tienGiamGia - data.tienHoTro;
 
+        // Giảm số tiền cần trả góp bằng giá trị máy cũ khấu trừ vào đơn mới (data.tradeInDeduction)
+        if (data.tradeInDeduction > 0) {
+          giaMayMoi = Math.max(0, giaMayMoi - data.tradeInDeduction);
+        }
+
         if (derivedTraTruoc >= giaMayMoi) {
-          showAlertMsg('error', 'Số tiền trả trước (giá thu cũ trừ tiền trả khách) phải nhỏ hơn giá máy mới để mua trả góp!');
+          showAlertMsg('error', 'Số tiền trả trước phải nhỏ hơn số tiền thực cần thanh toán để mua trả góp!');
           return;
         }
       }
@@ -2366,6 +2482,12 @@
       // Khôi phục mặc định
       selectEl.style.background = '#fff';
       selectEl.style.borderColor = '#dadce0';
+
+      // Đánh dấu màu đặc biệt cho "Trừ vào đơn mới"
+      if (httt === 'Trừ vào đơn mới') {
+        selectEl.style.background = '#fef7e0';
+        selectEl.style.borderColor = '#f9ab00';
+      }
     }
 
     // Xử lý ẩn/hiện ô Trả trước khi chọn Hỗn hợp + Trả góp
@@ -2416,7 +2538,8 @@
       let loai = document.getElementById('tm-loaiGD').value;
       if (loai === 'Thu cũ đổi mới') {
         let hoTro = Number(document.getElementById('tm-tienHoTro').value) || 0;
-        return giaThu + hoTro;
+        let truAmt = Number(document.getElementById('tm-truDonMoiAmt').value) || 0;
+        return Math.max(0, giaThu + hoTro - truAmt);
       }
       return giaThu;
     } else if (prefix === 'tm-Moi') {

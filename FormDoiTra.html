@@ -20,6 +20,12 @@
     </select>
   </div>
 
+  <!-- Container chứa danh sách quà tặng kèm để chọn đổi -->
+  <div id="dt-giftExchangeContainer" class="form-group" style="display:none; background:#f4f8fa; padding:12px; border-radius:6px; border:1px solid #d1e3ed; margin-bottom:12px;">
+    <label style="font-weight:bold; color:#0f5257;">Chọn quà tặng kèm cần đổi:</label>
+    <div id="dt-giftExchangeList" style="margin-top:8px;"></div>
+  </div>
+
   <div class="form-group">
     <label>Loại giao dịch <span class="required">*</span></label>
     <select id="dt-loaiGD" onchange="onDoiTraLoaiGDChange()">
@@ -70,6 +76,11 @@
       <label style="color: #c5221f; font-weight: bold;">Số tiền chuyển khoản</label>
       <input type="number" id="dt-split-chuyenKhoan" value="0" oninput="validateSplitPayment('dt')">
     </div>
+  </div>
+
+  <div class="form-group" style="display: flex; align-items: center; gap: 8px; margin-top: 12px; margin-bottom: 12px;">
+    <input type="checkbox" id="dt-congKho" checked style="width: auto; margin: 0;">
+    <label for="dt-congKho" style="margin: 0; font-weight: bold; cursor: pointer;">Cộng lại vào kho hàng</label>
   </div>
 
   <div class="form-group">

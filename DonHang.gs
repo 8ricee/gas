@@ -29,8 +29,10 @@ function taoDonHang(data) {
 
     // Validation thanh toán hỗn hợp ở Backend
     const netPayable = _calcNetPayable(data);
+    const deduction = Number(data.tradeInDeduction) || 0;
+    const netToPay = Math.max(0, netPayable - deduction);
 
-    let expectedPaid = netPayable;
+    let expectedPaid = netToPay;
     if (data.hinhThucBan === "Trả góp" && data.traGop) {
       let ttVal = 0;
       if (
@@ -191,7 +193,8 @@ function _taoDonHangSingle(data, rollbackActions, ss) {
   const soLuong = Number(data.soLuong) || 1;
   const donGia = Number(data.donGia) || 0;
   const tienGiamGia = Number(data.tienGiamGia) || 0;
-  const thanhTien = soLuong * donGia - tienGiamGia;
+  const deduction = Number(data.tradeInDeduction) || 0;
+  const thanhTien = soLuong * donGia - tienGiamGia - deduction;
 
   if (nguonSP === "Phụ kiện" && data.hinhThucBan === "Trả góp") {
     throw new Error(
@@ -273,6 +276,8 @@ function _taoDonHangSingle(data, rollbackActions, ss) {
   rowData[COL_DH.CO_NHAN_QUA - 1] = coNhanQua;
   rowData[COL_DH.TIEN_GIAM_GIA - 1] = tienGiamGia;
   rowData[COL_DH.IMEI - 1] = data.imei || "";
+
+  rowData[COL_DH.TIEN_THU_MUA - 1] = deduction;
 
   const paidAmount = (data.hinhThucBan === "Trả góp" && data.traGop) ? (Number(data.traGop.traTruoc) || 0) : thanhTien;
   const splitResult = calculatePaymentSplit(data, paidAmount);

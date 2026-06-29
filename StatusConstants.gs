@@ -10,6 +10,7 @@ const STOCK_STATUS = Object.freeze({
   SOLD: "Đã bán",
   INSTALLMENT: "Đang trả góp",
   RETURNED: "Đã trả lại",
+  FAULTY: "Máy lỗi",
 });
 
 const ORDER_STATUS = Object.freeze({

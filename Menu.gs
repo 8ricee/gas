@@ -155,6 +155,12 @@ function menuNormalizeSystem() {
     // 1.5. Xóa cột số điện thoại khách hàng thừa (nếu có) và đồng bộ lại headers
     migrateDeletePhoneColumns(ss);
 
+    // 1.5.5. Di chuyển hoặc chèn cột "Trừ tiền thu máy" vào vị trí mới (giữa Đơn giá và Thành tiền)
+    migrateTienThuMuaColumnPosition(ss);
+
+    // 1.5.6. Chèn hoặc di chuyển cột "Trạng thái" vào vị trí mới ở sheet Thu mua
+    migrateThuMuaStatusColumn(ss);
+
     // 1.6. Làm sạch và thiết lập lại toàn bộ Data Validation (dropdown) chính xác cho tất cả các sheet
     _setupDataValidations(ss);
 

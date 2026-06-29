@@ -115,6 +115,7 @@ const CONDITIONAL_COLOR_MAP = {
   "Trả máy": { bg: "#fce8e6", fg: "#c5221f" },
   "Đã trả lại": { bg: "#fce8e6", fg: "#c5221f" },
   "Đổi trả": { bg: "#fce8e6", fg: "#c5221f" },
+  "Máy lỗi": { bg: "#fce8e6", fg: "#c5221f" },
 
   // 3. Trạng thái chờ, đang xử lý, đang trả, chưa trả, đổi máy, phụ kiện
   "Đang trả góp": { bg: "#fef7e0", fg: "#b06000" },
@@ -153,6 +154,7 @@ const CONDITIONAL_COLOR_MAP = {
   "Bán thẳng": { bg: "#e6f4ea", fg: "#137333" },
   "Trả góp": { bg: "#f3e8fd", fg: "#a142f4" },
   "Hỗn hợp": { bg: "#e0f7fa", fg: "#006064" },
+  "Trừ vào đơn mới": { bg: "#fef7e0", fg: "#b06000" },
   "Sửa chữa": { bg: "#e0f7fa", fg: "#006064" },
   "Bảo hành": { bg: "#fce4ec", fg: "#880e4f" }
 };
@@ -206,7 +208,7 @@ function onEdit(e) {
   // Tránh xoá cache và chạy xử lý vô ích đối với các cột không cần auto-lookup/auto-calculate.
   let isRelevant = false;
   if (sheetName === SHEET_NAMES.DON_HANG) {
-    isRelevant = (col === COL_DH.SO_LUONG || col === COL_DH.DON_GIA || col === COL_DH.TIEN_GIAM_GIA ||
+    isRelevant = (col === COL_DH.SO_LUONG || col === COL_DH.DON_GIA || col === COL_DH.TIEN_GIAM_GIA || col === COL_DH.TIEN_THU_MUA ||
                   col === COL_DH.MA_KH || col === COL_DH.MA_SP || col === COL_DH.NGUOI_BAN || col === COL_DH.NGUOI_HO_TRO);
   } else if (sheetName === SHEET_NAMES.NHAP_KHO) {
     isRelevant = (col === COL_NK.SO_LUONG || col === COL_NK.GIA_NHAP || col === COL_NK.MA_SP);
@@ -302,12 +304,13 @@ function _onEditDonHang(sheet, row, col, e) {
   const range = sheet.getRange(row, 1, 1, lastCol);
   const v = range.getValues()[0];
 
-  // Auto tính ThanhTien khi SoLuong hoặc DonGia hoặc TienGiamGia thay đổi
-  if (col === COL_DH.SO_LUONG || col === COL_DH.DON_GIA || col === COL_DH.TIEN_GIAM_GIA) {
+  // Auto tính ThanhTien khi SoLuong hoặc DonGia hoặc TienGiamGia hoặc TienThuMua thay đổi
+  if (col === COL_DH.SO_LUONG || col === COL_DH.DON_GIA || col === COL_DH.TIEN_GIAM_GIA || col === COL_DH.TIEN_THU_MUA) {
     const soLuong = Number(v[COL_DH.SO_LUONG - 1]) || 0;
     const donGia = Number(v[COL_DH.DON_GIA - 1]) || 0;
     const giamGia = Number(v[COL_DH.TIEN_GIAM_GIA - 1]) || 0;
-    v[COL_DH.THANH_TIEN - 1] = soLuong * donGia - giamGia;
+    const tienThuMua = Number(v[COL_DH.TIEN_THU_MUA - 1]) || 0;
+    v[COL_DH.THANH_TIEN - 1] = soLuong * donGia - giamGia - tienThuMua;
   }
 
   // Auto lookup TenKH khi nhập MaKH

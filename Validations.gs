@@ -70,7 +70,7 @@ function _setupDienThoaiValidations(ss, chiNhanhRule, thuongHieuRule) {
   const colTinhTrangLetter = columnToLetter(COL_DT.TINH_TRANG);
   dtSheet.getRange(colTinhTrangLetter + "2:" + colTinhTrangLetter).clearDataValidations();
 
-  setColumnListValidation(dtSheet, COL_DT.TRANG_THAI_KHO, [STOCK_STATUS.IN_STOCK, STOCK_STATUS.SOLD, STOCK_STATUS.INSTALLMENT, STOCK_STATUS.RETURNED]);
+  setColumnListValidation(dtSheet, COL_DT.TRANG_THAI_KHO, [STOCK_STATUS.IN_STOCK, STOCK_STATUS.SOLD, STOCK_STATUS.INSTALLMENT, STOCK_STATUS.RETURNED, STOCK_STATUS.FAULTY]);
   dtSheet.getRange(columnToLetter(COL_DT.CHI_NHANH) + "2:" + columnToLetter(COL_DT.CHI_NHANH)).setDataValidation(chiNhanhRule);
   dtSheet.getRange(columnToLetter(COL_DT.THUONG_HIEU) + "2:" + columnToLetter(COL_DT.THUONG_HIEU)).setDataValidation(thuongHieuRule);
 }
@@ -152,7 +152,8 @@ function _setupThuMuaValidations(ss, chiNhanhRule, thuongHieuRule) {
   thuMuaSheet.getRange(colTMTinhTrang + "2:" + colTMTinhTrang).clearDataValidations();
 
   setColumnListValidation(thuMuaSheet, COL_TM.LOAI_GD, ["Bán thẳng", "Thu cũ đổi mới"]);
-  setColumnListValidation(thuMuaSheet, COL_TM.HINH_THUC_TT, ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Trả góp", "Hỗn hợp"]);
+  setColumnListValidation(thuMuaSheet, COL_TM.HINH_THUC_TT, ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Trả góp", "Hỗn hợp", "Trừ vào đơn mới"]);
+  setColumnListValidation(thuMuaSheet, COL_TM.TRANG_THAI, [ORDER_STATUS.PROCESSING, ORDER_STATUS.DONE, ORDER_STATUS.CANCELLED]);
   thuMuaSheet.getRange(columnToLetter(COL_TM.CHI_NHANH) + "2:" + columnToLetter(COL_TM.CHI_NHANH)).setDataValidation(chiNhanhRule);
   thuMuaSheet.getRange(columnToLetter(COL_TM.THUONG_HIEU_THU) + "2:" + columnToLetter(COL_TM.THUONG_HIEU_THU)).setDataValidation(thuongHieuRule);
 }

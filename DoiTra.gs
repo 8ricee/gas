@@ -20,155 +20,229 @@ const DoiTraStrategy = {
   "Quà tặng kèm": {
     validate: function(data, context, ss) {
       const { dhRow, dhSheet, chiNhanh, maDH } = context;
-      const maQuaCu = dhSheet.getRange(dhRow, COL_DH.MA_QUA_TANG).getValue();
+      const maQuaCu = String(dhSheet.getRange(dhRow, COL_DH.MA_QUA_TANG).getValue() || "");
       const coNhanQua = dhSheet.getRange(dhRow, COL_DH.CO_NHAN_QUA).getValue();
 
-      if (coNhanQua !== "✓") {
+      if (coNhanQua !== "✓" || !maQuaCu) {
         throw new Error(
           "Đơn hàng " + maDH + " không nhận quà tặng kèm trước đó!",
         );
       }
 
-      const maQuaMoi = data.maSP_Nhan;
-      if (!maQuaMoi) {
-        throw new Error("Vui lòng chọn quà tặng mới để đổi!");
-      }
-
-      if (maQuaCu === maQuaMoi) {
-        throw new Error("Quà tặng mới chọn trùng với quà tặng cũ đang nhận!");
-      }
-
-      // Kiểm tra tồn kho quà mới
-      const maQuaMoiList = String(maQuaMoi).split(",");
-      const pkSheet = ss.getSheetByName(SHEET_NAMES.PHU_KIEN);
-      const codeCounts = {};
-      for (let i = 0; i < maQuaMoiList.length; i++) {
-        const code = maQuaMoiList[i].trim();
-        if (!code) continue;
-        codeCounts[code] = (codeCounts[code] || 0) + 1;
-      }
-
-      for (const code in codeCounts) {
-        const newRow = findPhuKienRow(code, chiNhanh);
-        if (newRow === -1) {
-          throw new Error(
-            "Quà tặng mới " + code + " không tồn tại ở chi nhánh " + chiNhanh,
-          );
+      const exchanges = data.giftExchanges || [];
+      if (exchanges.length === 0) {
+        const maQuaMoi = data.maSP_Nhan;
+        if (!maQuaMoi) {
+          throw new Error("Vui lòng chọn quà tặng mới để đổi!");
         }
-        const tonQuaMoi =
-          Number(pkSheet.getRange(newRow, COL_PK.SO_LUONG_TON).getValue()) ||
-          0;
-        const requiredQty = codeCounts[code];
-        if (tonQuaMoi < requiredQty) {
-          throw new Error(
-            "Quà tặng mới " +
-              code +
-              " không đủ số lượng tại chi nhánh này! Hiện tại: " +
-              tonQuaMoi +
-              ", cần: " +
-              requiredQty,
-          );
+        if (maQuaCu === maQuaMoi) {
+          throw new Error("Quà tặng mới chọn trùng với quà tặng cũ đang nhận!");
         }
+
+        const maQuaMoiList = String(maQuaMoi).split(",");
+        const pkSheet = ss.getSheetByName(SHEET_NAMES.PHU_KIEN);
+        const codeCounts = {};
+        for (let i = 0; i < maQuaMoiList.length; i++) {
+          const code = maQuaMoiList[i].trim();
+          if (!code) continue;
+          codeCounts[code] = (codeCounts[code] || 0) + 1;
+        }
+
+        for (const code in codeCounts) {
+          const newRow = findPhuKienRow(code, chiNhanh);
+          if (newRow === -1) {
+            throw new Error(
+              "Quà tặng mới " + code + " không tồn tại ở chi nhánh " + chiNhanh,
+            );
+          }
+          const tonQuaMoi =
+            Number(pkSheet.getRange(newRow, COL_PK.SO_LUONG_TON).getValue()) ||
+            0;
+          const requiredQty = codeCounts[code];
+          if (tonQuaMoi < requiredQty) {
+            throw new Error(
+              "Quà tặng mới " +
+                code +
+                " không đủ số lượng tại chi nhánh này! Hiện tại: " +
+                tonQuaMoi +
+                ", cần: " +
+                requiredQty,
+            );
+          }
+        }
+        context.maQuaMoi = maQuaMoi;
+        context.maQuaMoiList = maQuaMoiList;
+      } else {
+        const currentMaGifts = maQuaCu.split(",").map(function(c) { return c.trim().toLowerCase(); });
+        const pkSheet = ss.getSheetByName(SHEET_NAMES.PHU_KIEN);
+        
+        exchanges.forEach(function(item) {
+          const oldCode = String(item.oldCode).trim();
+          const newCode = String(item.newCode).trim();
+          
+          if (currentMaGifts.indexOf(oldCode.toLowerCase()) === -1) {
+            throw new Error("Quà tặng cũ '" + oldCode + "' không thuộc đơn hàng " + maDH + "!");
+          }
+          
+          const newRow = findPhuKienRow(newCode, chiNhanh);
+          if (newRow === -1) {
+            throw new Error("Quà tặng mới '" + newCode + "' không tồn tại ở chi nhánh " + chiNhanh);
+          }
+          
+          const tonQuaMoi = Number(pkSheet.getRange(newRow, COL_PK.SO_LUONG_TON).getValue()) || 0;
+          if (tonQuaMoi < 1) {
+            throw new Error("Quà tặng mới '" + newCode + "' đã hết hàng tại chi nhánh " + chiNhanh + "!");
+          }
+        });
       }
       
-      // Lưu thông tin đã validate vào context để dùng ở bước execute
       context.maQuaCu = maQuaCu;
-      context.maQuaMoi = maQuaMoi;
-      context.maQuaMoiList = maQuaMoiList;
     },
     execute: function(data, context, ss, rollbackActions) {
-      const { dhRow, dhSheet, chiNhanh, maDH, maKH, tenKH, maDT, maQuaCu, maQuaMoi, maQuaMoiList } = context;
+      const { dhRow, dhSheet, chiNhanh, maDH, maKH, tenKH, maDT, maQuaCu } = context;
+      const originalBranch = dhSheet.getRange(dhRow, COL_DH.CHI_NHANH).getValue() || chiNhanh;
       
-      const tenQuaCu = dhSheet.getRange(dhRow, COL_DH.TEN_QUA_TANG).getValue() || "(Không tên)";
+      const exchanges = data.giftExchanges || [];
       const pkSheet = ss.getSheetByName(SHEET_NAMES.PHU_KIEN);
-      const tenQuaMoiList = [];
       
-      for (let i = 0; i < maQuaMoiList.length; i++) {
-        const code = maQuaMoiList[i].trim();
-        if (!code) continue;
-        const newRow = findPhuKienRow(code, chiNhanh);
-        const giftName = pkSheet.getRange(newRow, COL_PK.TEN_SP).getValue() || "";
-        tenQuaMoiList.push(giftName);
-      }
-      const tenQuaMoi = tenQuaMoiList.join(", ");
+      let finalMaQua = maQuaCu;
+      let finalTenQua = dhSheet.getRange(dhRow, COL_DH.TEN_QUA_TANG).getValue() || "";
+      
+      const returnedGiftsList = [];
+      const issuedGiftsList = [];
+      
+      const trackingOldCodes = [];
+      const trackingOldNames = [];
+      const trackingNewCodes = [];
+      const trackingNewNames = [];
 
-      // Hoàn kho quà cũ tại chi nhánh
-      const returnedGifts = [];
-      if (maQuaCu) {
-        const listCu = String(maQuaCu).split(",");
-        for (let i = 0; i < listCu.length; i++) {
-          const code = listCu[i].trim();
+      if (exchanges.length > 0) {
+        exchanges.forEach(function(item) {
+          const oldCode = String(item.oldCode).trim();
+          const newCode = String(item.newCode).trim();
+          
+          const newRow = findPhuKienRow(newCode, chiNhanh);
+          const newName = pkSheet.getRange(newRow, COL_PK.TEN_SP).getValue() || "";
+          
+          trackingOldCodes.push(oldCode);
+          trackingOldNames.push(item.oldName || oldCode);
+          trackingNewCodes.push(newCode);
+          trackingNewNames.push(newName);
+          
+          if (data.congKho !== false) {
+            updateTonKhoPhuKien(oldCode, 1, "nhap", originalBranch);
+            returnedGiftsList.push(oldCode);
+          }
+          
+          updateTonKhoPhuKien(newCode, 1, "xuat", chiNhanh);
+          issuedGiftsList.push(newCode);
+          
+          let codesArr = finalMaQua.split(",").map(function(c) { return c.trim(); });
+          let namesArr = finalTenQua.split(",").map(function(n) { return n.trim(); });
+          
+          let idx = -1;
+          for (let k = 0; k < codesArr.length; k++) {
+            if (codesArr[k].toLowerCase() === oldCode.toLowerCase()) {
+              idx = k;
+              break;
+            }
+          }
+          if (idx !== -1) {
+            codesArr[idx] = newCode;
+            namesArr[idx] = newName;
+          }
+          finalMaQua = codesArr.join(", ");
+          finalTenQua = namesArr.join(", ");
+        });
+        
+        rollbackActions.push(function () {
+          if (data.congKho !== false) {
+            returnedGiftsList.forEach(function (code) {
+              try { updateTonKhoPhuKien(code, 1, "xuat", originalBranch); } catch (err) {}
+            });
+          }
+          issuedGiftsList.forEach(function (code) {
+            try { updateTonKhoPhuKien(code, 1, "nhap", chiNhanh); } catch (err) {}
+          });
+        });
+        
+      } else {
+        const maQuaMoi = context.maQuaMoi;
+        const maQuaMoiList = context.maQuaMoiList;
+        const tenQuaMoiList = [];
+        
+        for (let i = 0; i < maQuaMoiList.length; i++) {
+          const code = maQuaMoiList[i].trim();
+          if (!code) continue;
+          const newRow = findPhuKienRow(code, chiNhanh);
+          const giftName = pkSheet.getRange(newRow, COL_PK.TEN_SP).getValue() || "";
+          tenQuaMoiList.push(giftName);
+        }
+        finalMaQua = maQuaMoi;
+        finalTenQua = tenQuaMoiList.join(", ");
+
+        trackingOldCodes.push(maQuaCu);
+        trackingOldNames.push(dhSheet.getRange(dhRow, COL_DH.TEN_QUA_TANG).getValue() || "");
+        trackingNewCodes.push(maQuaMoi);
+        trackingNewNames.push(finalTenQua);
+
+        if (data.congKho !== false) {
+          const listCu = String(maQuaCu).split(",");
+          for (let i = 0; i < listCu.length; i++) {
+            const code = listCu[i].trim();
+            if (code) {
+              updateTonKhoPhuKien(code, 1, "nhap", originalBranch);
+              returnedGiftsList.push(code);
+            }
+          }
+          rollbackActions.push(function () {
+            returnedGiftsList.forEach(function (code) {
+              try { updateTonKhoPhuKien(code, 1, "xuat", originalBranch); } catch (err) {}
+            });
+          });
+        }
+
+        for (let i = 0; i < maQuaMoiList.length; i++) {
+          const code = maQuaMoiList[i].trim();
           if (code) {
-            updateTonKhoPhuKien(code, 1, "nhap", chiNhanh);
-            returnedGifts.push(code);
+            updateTonKhoPhuKien(code, 1, "xuat", chiNhanh);
+            issuedGiftsList.push(code);
           }
         }
         rollbackActions.push(function () {
-          returnedGifts.forEach(function (code) {
-            try {
-              updateTonKhoPhuKien(code, 1, "xuat", chiNhanh);
-            } catch (err) {}
+          issuedGiftsList.forEach(function (code) {
+            try { updateTonKhoPhuKien(code, 1, "nhap", chiNhanh); } catch (err) {}
           });
         });
       }
 
-      // Trừ kho quà mới tại chi nhánh
-      const issuedGifts = [];
-      for (let i = 0; i < maQuaMoiList.length; i++) {
-        const code = maQuaMoiList[i].trim();
-        if (code) {
-          updateTonKhoPhuKien(code, 1, "xuat", chiNhanh);
-          issuedGifts.push(code);
-        }
-      }
-      rollbackActions.push(function () {
-        issuedGifts.forEach(function (code) {
-          try {
-            updateTonKhoPhuKien(code, 1, "nhap", chiNhanh);
-          } catch (err) {}
-        });
-      });
-
-      // Cập nhật thông tin đơn hàng gốc
       const oldMaQua = dhSheet.getRange(dhRow, COL_DH.MA_QUA_TANG).getValue();
       const oldTenQua = dhSheet.getRange(dhRow, COL_DH.TEN_QUA_TANG).getValue();
       const oldNote = dhSheet.getRange(dhRow, COL_DH.GHI_CHU).getValue();
 
-      updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.MA_QUA_TANG, maQuaMoi);
-      updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.TEN_QUA_TANG, tenQuaMoi);
+      updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.MA_QUA_TANG, finalMaQua);
+      updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.TEN_QUA_TANG, finalTenQua);
 
-      // Ghi nhận vào ghi chú đơn hàng
       const dateStr = formatDate(new Date());
       const newNote =
         (oldNote || "") +
         " [Đổi quà ngày " +
         dateStr +
         ": " +
-        maQuaCu +
+        trackingOldCodes.join(",") +
         " ➔ " +
-        maQuaMoi +
+        trackingNewCodes.join(",") +
         "]";
       updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.GHI_CHU, newNote);
 
       rollbackActions.push(function () {
         try {
-          updateCell(
-            SHEET_NAMES.DON_HANG,
-            dhRow,
-            COL_DH.MA_QUA_TANG,
-            oldMaQua,
-          );
-          updateCell(
-            SHEET_NAMES.DON_HANG,
-            dhRow,
-            COL_DH.TEN_QUA_TANG,
-            oldTenQua,
-          );
+          updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.MA_QUA_TANG, oldMaQua);
+          updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.TEN_QUA_TANG, oldTenQua);
           updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.GHI_CHU, oldNote);
         } catch (err) {}
       });
 
-      // Ghi nhận giao dịch vào bảng DoiTra
       const rowData = [];
       rowData[COL_DT_TRA.MA_DT - 1] = maDT;
       rowData[COL_DT_TRA.NGAY_DT - 1] = new Date();
@@ -176,11 +250,11 @@ const DoiTraStrategy = {
       rowData[COL_DT_TRA.MA_KH - 1] = maKH;
       rowData[COL_DT_TRA.TEN_KH - 1] = tenKH;
       rowData[COL_DT_TRA.LOAI_GD - 1] = "Đổi quà";
-      rowData[COL_DT_TRA.MA_SP_TRA - 1] = maQuaCu;
-      rowData[COL_DT_TRA.TEN_SP_TRA - 1] = tenQuaCu;
+      rowData[COL_DT_TRA.MA_SP_TRA - 1] = trackingOldCodes.join(", ");
+      rowData[COL_DT_TRA.TEN_SP_TRA - 1] = trackingOldNames.join(", ");
       rowData[COL_DT_TRA.IMEI_TRA - 1] = "";
-      rowData[COL_DT_TRA.MA_SP_NHAN - 1] = maQuaMoi;
-      rowData[COL_DT_TRA.TEN_SP_NHAN - 1] = tenQuaMoi;
+      rowData[COL_DT_TRA.MA_SP_NHAN - 1] = trackingNewCodes.join(", ");
+      rowData[COL_DT_TRA.TEN_SP_NHAN - 1] = trackingNewNames.join(", ");
       rowData[COL_DT_TRA.IMEI_NHAN - 1] = "";
       rowData[COL_DT_TRA.TIEN_HOAN_TRA - 1] = 0;
       rowData[COL_DT_TRA.PHI_DOI_TRA - 1] = Number(data.phiDoiTra) || 0;
@@ -216,6 +290,7 @@ const DoiTraStrategy = {
       return maDT;
     }
   },
+
 
   "Sản phẩm chính": {
     validate: function(data, context, ss) {
@@ -301,16 +376,18 @@ const DoiTraStrategy = {
         } catch (err) {}
       });
 
-      // 2. Hoàn trả kho phụ kiện cũ vào chi nhánh của đơn hàng gốc
-      const originalBranch = dhSheet
-        .getRange(dhRow, COL_DH.CHI_NHANH)
-        .getValue();
-      updateTonKhoPhuKien(maSP_Tra, soLuong, "nhap", originalBranch);
-      rollbackActions.push(function () {
-        try {
-          updateTonKhoPhuKien(maSP_Tra, soLuong, "xuat", originalBranch);
-        } catch (err) {}
-      });
+      // 2. Hoàn trả kho phụ kiện cũ vào chi nhánh của đơn hàng gốc (nếu chọn cộng kho)
+      if (data.congKho !== false) {
+        const originalBranch = dhSheet
+          .getRange(dhRow, COL_DH.CHI_NHANH)
+          .getValue();
+        updateTonKhoPhuKien(maSP_Tra, soLuong, "nhap", originalBranch);
+        rollbackActions.push(function () {
+          try {
+            updateTonKhoPhuKien(maSP_Tra, soLuong, "xuat", originalBranch);
+          } catch (err) {}
+        });
+      }
 
       // 3. Nếu là Đổi hàng -> Tạo đơn hàng mới cho phụ kiện mới nhận
       if (loaiGD === "Đổi hàng") {
@@ -423,26 +500,28 @@ const DoiTraStrategy = {
         } catch (err) {}
       });
 
-      // 2. Hoàn trả kho máy trả về trạng thái "Còn hàng"
-      let oldPhoneStatus = lookupValue(
-        SHEET_NAMES.DIEN_THOAI,
-        COL_DT.IMEI,
-        imei_Tra,
-        COL_DT.TRANG_THAI_KHO,
-      );
-      if (oldPhoneStatus === null)
-        oldPhoneStatus = lookupValue(
+      // 2. Hoàn trả kho máy trả về trạng thái "Máy lỗi" (nếu chọn cộng kho)
+      if (data.congKho !== false) {
+        let oldPhoneStatus = lookupValue(
           SHEET_NAMES.DIEN_THOAI,
-          COL_DT.MA_DT,
-          maSP_Tra,
+          COL_DT.IMEI,
+          imei_Tra,
           COL_DT.TRANG_THAI_KHO,
         );
-      updateTrangThaiKhoDT(imei_Tra || maSP_Tra, STOCK_STATUS.IN_STOCK);
-      rollbackActions.push(function () {
-        try {
-          updateTrangThaiKhoDT(imei_Tra || maSP_Tra, oldPhoneStatus);
-        } catch (err) {}
-      });
+        if (oldPhoneStatus === null)
+          oldPhoneStatus = lookupValue(
+            SHEET_NAMES.DIEN_THOAI,
+            COL_DT.MA_DT,
+            maSP_Tra,
+            COL_DT.TRANG_THAI_KHO,
+          );
+        updateTrangThaiKhoDT(imei_Tra || maSP_Tra, STOCK_STATUS.FAULTY);
+        rollbackActions.push(function () {
+          try {
+            updateTrangThaiKhoDT(imei_Tra || maSP_Tra, oldPhoneStatus);
+          } catch (err) {}
+        });
+      }
 
       // 3. Huỷ hợp đồng trả góp gốc nếu có
       const maTG = lookupValue(SHEET_NAMES.TRA_GOP, COL_TG.MA_DH, maDH, COL_TG.MA_TG);

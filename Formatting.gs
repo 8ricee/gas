@@ -249,7 +249,7 @@ function _applyDienThoaiFormatting(ss, colorMap, brands, branches) {
     { range: colTinhTrangLetter + "2:" + colTinhTrangLetter, values: ["Mới 100%", "Like New", "__NOT_EMPTY__"] },
     {
       range: colTrangThaiLetter + "2:" + colTrangThaiLetter,
-      values: [STOCK_STATUS.IN_STOCK, STOCK_STATUS.SOLD, STOCK_STATUS.INSTALLMENT, STOCK_STATUS.RETURNED],
+      values: [STOCK_STATUS.IN_STOCK, STOCK_STATUS.SOLD, STOCK_STATUS.INSTALLMENT, STOCK_STATUS.RETURNED, STOCK_STATUS.FAULTY],
     },
     { range: colChiNhanhLetter + "2:" + colChiNhanhLetter, values: branches },
   ], colorMap);
@@ -364,6 +364,7 @@ function _applyThuMuaFormatting(ss, colorMap, brands, branches) {
   const colTMLoaiGD = columnToLetter(COL_TM.LOAI_GD);
   const colTMHTTT = columnToLetter(COL_TM.HINH_THUC_TT);
   const colTMChiNhanh = columnToLetter(COL_TM.CHI_NHANH);
+  const colTMTrangThai = columnToLetter(COL_TM.TRANG_THAI);
 
   _applyRulesForSheet(sheet, [
     { range: colTMBrand + "2:" + colTMBrand, values: brands },
@@ -371,6 +372,7 @@ function _applyThuMuaFormatting(ss, colorMap, brands, branches) {
     { range: colTMLoaiGD + "2:" + colTMLoaiGD, values: ["Bán thẳng", "Thu cũ đổi mới"] },
     { range: colTMHTTT + "2:" + colTMHTTT, values: ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Trả góp", "Hỗn hợp"] },
     { range: colTMChiNhanh + "2:" + colTMChiNhanh, values: branches },
+    { range: colTMTrangThai + "2:" + colTMTrangThai, values: [ORDER_STATUS.PROCESSING, ORDER_STATUS.DONE, ORDER_STATUS.CANCELLED] },
   ], colorMap);
 }
 

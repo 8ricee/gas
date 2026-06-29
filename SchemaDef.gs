@@ -79,6 +79,7 @@ SCHEMA[SHEET_NAMES.DON_HANG] = [
   ["THUONG_HIEU", "Thương hiệu"],
   ["SO_LUONG", "Số lượng"],
   ["DON_GIA", "Đơn giá"],
+  ["TIEN_THU_MUA", "Trừ tiền thu máy"],
   ["THANH_TIEN", "Thành tiền"],
   ["HINH_THUC_BAN", "Hình thức bán"],
   ["HINH_THUC_TT", "Hình thức thanh toán"],
@@ -229,6 +230,7 @@ SCHEMA[SHEET_NAMES.THU_MUA] = [
   ["HINH_THUC_TT", "Hình thức thanh toán"],
   ["CHI_NHANH", "Chi nhánh"],
   ["NGUOI_THUC_HIEN", "Người thực hiện"],
+  ["TRANG_THAI", "Trạng thái"],
   ["GHI_CHU", "Ghi chú"],
   ["TIEN_MAT", "Tiền mặt"],
   ["CHUYEN_KHOAN", "Chuyển khoản"]

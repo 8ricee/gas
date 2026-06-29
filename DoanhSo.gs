@@ -728,6 +728,10 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
       const branch = String(row[COL_DH.CHI_NHANH - 1] || "");
       const ghiChu = String(row[COL_DH.GHI_CHU - 1] || "");
 
+      const tienThuMua = Number(row[COL_DH.TIEN_THU_MUA - 1]) || 0;
+      const detailStr = tenSP + " (SL: " + sl + " x " + formatCurrency(donGia) + "đ)" + 
+                        (tienThuMua > 0 ? " [Trừ máy thu: -" + formatCurrency(tienThuMua) + "đ]" : "");
+
       // Bán chính
       if (nguoiBan && (targetMaNV === "tat_ca" || nguoiBan === targetMaNV)) {
         const nvInfo = nvMap[nguoiBan] || {
@@ -746,8 +750,8 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
           tenNV: nvInfo.tenNV,
           vaiTro: "Bán chính",
           loaiGD: "Đơn hàng (Bán máy)",
-          detail: tenSP + " (SL: " + sl + " x " + formatCurrency(donGia) + "đ)",
-          revenue: thanhTien,
+          detail: detailStr,
+          revenue: thanhTien + tienThuMua,
           commission: hh * sl,
           serviceFee: 0,
           branch: branch,
@@ -774,7 +778,7 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
           tenNV: nvInfo.tenNV,
           vaiTro: "Hỗ trợ",
           loaiGD: "Đơn hàng (Hỗ trợ)",
-          detail: "Hỗ trợ bán: " + tenSP,
+          detail: "Hỗ trợ bán: " + tenSP + (tienThuMua > 0 ? " [Trừ máy thu: -" + formatCurrency(tienThuMua) + "đ]" : ""),
           revenue: 0,
           commission: hh * sl,
           serviceFee: 0,

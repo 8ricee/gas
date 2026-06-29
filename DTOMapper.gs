@@ -32,7 +32,8 @@ const DTO_DEFS = {
     tenQuaTang: ["TEN_QUA_TANG", "string"],
     coNhanQua: ["CO_NHAN_QUA", "string", "✗"],
     tienGiamGia: ["TIEN_GIAM_GIA", "number"],
-    imei: ["IMEI", "string"]
+    imei: ["IMEI", "string"],
+    tienThuMua: ["TIEN_THU_MUA", "number"]
   }
 };
 

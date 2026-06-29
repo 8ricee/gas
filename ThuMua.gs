@@ -35,6 +35,8 @@ function thucHienThuMua(data) {
     let giaThuMua = Number(data.giaThuMua) || 0;
     let tienHoTro = Number(data.tienHoTro) || 0;
     const tongTienTraKhach = giaThuMua + tienHoTro;
+    const tradeInDeduction = Number(data.tradeInDeduction) || 0;
+    const payoutAmount = Math.max(0, tongTienTraKhach - tradeInDeduction);
 
     const rollbackActions = [];
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -95,6 +97,7 @@ function thucHienThuMua(data) {
           coNhanQua: data.coNhanQua || "✗",
           maQuaTang: data.maQuaTang || "",
           tienGiamGia: tienGiamGia,
+          tradeInDeduction: tradeInDeduction,
           traGop:
             hinhThucBan === "Trả góp" && data.traGop
               ? {
@@ -103,7 +106,8 @@ function thucHienThuMua(data) {
                   loaiTraGop: data.traGop.loaiTraGop,
                   congTyTC: data.traGop.congTyTC,
                   tienMoiKy: data.traGop.tienMoiKy,
-                  tongTien: giaBanMoi - tienGiamGia - tienHoTro,
+                  // Khi khấu trừ vào đơn mới: tổng tiền cần trả góp giảm tương ứng với tradeInDeduction
+                  tongTien: giaBanMoi - tienGiamGia - tienHoTro - tradeInDeduction,
                 }
               : undefined,
         });
@@ -144,9 +148,11 @@ function thucHienThuMua(data) {
       rowData[COL_TM.HINH_THUC_TT - 1] = data.hinhThucThanhToan || "Tiền mặt";
       rowData[COL_TM.CHI_NHANH - 1] = chiNhanh;
       rowData[COL_TM.NGUOI_THUC_HIEN - 1] = data.nguoiThucHien || "";
+      rowData[COL_TM.TRANG_THAI - 1] = "Đang xử lý";
       rowData[COL_TM.GHI_CHU - 1] = data.ghiChu || "";
 
-      const splitResult = calculatePaymentSplit(data, tongTienTraKhach);
+      // Nếu "Trừ vào đơn mới": không chi tiền ra, giá trị thu mua được trừ trực tiếp vào đơn hàng mới
+      const splitResult = calculatePaymentSplit(data, payoutAmount);
       rowData[COL_TM.TIEN_MAT - 1] = splitResult.tienMat;
       rowData[COL_TM.CHUYEN_KHOAN - 1] = splitResult.chuyenKhoan;
 
