@@ -21,7 +21,7 @@ function getAllPhuKien(chiConHang, chiNhanh) {
     if (!obj.MA_PK) return;
     if (chiConHang) {
       if (
-        String(obj.TRANG_THAI) === "Ngừng bán" ||
+        String(obj.TRANG_THAI) === PK_STATUS.INACTIVE ||
         Number(obj.SO_LUONG_TON) <= 0
       )
         return;
@@ -61,7 +61,7 @@ function getPhuKienDropdown(chiNhanh) {
     if (
       obj.MA_PK &&
       String(obj.MA_PK).trim() !== "" &&
-      String(obj.TRANG_THAI) !== "Ngừng bán" &&
+      String(obj.TRANG_THAI) !== PK_STATUS.INACTIVE &&
       Number(obj.SO_LUONG_TON) > 0
     ) {
       const rowChiNhanh = String(obj.CHI_NHANH || "");
@@ -106,7 +106,7 @@ function addPhuKien(data) {
   rowData[COL_PK.GIA_BAN - 1] = Number(data.giaBan) || 0;
   rowData[COL_PK.SO_LUONG_TON - 1] = Number(data.soLuongTon) || 0;
   rowData[COL_PK.MO_TA - 1] = data.moTa || "";
-  rowData[COL_PK.TRANG_THAI - 1] = "Đang bán";
+  rowData[COL_PK.TRANG_THAI - 1] = PK_STATUS.ACTIVE;
   rowData[COL_PK.CHI_NHANH - 1] = data.chiNhanh || "";
 
   appendRow(SHEET_NAMES.PHU_KIEN, rowData);
@@ -332,7 +332,7 @@ function getPhuKienSapHet() {
     if (
       obj.MA_PK &&
       String(obj.MA_PK).trim() !== "" &&
-      String(obj.TRANG_THAI) === "Đang bán" &&
+      String(obj.TRANG_THAI) === PK_STATUS.ACTIVE &&
       Number(obj.SO_LUONG_TON) <= 5 &&
       Number(obj.SO_LUONG_TON) > 0
     ) {
@@ -368,7 +368,7 @@ function getPhuKienUniqueList() {
   data.forEach(function (row) {
     const obj = mapRowToObject(row, SHEET_NAMES.PHU_KIEN);
     const maPK = String(obj.MA_PK || "").trim();
-    if (maPK && maPK !== "" && String(obj.TRANG_THAI) !== "Ngừng bán") {
+    if (maPK && maPK !== "" && String(obj.TRANG_THAI) !== PK_STATUS.INACTIVE) {
       if (!seen[maPK]) {
         seen[maPK] = true;
         result.push({
@@ -423,7 +423,7 @@ function _buildPhuKienDropdownCache() {
     if (
       obj.MA_PK &&
       String(obj.MA_PK).trim() !== "" &&
-      String(obj.TRANG_THAI) !== "Ngừng bán" &&
+      String(obj.TRANG_THAI) !== PK_STATUS.INACTIVE &&
       Number(obj.SO_LUONG_TON) > 0
     ) {
       const cn = String(obj.CHI_NHANH || "");
@@ -461,7 +461,7 @@ function _buildPhuKienUniqueCache() {
   data.forEach(function (row) {
     const obj = mapRowToObject(row, SHEET_NAMES.PHU_KIEN);
     const maPK = String(obj.MA_PK || "").trim();
-    if (maPK && maPK !== "" && String(obj.TRANG_THAI) !== "Ngừng bán") {
+    if (maPK && maPK !== "" && String(obj.TRANG_THAI) !== PK_STATUS.INACTIVE) {
       if (!seen[maPK]) {
         seen[maPK] = true;
         result.push({

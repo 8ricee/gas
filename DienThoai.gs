@@ -58,7 +58,7 @@ function getDienThoaiDropdown(chiNhanh) {
     if (
       obj.MA_DT &&
       String(obj.MA_DT).trim() !== "" &&
-      String(obj.TRANG_THAI_KHO) === "Còn hàng"
+      String(obj.TRANG_THAI_KHO) === STOCK_STATUS.IN_STOCK
     ) {
       const rowChiNhanh = String(obj.CHI_NHANH || "");
       if (!chiNhanh || rowChiNhanh === chiNhanh) {
@@ -136,7 +136,7 @@ function addDienThoai(data) {
   rowData[COL_DT.GIA_NHAP - 1] = Number(data.giaNhap) || 0;
   rowData[COL_DT.GIA_BAN - 1] = Number(data.giaBan) || 0;
   rowData[COL_DT.GIA_TRA_GOP - 1] = Number(data.giaTraGop) || 0;
-  rowData[COL_DT.TRANG_THAI_KHO - 1] = "Còn hàng";
+  rowData[COL_DT.TRANG_THAI_KHO - 1] = STOCK_STATUS.IN_STOCK;
   rowData[COL_DT.GHI_CHU - 1] = data.ghiChu || "";
   rowData[COL_DT.CHI_NHANH - 1] = data.chiNhanh || "";
   rowData[COL_DT.NGAY_NHAP - 1] = new Date();
@@ -212,8 +212,8 @@ function updateDienThoai(maDT, data) {
   if (data.trangThaiKho !== undefined) {
     rowValues[COL_DT.TRANG_THAI_KHO - 1] = data.trangThaiKho;
     if (
-      data.trangThaiKho === "Đã bán" ||
-      data.trangThaiKho === "Đang trả góp"
+      data.trangThaiKho === STOCK_STATUS.SOLD ||
+      data.trangThaiKho === STOCK_STATUS.INSTALLMENT
     ) {
       rowValues[COL_DT.NGAY_XUAT - 1] = new Date();
     } else {
@@ -262,7 +262,7 @@ function updateTrangThaiKhoDT(maDT_or_imei, trangThai) {
   if (maxCols < maxColNeeded) {
     sheet.insertColumnsAfter(maxCols, maxColNeeded - maxCols);
   }
-  if (trangThai === "Đã bán" || trangThai === "Đang trả góp") {
+  if (trangThai === STOCK_STATUS.SOLD || trangThai === STOCK_STATUS.INSTALLMENT) {
     sheet.getRange(row, COL_DT.NGAY_XUAT).setValue(new Date());
   } else {
     sheet.getRange(row, COL_DT.NGAY_XUAT).setValue("");
@@ -508,7 +508,7 @@ function _buildDienThoaiDropdownCache() {
     if (
       obj.MA_DT &&
       String(obj.MA_DT).trim() !== "" &&
-      String(obj.TRANG_THAI_KHO) === "Còn hàng"
+      String(obj.TRANG_THAI_KHO) === STOCK_STATUS.IN_STOCK
     ) {
       const cn = String(obj.CHI_NHANH || "");
       const imeiVal = String(obj.IMEI || "");

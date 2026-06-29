@@ -188,7 +188,7 @@ const DoiTraStrategy = {
         data.hinhThucThanhToan || "Tiền mặt";
       rowData[COL_DT_TRA.CHI_NHANH - 1] = chiNhanh;
       rowData[COL_DT_TRA.NGUOI_THUC_HIEN - 1] = data.nguoiThucHien || "";
-      rowData[COL_DT_TRA.TRANG_THAI - 1] = "Hoàn thành";
+      rowData[COL_DT_TRA.TRANG_THAI - 1] = ORDER_STATUS.DONE;
       rowData[COL_DT_TRA.GHI_CHU - 1] = data.ghiChu || "";
 
       const totalPay = Number(data.phiDoiTra) || 0;
@@ -282,7 +282,7 @@ const DoiTraStrategy = {
       const oldDHStatus = dhSheet
         .getRange(dhRow, COL_DH.TRANG_THAI)
         .getValue();
-      updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.TRANG_THAI, "Đổi trả");
+      updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.TRANG_THAI, ORDER_STATUS.EXCHANGED);
       rollbackActions.push(function () {
         try {
           updateCell(
@@ -360,7 +360,7 @@ const DoiTraStrategy = {
         data.hinhThucThanhToan || "Tiền mặt";
       rowData[COL_DT_TRA.CHI_NHANH - 1] = chiNhanh;
       rowData[COL_DT_TRA.NGUOI_THUC_HIEN - 1] = data.nguoiThucHien || "";
-      rowData[COL_DT_TRA.TRANG_THAI - 1] = "Hoàn thành";
+      rowData[COL_DT_TRA.TRANG_THAI - 1] = ORDER_STATUS.DONE;
       rowData[COL_DT_TRA.GHI_CHU - 1] = data.ghiChu || "";
 
       const totalPay = tienHoanTra > 0 ? tienHoanTra : phiDoiTra;
@@ -384,23 +384,20 @@ const DoiTraStrategy = {
     _executeDienThoai: function(data, context, ss, rollbackActions) {
       const { dhRow, dhSheet, chiNhanh, maDH, maKH, tenKH, maDT, loaiGD, maSP_Tra, tenSP_Tra, maSP_Nhan } = context;
       
-      const ghiChuDH =
-        dhSheet.getRange(dhRow, COL_DH.GHI_CHU).getValue() || "";
-      const imeiMatch = ghiChuDH.match(/\[IMEI:\s*([^\s\]]+)\]/);
-      const imei_Tra = imeiMatch
-        ? imeiMatch[1]
-        : lookupValue(
-            SHEET_NAMES.DIEN_THOAI,
-            COL_DT.MA_DT,
-            maSP_Tra,
-            COL_DT.IMEI,
-          ) || "";
+      const imei_Tra =
+        dhSheet.getRange(dhRow, COL_DH.IMEI).getValue() ||
+        lookupValue(
+          SHEET_NAMES.DIEN_THOAI,
+          COL_DT.MA_DT,
+          maSP_Tra,
+          COL_DT.IMEI,
+        ) || "";
 
       // 1. Đổi trạng thái đơn hàng gốc sang "Đổi trả" để trừ doanh thu/hoa hồng
       const oldDHStatus = dhSheet
         .getRange(dhRow, COL_DH.TRANG_THAI)
         .getValue();
-      updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.TRANG_THAI, "Đổi trả");
+      updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.TRANG_THAI, ORDER_STATUS.EXCHANGED);
       rollbackActions.push(function () {
         try {
           updateCell(
@@ -426,7 +423,7 @@ const DoiTraStrategy = {
           maSP_Tra,
           COL_DT.TRANG_THAI_KHO,
         );
-      updateTrangThaiKhoDT(imei_Tra || maSP_Tra, "Còn hàng");
+      updateTrangThaiKhoDT(imei_Tra || maSP_Tra, STOCK_STATUS.IN_STOCK);
       rollbackActions.push(function () {
         try {
           updateTrangThaiKhoDT(imei_Tra || maSP_Tra, oldPhoneStatus);
@@ -504,7 +501,7 @@ const DoiTraStrategy = {
           if (
             String(dtData[i][maDTIdx]) === maSP_Nhan &&
             String(dtData[i][chiNhanhIdx]) === chiNhanh &&
-            String(dtData[i][trangThaiKhoIdx]) === "Còn hàng"
+            String(dtData[i][trangThaiKhoIdx]) === STOCK_STATUS.IN_STOCK
           ) {
             imei_Nhan = String(dtData[i][imeiIdx]);
             break;
@@ -585,7 +582,7 @@ const DoiTraStrategy = {
         data.hinhThucThanhToan || "Tiền mặt";
       rowData[COL_DT_TRA.CHI_NHANH - 1] = chiNhanh;
       rowData[COL_DT_TRA.NGUOI_THUC_HIEN - 1] = data.nguoiThucHien || "";
-      rowData[COL_DT_TRA.TRANG_THAI - 1] = "Hoàn thành";
+      rowData[COL_DT_TRA.TRANG_THAI - 1] = ORDER_STATUS.DONE;
       rowData[COL_DT_TRA.GHI_CHU - 1] = data.ghiChu || "";
 
       const totalPay = tienHoanTra > 0 ? tienHoanTra : phiDoiTra;
@@ -618,21 +615,7 @@ function thucHienDoiTra(data) {
       expectedPaid = Number(data.phiDoiTra) || 0;
     }
 
-    if (data.hinhThucThanhToan === "Hỗn hợp") {
-      const tongThanhToan =
-        (Number(data.splitChuyenKhoan) || 0) + (Number(data.splitTienMat) || 0);
-      if (Math.abs(tongThanhToan - expectedPaid) > 1) {
-        throw new Error(
-          "Lỗi dữ liệu: Tổng tiền mặt (" +
-            data.splitTienMat +
-            ") và chuyển khoản (" +
-            data.splitChuyenKhoan +
-            ") không khớp với số tiền cần thanh toán (" +
-            expectedPaid +
-            ")!",
-        );
-      }
-    }
+    assertPaymentMatches(data, expectedPaid);
 
     const maDT = generateId("DT", SHEET_NAMES.DOI_TRA);
     const maDH = data.maDH;
@@ -656,7 +639,7 @@ function thucHienDoiTra(data) {
     const dhSheet = ss.getSheetByName(SHEET_NAMES.DON_HANG);
 
     const dhStatus = dhSheet.getRange(dhRow, COL_DH.TRANG_THAI).getValue();
-    if (dhStatus === "Huỷ" || dhStatus === "Đổi trả") {
+    if (isCancelStatus(dhStatus) || dhStatus === ORDER_STATUS.EXCHANGED) {
       throw new Error(
         "Đơn hàng " +
           maDH +

@@ -51,7 +51,7 @@ function chuyenKho(data) {
           if (
             String(dtData[i][maDTIdx]) === maSP &&
             String(dtData[i][chiNhanhIdx]) === cnNguon &&
-            String(dtData[i][trangThaiKhoIdx]) === "Còn hàng"
+            String(dtData[i][trangThaiKhoIdx]) === STOCK_STATUS.IN_STOCK
           ) {
             row = i + 2;
             data.imei = String(dtData[i][imeiIdx]); // Lưu lại IMEI tìm được
@@ -81,9 +81,9 @@ function chuyenKho(data) {
             ")",
         );
       }
-      if (currentStatus !== "Còn hàng") {
+      if (currentStatus !== STOCK_STATUS.IN_STOCK) {
         throw new Error(
-          'Điện thoại không ở trạng thái "Còn hàng" (Hiện tại: ' +
+          'Điện thoại không ở trạng thái "' + STOCK_STATUS.IN_STOCK + '" (Hiện tại: ' +
             currentStatus +
             ")",
         );

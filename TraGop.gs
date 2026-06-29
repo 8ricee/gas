@@ -77,7 +77,7 @@ function taoHopDongTraGop(data) {
   rowData[COL_TG.DA_TRA_SO_TIEN - 1] = isCTTC ? tongTien : traTruocNum;
   rowData[COL_TG.LOAI_TRA_GOP - 1] = loaiTraGop;
   rowData[COL_TG.CONG_TY_TC - 1] = data.congTyTC || "";
-  rowData[COL_TG.TRANG_THAI - 1] = isCTTC ? "Hoàn tất" : "Đang trả";
+  rowData[COL_TG.TRANG_THAI - 1] = isCTTC ? INSTALLMENT_STATUS.DONE : INSTALLMENT_STATUS.RUNNING;
   rowData[COL_TG.CHI_NHANH - 1] = data.chiNhanh || "";
   rowData[COL_TG.TIEN_MAT - 1] = tienMat;
   rowData[COL_TG.CHUYEN_KHOAN - 1] = chuyenKhoan;
@@ -101,7 +101,7 @@ function taoHopDongTraGop(data) {
       lichData[COL_LSTG.NGAY_CAN_TRA - 1] = ngayCanTra;
       lichData[COL_LSTG.NGAY_THUC_TRA - 1] = "";
       lichData[COL_LSTG.HINH_THUC_TT - 1] = "";
-      lichData[COL_LSTG.TRANG_THAI - 1] = "Chưa trả";
+      lichData[COL_LSTG.TRANG_THAI - 1] = LSTG_STATUS.UNPAID;
       lichData[COL_LSTG.GHI_CHU - 1] = "";
       lichData[COL_LSTG.TIEN_MAT - 1] = 0;
       lichData[COL_LSTG.CHUYEN_KHOAN - 1] = 0;
@@ -183,7 +183,7 @@ function ghiNhanThanhToan(data) {
     rowValues[COL_LSTG.SO_TIEN_DA_TRA - 1] = soTien;
     rowValues[COL_LSTG.NGAY_THUC_TRA - 1] = new Date();
     rowValues[COL_LSTG.HINH_THUC_TT - 1] = splitResult.hinhThucTTDisplay;
-    rowValues[COL_LSTG.TRANG_THAI - 1] = "Đã trả";
+    rowValues[COL_LSTG.TRANG_THAI - 1] = LSTG_STATUS.PAID;
     if (data.ghiChu) {
       rowValues[COL_LSTG.GHI_CHU - 1] = data.ghiChu;
     }
@@ -232,7 +232,7 @@ function _capNhatTongTraGop(maTG) {
 
     allData.forEach(function (row) {
       const obj = mapRowToObject(row, SHEET_NAMES.LICH_SU_TRA_GOP);
-      if (String(obj.MA_TG) === maTG && String(obj.TRANG_THAI) === "Đã trả") {
+      if (String(obj.MA_TG) === maTG && String(obj.TRANG_THAI) === LSTG_STATUS.PAID) {
         daTraSoKy++;
         daTraSoTien += parseAmountVal(obj.SO_TIEN_DA_TRA);
       }
@@ -255,17 +255,15 @@ function _capNhatTongTraGop(maTG) {
 
     // Cập nhật trạng thái
     if (daTraSoKy >= soKy) {
-      rowValues[COL_TG.TRANG_THAI - 1] = "Hoàn tất";
+      rowValues[COL_TG.TRANG_THAI - 1] = INSTALLMENT_STATUS.DONE;
       
       // Cập nhật trạng thái kho điện thoại → Đã bán
       const maDH = rowValues[COL_TG.MA_DH - 1];
       const maSP = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.MA_SP);
       const nguonSP = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.NGUON_SP);
       if (nguonSP === "Điện thoại" && maSP) {
-        const ghiChuDH = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.GHI_CHU) || "";
-        const imeiMatch = ghiChuDH.match(/\[IMEI:\s*([^\s\]]+)\]/);
-        const imei = imeiMatch ? imeiMatch[1] : "";
-        updateTrangThaiKhoDT(imei || maSP, "Đã bán");
+        const imei = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.IMEI) || "";
+        updateTrangThaiKhoDT(imei || maSP, STOCK_STATUS.SOLD);
       }
     }
 
@@ -287,7 +285,7 @@ function huyHopDongTraGop(maDH) {
     if (maTG) {
       const tgRow = findRow(SHEET_NAMES.TRA_GOP, COL_TG.MA_TG, maTG);
       if (tgRow !== -1) {
-        updateCell(SHEET_NAMES.TRA_GOP, tgRow, COL_TG.TRANG_THAI, "Đã huỷ");
+        updateCell(SHEET_NAMES.TRA_GOP, tgRow, COL_TG.TRANG_THAI, INSTALLMENT_STATUS.CANCELLED);
 
         // Cập nhật trạng thái các kỳ chưa thanh toán trong Lịch sử trả góp thành "Đã huỷ"
         const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -302,9 +300,9 @@ function huyHopDongTraGop(maDH) {
             for (let i = 0; i < allData.length; i++) {
               if (
                 String(allData[i][COL_LSTG.MA_TG - 1]) === maTG &&
-                String(allData[i][COL_LSTG.TRANG_THAI - 1]) !== "Đã trả"
+                String(allData[i][COL_LSTG.TRANG_THAI - 1]) !== LSTG_STATUS.PAID
               ) {
-                allData[i][COL_LSTG.TRANG_THAI - 1] = "Đã huỷ";
+                allData[i][COL_LSTG.TRANG_THAI - 1] = LSTG_STATUS.CANCELLED;
                 changed = true;
               }
             }
@@ -343,11 +341,11 @@ function getTraGopQuaHan() {
     const trangThai = String(obj.TRANG_THAI);
     const ngayCanTra = obj.NGAY_CAN_TRA;
 
-    if (trangThai === "Chưa trả" && ngayCanTra instanceof Date) {
+    if (trangThai === LSTG_STATUS.UNPAID && ngayCanTra instanceof Date) {
       ngayCanTra.setHours(0, 0, 0, 0);
       if (ngayCanTra < today) {
         // Đánh dấu quá hạn
-        lstgSheet.getRange(index + 2, COL_LSTG.TRANG_THAI).setValue("Quá hạn");
+        lstgSheet.getRange(index + 2, COL_LSTG.TRANG_THAI).setValue(LSTG_STATUS.LATE);
 
         const overdueObj = {
           MaLS: String(obj.MA_LS),
@@ -358,7 +356,7 @@ function getTraGopQuaHan() {
           NgayCanTra: obj.NGAY_CAN_TRA,
           NgayThucTra: obj.NGAY_THUC_TRA,
           HinhThucThanhToan: String(obj.HINH_THUC_TT),
-          TrangThai: "Quá hạn",
+          TrangThai: LSTG_STATUS.LATE,
           GhiChu: String(obj.GHI_CHU),
         };
 
@@ -451,7 +449,7 @@ function getTraGopDropdown() {
     if (
       obj.MA_TG &&
       String(obj.MA_TG).trim() !== "" &&
-      String(obj.TRANG_THAI) === "Đang trả" &&
+      String(obj.TRANG_THAI) === INSTALLMENT_STATUS.RUNNING &&
       String(obj.LOAI_TRA_GOP) === "Cửa hàng"
     ) {
       result.push({
@@ -487,7 +485,7 @@ function getKyChuaTra(maTG) {
 
   allLSTG.forEach(function (row) {
     const obj = mapRowToObject(row, SHEET_NAMES.LICH_SU_TRA_GOP);
-    if (String(obj.MA_TG) === maTG && String(obj.TRANG_THAI) !== "Đã trả") {
+    if (String(obj.MA_TG) === maTG && String(obj.TRANG_THAI) !== LSTG_STATUS.PAID) {
       result.push({
         value: Number(obj.KY_SO),
         text:

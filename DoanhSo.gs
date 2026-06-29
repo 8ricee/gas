@@ -50,8 +50,8 @@ function chotDoanhSoThang(thang, nam) {
   const dtDonHangs = donHangs.filter(function (dh) {
     return (
       dh.NguonSP === "Điện thoại" &&
-      dh.TrangThai !== "Huỷ" &&
-      dh.TrangThai !== "Đổi trả"
+      !isCancelStatus(dh.TrangThai) &&
+      dh.TrangThai !== ORDER_STATUS.EXCHANGED
     );
   });
 
@@ -713,8 +713,8 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
       ngayBan >= startDate &&
       ngayBan <= endDate &&
       String(row[COL_DH.NGUON_SP - 1]) === "Điện thoại" &&
-      status !== "Huỷ" &&
-      status !== "Đổi trả"
+      !isCancelStatus(status) &&
+      status !== ORDER_STATUS.EXCHANGED
     ) {
       const maDH = String(row[COL_DH.MA_DH - 1]);
       const tenKH = String(row[COL_DH.TEN_KH - 1]);
@@ -1004,8 +1004,8 @@ function _tinhDoanhSoTuNgayDenNgay(startDate, endDate) {
       ngayBan >= startDate &&
       ngayBan <= endDate &&
       String(row[COL_DH.NGUON_SP - 1]) === "Điện thoại" &&
-      status !== "Huỷ" &&
-      status !== "Đổi trả"
+      !isCancelStatus(status) &&
+      status !== ORDER_STATUS.EXCHANGED
     );
   });
 

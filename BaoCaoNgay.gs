@@ -186,7 +186,7 @@ function _collectDonHang(targetDate, branchMetrics, fallbackBranch, transactions
     const ngayBan = row[COL_DH.NGAY_BAN - 1];
     if (ngayBan instanceof Date && _isSameDay(ngayBan, targetDate)) {
       const status = String(row[COL_DH.TRANG_THAI - 1]);
-      if (status === "Huỷ" || status === "Đổi trả") return;
+      if (isCancelStatus(status) || status === ORDER_STATUS.EXCHANGED) return;
 
       const maDH = String(row[COL_DH.MA_DH - 1]);
       const tenKH = String(row[COL_DH.TEN_KH - 1]);
@@ -388,7 +388,7 @@ function _collectDichVu(targetDate, branchMetrics, fallbackBranch, transactions)
     const ngayGD = row[COL_DV.NGAY_GD - 1];
     if (ngayGD instanceof Date && _isSameDay(ngayGD, targetDate)) {
       const status = String(row[COL_DV.TRANG_THAI - 1]);
-      if (status === "Huỷ") return;
+      if (isCancelStatus(status)) return;
 
       const maDV = String(row[COL_DV.MA_DV - 1]);
       const loaiDV = String(row[COL_DV.LOAI_DV - 1]);
@@ -648,7 +648,7 @@ function _collectDoiTra(targetDate, branchMetrics, fallbackBranch, transactions,
     const ngayDT = row[COL_DT_TRA.NGAY_DT - 1];
     if (ngayDT instanceof Date && _isSameDay(ngayDT, targetDate)) {
       const status = String(row[COL_DT_TRA.TRANG_THAI - 1]);
-      if (status === "Huỷ") return;
+      if (isCancelStatus(status)) return;
 
       const maDT = String(row[COL_DT_TRA.MA_DT - 1]);
       const maDH = String(row[COL_DT_TRA.MA_DH - 1]);
@@ -923,7 +923,7 @@ function _collectBaoHanh(targetDate, branchMetrics, fallbackBranch, transactions
     const ngayNhan = row[COL_BH.NGAY_NHAN - 1];
     if (ngayNhan instanceof Date && _isSameDay(ngayNhan, targetDate)) {
       const status = String(row[COL_BH.TRANG_THAI - 1]);
-      if (status === "Huỷ") return;
+      if (isCancelStatus(status)) return;
 
       const maBH = String(row[COL_BH.MA_BH - 1]);
       const tenKH = String(row[COL_BH.TEN_KH - 1]);

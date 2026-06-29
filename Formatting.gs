@@ -249,7 +249,7 @@ function _applyDienThoaiFormatting(ss, colorMap, brands, branches) {
     { range: colTinhTrangLetter + "2:" + colTinhTrangLetter, values: ["Mới 100%", "Like New", "__NOT_EMPTY__"] },
     {
       range: colTrangThaiLetter + "2:" + colTrangThaiLetter,
-      values: ["Còn hàng", "Đã bán", "Đang trả góp", "Đã trả lại"],
+      values: [STOCK_STATUS.IN_STOCK, STOCK_STATUS.SOLD, STOCK_STATUS.INSTALLMENT, STOCK_STATUS.RETURNED],
     },
     { range: colChiNhanhLetter + "2:" + colChiNhanhLetter, values: branches },
   ], colorMap);
@@ -268,7 +268,7 @@ function _applyPhuKienFormatting(ss, colorMap, brands, branches) {
       values: ["Sạc", "Ốp lưng", "Tai nghe", "Cường lực", "Cáp", "Khác"],
     },
     { range: colPKThuongHieu + "2:" + colPKThuongHieu, values: brands },
-    { range: colPKTrangThai + "2:" + colPKTrangThai, values: ["Đang bán", "Ngừng bán"] },
+    { range: colPKTrangThai + "2:" + colPKTrangThai, values: [PK_STATUS.ACTIVE, PK_STATUS.INACTIVE] },
     { range: colPKChiNhanh + "2:" + colPKChiNhanh, values: branches },
   ], colorMap);
 }
@@ -285,8 +285,8 @@ function _applyDonHangFormatting(ss, colorMap, branches) {
   _applyRulesForSheet(sheet, [
     { range: colDHNguonSP + "2:" + colDHNguonSP, values: ["Điện thoại", "Phụ kiện"] },
     { range: colDHHinhThucBan + "2:" + colDHHinhThucBan, values: ["Bán thẳng", "Trả góp"] },
-    { range: colDHHTTT + "2:" + colDHHTTT, values: ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Hỗn hợp"] },
-    { range: colDHTrangThai + "2:" + colDHTrangThai, values: ["Hoàn thành", "Đang xử lý", "Huỷ", "Đổi trả"] },
+    { range: colDHHTTT + "2:" + colDHHTTT, values: [PAYMENT_METHOD.CASH, PAYMENT_METHOD.TRANSFER, PAYMENT_METHOD.POS, PAYMENT_METHOD.MIXED] },
+    { range: colDHTrangThai + "2:" + colDHTrangThai, values: [ORDER_STATUS.DONE, ORDER_STATUS.PROCESSING, ORDER_STATUS.CANCELLED, ORDER_STATUS.EXCHANGED] },
     { range: colDHChiNhanh + "2:" + colDHChiNhanh, values: branches },
     { range: colDHCoNhanQua + "2:" + colDHCoNhanQua, values: ["✓", "✗"] },
   ], colorMap);
@@ -304,8 +304,8 @@ function _applyDichVuFormatting(ss, colorMap, branches) {
       range: colDVLoaiDV + "2:" + colDVLoaiDV,
       values: ["Chuyển khoản hộ", "Rút tiền mặt", "Nạp thẻ điện thoại"],
     },
-    { range: colDVHTTT + "2:" + colDVHTTT, values: ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Hỗn hợp"] },
-    { range: colDVTrangThai + "2:" + colDVTrangThai, values: ["Hoàn thành", "Huỷ"] },
+    { range: colDVHTTT + "2:" + colDVHTTT, values: [PAYMENT_METHOD.CASH, PAYMENT_METHOD.TRANSFER, PAYMENT_METHOD.POS, PAYMENT_METHOD.MIXED] },
+    { range: colDVTrangThai + "2:" + colDVTrangThai, values: [ORDER_STATUS.DONE, ORDER_STATUS.CANCELLED] },
     { range: colDVChiNhanh + "2:" + colDVChiNhanh, values: branches },
   ], colorMap);
 }
@@ -318,7 +318,7 @@ function _applyTraGopFormatting(ss, colorMap, branches) {
 
   _applyRulesForSheet(sheet, [
     { range: colTGLoaiTG + "2:" + colTGLoaiTG, values: ["Cửa hàng", "Công ty tài chính"] },
-    { range: colTGTrangThai + "2:" + colTGTrangThai, values: ["Đang trả", "Hoàn tất", "Quá hạn", "Đã huỷ"] },
+    { range: colTGTrangThai + "2:" + colTGTrangThai, values: [INSTALLMENT_STATUS.RUNNING, INSTALLMENT_STATUS.DONE, INSTALLMENT_STATUS.LATE, INSTALLMENT_STATUS.CANCELLED] },
     { range: colTGChiNhanh + "2:" + colTGChiNhanh, values: branches },
   ], colorMap);
 }
@@ -329,8 +329,8 @@ function _applyLichSuTraGopFormatting(ss, colorMap) {
   const colLSTGTrangThai = columnToLetter(COL_LSTG.TRANG_THAI);
 
   _applyRulesForSheet(sheet, [
-    { range: colLSTGHTTT + "2:" + colLSTGHTTT, values: ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Hỗn hợp"] },
-    { range: colLSTGTrangThai + "2:" + colLSTGTrangThai, values: ["Đã trả", "Chưa trả", "Quá hạn", "Đã huỷ"] },
+    { range: colLSTGHTTT + "2:" + colLSTGHTTT, values: [PAYMENT_METHOD.CASH, PAYMENT_METHOD.TRANSFER, PAYMENT_METHOD.POS, PAYMENT_METHOD.MIXED] },
+    { range: colLSTGTrangThai + "2:" + colLSTGTrangThai, values: [LSTG_STATUS.PAID, LSTG_STATUS.UNPAID, LSTG_STATUS.LATE, LSTG_STATUS.CANCELLED] },
   ], colorMap);
 }
 
@@ -351,9 +351,9 @@ function _applyDoiTraFormatting(ss, colorMap, branches) {
 
   _applyRulesForSheet(sheet, [
     { range: colDTRLoaiGD + "2:" + colDTRLoaiGD, values: ["Trả máy", "Đổi máy"] },
-    { range: colDTRHTTT + "2:" + colDTRHTTT, values: ["Tiền mặt", "Chuyển khoản", "Hỗn hợp"] },
+    { range: colDTRHTTT + "2:" + colDTRHTTT, values: [PAYMENT_METHOD.CASH, PAYMENT_METHOD.TRANSFER, PAYMENT_METHOD.MIXED] },
     { range: colDTRChiNhanh + "2:" + colDTRChiNhanh, values: branches },
-    { range: colDTRTrangThai + "2:" + colDTRTrangThai, values: ["Hoàn thành", "Huỷ"] },
+    { range: colDTRTrangThai + "2:" + colDTRTrangThai, values: [ORDER_STATUS.DONE, ORDER_STATUS.CANCELLED] },
   ], colorMap);
 }
 
@@ -385,9 +385,9 @@ function _applyBaoHanhFormatting(ss, colorMap, branches) {
     { range: colBHLoaiDV + "2:" + colBHLoaiDV, values: ["Sửa chữa", "Bảo hành"] },
     {
       range: colBHHTTT + "2:" + colBHHTTT,
-      values: ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Hỗn hợp"],
+      values: [PAYMENT_METHOD.CASH, PAYMENT_METHOD.TRANSFER, PAYMENT_METHOD.POS, PAYMENT_METHOD.MIXED],
     },
-    { range: colBHTrangThai + "2:" + colBHTrangThai, values: ["Đang xử lý", "Hoàn thành", "Huỷ"] },
+    { range: colBHTrangThai + "2:" + colBHTrangThai, values: [ORDER_STATUS.PROCESSING, ORDER_STATUS.DONE, ORDER_STATUS.CANCELLED] },
     { range: colBHChiNhanh + "2:" + colBHChiNhanh, values: branches },
   ], colorMap);
 }

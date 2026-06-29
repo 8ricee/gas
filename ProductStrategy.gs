@@ -34,7 +34,7 @@ const ProductStrategy = {
           if (
             String(dtData[i][maDTIdx]) === data.maSP &&
             String(dtData[i][chiNhanhIdx]) === chiNhanh &&
-            String(dtData[i][trangThaiKhoIdx]) === "Còn hàng"
+            String(dtData[i][trangThaiKhoIdx]) === STOCK_STATUS.IN_STOCK
           ) {
             phoneRow = i + 2;
             data.imei = String(dtData[i][imeiIdx]); // Tự động điền IMEI tìm được
@@ -55,7 +55,7 @@ const ProductStrategy = {
       }
 
       const trangThaiKho = dtSheet.getRange(phoneRow, COL_DT.TRANG_THAI_KHO).getValue();
-      if (trangThaiKho !== "Còn hàng") {
+      if (trangThaiKho !== STOCK_STATUS.IN_STOCK) {
         throw new Error(
           "Điện thoại " +
             data.maSP +
@@ -77,19 +77,19 @@ const ProductStrategy = {
       }
     },
     updateStock: function(data, chiNhanh, soLuong, rollbackActions, ss) {
-      let trangThaiMoi = "Đã bán";
+      let trangThaiMoi = STOCK_STATUS.SOLD;
       if (
         data.hinhThucBan === "Trả góp" &&
         data.traGop &&
         data.traGop.loaiTraGop === "Cửa hàng"
       ) {
-        trangThaiMoi = "Đang trả góp";
+        trangThaiMoi = STOCK_STATUS.INSTALLMENT;
       }
       updateTrangThaiKhoDT(data.imei || data.maSP, trangThaiMoi);
       (function (key) {
         rollbackActions.push(function () {
           try {
-            updateTrangThaiKhoDT(key, "Còn hàng");
+            updateTrangThaiKhoDT(key, STOCK_STATUS.IN_STOCK);
           } catch (err) {
             Logger.log("Rollback failed to restore phone status: " + err.message);
           }

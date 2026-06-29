@@ -45,21 +45,7 @@ function taoDonHang(data) {
       expectedPaid = ttVal;
     }
 
-    if (data.hinhThucThanhToan === "Hỗn hợp") {
-      const tongThanhToan =
-        (Number(data.splitChuyenKhoan) || 0) + (Number(data.splitTienMat) || 0);
-      if (Math.abs(tongThanhToan - expectedPaid) > 1) {
-        throw new Error(
-          "Lỗi dữ liệu: Tổng tiền mặt (" +
-            data.splitTienMat +
-            ") và chuyển khoản (" +
-            data.splitChuyenKhoan +
-            ") không khớp với giá trị cần thanh toán (" +
-            expectedPaid +
-            ")!",
-        );
-      }
-    }
+    assertPaymentMatches(data, expectedPaid);
 
     return _executeWithRollback(function (rollbackActions) {
       if (data.items && data.items.length > 0) {
@@ -273,20 +259,20 @@ function _taoDonHangSingle(data, rollbackActions, ss) {
   rowData[COL_DH.DON_GIA - 1] = donGia;
   rowData[COL_DH.THANH_TIEN - 1] = thanhTien;
   rowData[COL_DH.HINH_THUC_BAN - 1] = data.hinhThucBan || "Bán thẳng";
-  rowData[COL_DH.HINH_THUC_TT - 1] = data.hinhThucThanhToan || "Tiền mặt";
+  rowData[COL_DH.HINH_THUC_TT - 1] = data.hinhThucThanhToan || PAYMENT_METHOD.CASH;
   rowData[COL_DH.NGUOI_BAN - 1] = data.nguoiBan || "";
   rowData[COL_DH.TEN_NGUOI_BAN - 1] = tenNguoiBan;
   rowData[COL_DH.QUYEN_XUAT - 1] = coQuyenXuatMay;
   rowData[COL_DH.NGUOI_HO_TRO - 1] = data.nguoiHoTro || "";
   rowData[COL_DH.TEN_NGUOI_HO_TRO - 1] = tenNguoiHoTro;
-  rowData[COL_DH.TRANG_THAI - 1] = "Hoàn thành";
-  rowData[COL_DH.GHI_CHU - 1] =
-    (data.ghiChu || "") + (data.imei ? " [IMEI: " + data.imei + "]" : "");
+  rowData[COL_DH.TRANG_THAI - 1] = ORDER_STATUS.DONE;
+  rowData[COL_DH.GHI_CHU - 1] = data.ghiChu || "";
   rowData[COL_DH.CHI_NHANH - 1] = chiNhanh;
   rowData[COL_DH.MA_QUA_TANG - 1] = maQuaTang;
   rowData[COL_DH.TEN_QUA_TANG - 1] = tenQuaTang;
   rowData[COL_DH.CO_NHAN_QUA - 1] = coNhanQua;
   rowData[COL_DH.TIEN_GIAM_GIA - 1] = tienGiamGia;
+  rowData[COL_DH.IMEI - 1] = data.imei || "";
 
   const paidAmount = (data.hinhThucBan === "Trả góp" && data.traGop) ? (Number(data.traGop.traTruoc) || 0) : thanhTien;
   const splitResult = calculatePaymentSplit(data, paidAmount);
@@ -462,7 +448,7 @@ function huyDonHang(maDH) {
 
     const currentTT = rowValues[COL_DH.TRANG_THAI - 1];
 
-    if (currentTT === "Huỷ") {
+    if (isCancelStatus(currentTT)) {
       showAlert("⚠️ Cảnh báo", "Đơn hàng " + maDH + " đã bị huỷ trước đó.");
       return false;
     }
@@ -475,9 +461,7 @@ function huyDonHang(maDH) {
       const chiNhanh = rowValues[COL_DH.CHI_NHANH - 1];
 
       if (nguonSP === "Điện thoại") {
-        const ghiChu = rowValues[COL_DH.GHI_CHU - 1] || "";
-        const imeiMatch = ghiChu.match(/\[IMEI:\s*([^\s\]]+)\]/);
-        const imei = imeiMatch ? imeiMatch[1] : "";
+        const imei = rowValues[COL_DH.IMEI - 1] || "";
         const targetPhoneKey = imei || maSP;
 
         let oldPhoneStatus = lookupValue(
@@ -495,7 +479,7 @@ function huyDonHang(maDH) {
           );
         }
 
-        updateTrangThaiKhoDT(targetPhoneKey, "Còn hàng");
+        updateTrangThaiKhoDT(targetPhoneKey, STOCK_STATUS.IN_STOCK);
 
         (function (key, status) {
           rollbackActions.push(function () {
@@ -549,7 +533,7 @@ function huyDonHang(maDH) {
       }
 
       // Đánh dấu huỷ
-      updateCell(SHEET_NAMES.DON_HANG, row, COL_DH.TRANG_THAI, "Huỷ");
+      updateCell(SHEET_NAMES.DON_HANG, row, COL_DH.TRANG_THAI, ORDER_STATUS.CANCELLED);
 
       (function (rowNum, oldStatus) {
         rollbackActions.push(function () {
@@ -640,7 +624,7 @@ function getTongKetDonHang(thang, nam) {
   };
 
   donHangs.forEach(function (dh) {
-    if (dh.TrangThai !== "Huỷ" && dh.TrangThai !== "Đổi trả") {
+    if (!isCancelStatus(dh.TrangThai) && dh.TrangThai !== ORDER_STATUS.EXCHANGED) {
       result.tongDonHang++;
       result.tongDoanhThu += Number(dh.ThanhTien) || 0;
       if (dh.NguonSP === "Điện thoại") {
@@ -698,5 +682,6 @@ function getDonHangDetails(maDH) {
     tenQuaTang: String(obj.TEN_QUA_TANG || ""),
     coNhanQua: String(obj.CO_NHAN_QUA || "✗"),
     tienGiamGia: Number(obj.TIEN_GIAM_GIA || 0),
+    imei: String(obj.IMEI || ""),
   };
 }

@@ -585,8 +585,6 @@ function saveRowData(sheetName, row, columnValueMap) {
   });
 
   range.setValues([rowValues]);
-  range.setFontFamily("Times New Roman");
-  range.setFontSize(12);
 
   return row;
 }
@@ -604,19 +602,18 @@ function appendRow(sheetName, rowData) {
     sheet.insertColumnsAfter(maxCols, rowData.length - maxCols);
   }
 
-  // Tránh mất số 0 ở đầu đối với chuỗi số điện thoại hoặc mã bắt đầu bằng 0
+  // Tránh mất số 0 ở đầu hoặc định dạng khoa học đối với chuỗi số điện thoại, IMEI, hoặc mã số dài
   for (let i = 0; i < rowData.length; i++) {
     const val = rowData[i];
-    if (typeof val === "string" && val.indexOf("0") === 0 && val.length > 1 && /^\d+$/.test(val)) {
-      rowData[i] = "'" + val;
+    if (typeof val === "string" && val.length > 1 && /^\d+$/.test(val)) {
+      if (val.indexOf("0") === 0 || val.length >= 10) {
+        rowData[i] = "'" + val;
+      }
     }
   }
 
   sheet.appendRow(rowData);
   const lastRow = sheet.getLastRow();
-  const range = sheet.getRange(lastRow, 1, 1, rowData.length);
-  range.setFontFamily("Times New Roman");
-  range.setFontSize(12);
 
   return lastRow;
 }
@@ -636,12 +633,14 @@ function appendRows(sheetName, rowsData) {
     sheet.insertColumnsAfter(maxCols, maxDataCols - maxCols);
   }
 
-  // Tránh mất số 0 ở đầu đối với chuỗi số điện thoại hoặc mã bắt đầu bằng 0
+  // Tránh mất số 0 ở đầu hoặc định dạng khoa học đối với chuỗi số điện thoại, IMEI, hoặc mã số dài
   rowsData.forEach(function (rowData) {
     for (let i = 0; i < rowData.length; i++) {
       const val = rowData[i];
-      if (typeof val === "string" && val.indexOf("0") === 0 && val.length > 1 && /^\d+$/.test(val)) {
-        rowData[i] = "'" + val;
+      if (typeof val === "string" && val.length > 1 && /^\d+$/.test(val)) {
+        if (val.indexOf("0") === 0 || val.length >= 10) {
+          rowData[i] = "'" + val;
+        }
       }
     }
   });
@@ -658,8 +657,6 @@ function appendRows(sheetName, rowsData) {
 
   const range = sheet.getRange(lastRow + 1, 1, normalizedRows.length, maxDataCols);
   range.setValues(normalizedRows);
-  range.setFontFamily("Times New Roman");
-  range.setFontSize(12);
 
   return lastRow + normalizedRows.length;
 }
@@ -691,8 +688,20 @@ function updateCell(sheetName, row, col, value) {
     value = "'" + value;
   }
   cell.setValue(value);
-  cell.setFontFamily("Times New Roman");
-  cell.setFontSize(12);
+}
+
+/**
+ * Áp dụng font và size mặc định cho một vùng dòng
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - Sheet cần định dạng
+ * @param {number} row - Dòng bắt đầu
+ * @param {number} numCols - Số cột cần định dạng
+ * @param {number} [numRows=1] - Số dòng cần định dạng (mặc định là 1)
+ */
+function applyDefaultFormatting(sheet, row, numCols, numRows) {
+  const rows = numRows || 1;
+  sheet.getRange(row, 1, rows, numCols)
+    .setFontFamily("Times New Roman")
+    .setFontSize(12);
 }
 
 /**
@@ -1056,6 +1065,30 @@ function calculatePaymentSplit(data, totalAmount) {
     chuyenKhoan: chuyenKhoan,
     hinhThucTTDisplay: hinhThucTTDisplay
   };
+}
+
+/**
+ * Xác thực tổng tiền mặt và chuyển khoản đối với hình thức thanh toán hỗn hợp
+ * @param {Object} data Đối tượng chứa hinhThucThanhToan, splitTienMat, splitChuyenKhoan
+ * @param {number} expectedPaid Số tiền cần thanh toán
+ */
+function assertPaymentMatches(data, expectedPaid) {
+  if (data.hinhThucThanhToan === "Hỗn hợp") {
+    const splitTienMat = Number(data.splitTienMat) || 0;
+    const splitChuyenKhoan = Number(data.splitChuyenKhoan) || 0;
+    const tongThanhToan = splitTienMat + splitChuyenKhoan;
+    if (Math.abs(tongThanhToan - expectedPaid) > 1) {
+      throw new Error(
+        "Lỗi dữ liệu: Tổng tiền mặt (" +
+          splitTienMat +
+          ") và chuyển khoản (" +
+          splitChuyenKhoan +
+          ") không khớp với số tiền cần thanh toán (" +
+          expectedPaid +
+          ")!"
+      );
+    }
+  }
 }
 
 /**

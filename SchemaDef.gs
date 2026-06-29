@@ -74,6 +74,7 @@ SCHEMA[SHEET_NAMES.DON_HANG] = [
   ["TEN_KH", "Tên khách hàng"],
   ["MA_SP", "Mã sản phẩm"],
   ["TEN_SP", "Tên sản phẩm"],
+  ["IMEI", "IMEI"],
   ["NGUON_SP", "Nguồn sản phẩm"],
   ["THUONG_HIEU", "Thương hiệu"],
   ["SO_LUONG", "Số lượng"],

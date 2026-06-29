@@ -70,7 +70,7 @@ function _setupDienThoaiValidations(ss, chiNhanhRule, thuongHieuRule) {
   const colTinhTrangLetter = columnToLetter(COL_DT.TINH_TRANG);
   dtSheet.getRange(colTinhTrangLetter + "2:" + colTinhTrangLetter).clearDataValidations();
 
-  setColumnListValidation(dtSheet, COL_DT.TRANG_THAI_KHO, ["Còn hàng", "Đã bán", "Đang trả góp", "Đã trả lại"]);
+  setColumnListValidation(dtSheet, COL_DT.TRANG_THAI_KHO, [STOCK_STATUS.IN_STOCK, STOCK_STATUS.SOLD, STOCK_STATUS.INSTALLMENT, STOCK_STATUS.RETURNED]);
   dtSheet.getRange(columnToLetter(COL_DT.CHI_NHANH) + "2:" + columnToLetter(COL_DT.CHI_NHANH)).setDataValidation(chiNhanhRule);
   dtSheet.getRange(columnToLetter(COL_DT.THUONG_HIEU) + "2:" + columnToLetter(COL_DT.THUONG_HIEU)).setDataValidation(thuongHieuRule);
 }
@@ -81,7 +81,7 @@ function _setupPhuKienValidations(ss, chiNhanhRule, thuongHieuRule) {
 
   // Cột Loại PK
   setColumnListValidation(pkSheet, COL_PK.LOAI_PK, ["Sạc", "Ốp lưng", "Tai nghe", "Cường lực", "Cáp", "Khác"]);
-  setColumnListValidation(pkSheet, COL_PK.TRANG_THAI, ["Đang bán", "Ngừng bán"]);
+  setColumnListValidation(pkSheet, COL_PK.TRANG_THAI, [PK_STATUS.ACTIVE, PK_STATUS.INACTIVE]);
   pkSheet.getRange(columnToLetter(COL_PK.THUONG_HIEU) + "2:" + columnToLetter(COL_PK.THUONG_HIEU)).setDataValidation(thuongHieuRule);
   pkSheet.getRange(columnToLetter(COL_PK.CHI_NHANH) + "2:" + columnToLetter(COL_PK.CHI_NHANH)).setDataValidation(chiNhanhRule);
 }
@@ -91,9 +91,9 @@ function _setupDonHangValidations(ss, chiNhanhRule) {
   if (!dhSheet) return;
 
   setColumnListValidation(dhSheet, COL_DH.HINH_THUC_BAN, ["Bán thẳng", "Trả góp"]);
-  setColumnListValidation(dhSheet, COL_DH.HINH_THUC_TT, ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Hỗn hợp"]);
+  setColumnListValidation(dhSheet, COL_DH.HINH_THUC_TT, [PAYMENT_METHOD.CASH, PAYMENT_METHOD.TRANSFER, PAYMENT_METHOD.POS, PAYMENT_METHOD.MIXED]);
   setColumnListValidation(dhSheet, COL_DH.NGUON_SP, ["Điện thoại", "Phụ kiện"]);
-  setColumnListValidation(dhSheet, COL_DH.TRANG_THAI, ["Hoàn thành", "Đang xử lý", "Huỷ", "Đổi trả"]);
+  setColumnListValidation(dhSheet, COL_DH.TRANG_THAI, [ORDER_STATUS.DONE, ORDER_STATUS.PROCESSING, ORDER_STATUS.CANCELLED, ORDER_STATUS.EXCHANGED]);
   setColumnListValidation(dhSheet, COL_DH.CO_NHAN_QUA, ["✓", "✗"]);
   dhSheet.getRange(columnToLetter(COL_DH.CHI_NHANH) + "2:" + columnToLetter(COL_DH.CHI_NHANH)).setDataValidation(chiNhanhRule);
 }
@@ -103,8 +103,8 @@ function _setupDichVuValidations(ss, chiNhanhRule) {
   if (!dvSheet) return;
 
   setColumnListValidation(dvSheet, COL_DV.LOAI_DV, ["Chuyển khoản hộ", "Rút tiền mặt", "Nạp thẻ điện thoại"]);
-  setColumnListValidation(dvSheet, COL_DV.HINH_THUC_TT, ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Hỗn hợp"]);
-  setColumnListValidation(dvSheet, COL_DV.TRANG_THAI, ["Hoàn thành", "Huỷ"]);
+  setColumnListValidation(dvSheet, COL_DV.HINH_THUC_TT, [PAYMENT_METHOD.CASH, PAYMENT_METHOD.TRANSFER, PAYMENT_METHOD.POS, PAYMENT_METHOD.MIXED]);
+  setColumnListValidation(dvSheet, COL_DV.TRANG_THAI, [ORDER_STATUS.DONE, ORDER_STATUS.CANCELLED]);
   dvSheet.getRange(columnToLetter(COL_DV.CHI_NHANH) + "2:" + columnToLetter(COL_DV.CHI_NHANH)).setDataValidation(chiNhanhRule);
 }
 
@@ -113,7 +113,7 @@ function _setupTraGopValidations(ss, chiNhanhRule) {
   if (!tgSheet) return;
 
   setColumnListValidation(tgSheet, COL_TG.LOAI_TRA_GOP, ["Cửa hàng", "Công ty tài chính"]);
-  setColumnListValidation(tgSheet, COL_TG.TRANG_THAI, ["Đang trả", "Hoàn tất", "Quá hạn", "Đã huỷ"]);
+  setColumnListValidation(tgSheet, COL_TG.TRANG_THAI, [INSTALLMENT_STATUS.RUNNING, INSTALLMENT_STATUS.DONE, INSTALLMENT_STATUS.LATE, INSTALLMENT_STATUS.CANCELLED]);
   tgSheet.getRange(columnToLetter(COL_TG.CHI_NHANH) + "2:" + columnToLetter(COL_TG.CHI_NHANH)).setDataValidation(chiNhanhRule);
 }
 
@@ -121,8 +121,8 @@ function _setupLichSuTraGopValidations(ss) {
   const lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
   if (!lstgSheet) return;
 
-  setColumnListValidation(lstgSheet, COL_LSTG.HINH_THUC_TT, ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Hỗn hợp"]);
-  setColumnListValidation(lstgSheet, COL_LSTG.TRANG_THAI, ["Đã trả", "Chưa trả", "Quá hạn", "Đã huỷ"]);
+  setColumnListValidation(lstgSheet, COL_LSTG.HINH_THUC_TT, [PAYMENT_METHOD.CASH, PAYMENT_METHOD.TRANSFER, PAYMENT_METHOD.POS, PAYMENT_METHOD.MIXED]);
+  setColumnListValidation(lstgSheet, COL_LSTG.TRANG_THAI, [LSTG_STATUS.PAID, LSTG_STATUS.UNPAID, LSTG_STATUS.LATE, LSTG_STATUS.CANCELLED]);
 }
 
 function _setupNhapKhoValidations(ss, chiNhanhRule) {
@@ -139,8 +139,8 @@ function _setupDoiTraValidations(ss, chiNhanhRule) {
   if (!doiTraSheet) return;
 
   setColumnListValidation(doiTraSheet, COL_DT_TRA.LOAI_GD, ["Trả máy", "Đổi máy"]);
-  setColumnListValidation(doiTraSheet, COL_DT_TRA.HINH_THUC_TT, ["Tiền mặt", "Chuyển khoản", "Hỗn hợp"]);
-  setColumnListValidation(doiTraSheet, COL_DT_TRA.TRANG_THAI, ["Hoàn thành", "Huỷ"]);
+  setColumnListValidation(doiTraSheet, COL_DT_TRA.HINH_THUC_TT, [PAYMENT_METHOD.CASH, PAYMENT_METHOD.TRANSFER, PAYMENT_METHOD.MIXED]);
+  setColumnListValidation(doiTraSheet, COL_DT_TRA.TRANG_THAI, [ORDER_STATUS.DONE, ORDER_STATUS.CANCELLED]);
   doiTraSheet.getRange(columnToLetter(COL_DT_TRA.CHI_NHANH) + "2:" + columnToLetter(COL_DT_TRA.CHI_NHANH)).setDataValidation(chiNhanhRule);
 }
 
@@ -213,7 +213,7 @@ function _setupBaoHanhValidations(ss, chiNhanhRule) {
   if (!bhSheet) return;
 
   setColumnListValidation(bhSheet, COL_BH.LOAI_DICH_VU, ["Sửa chữa", "Bảo hành"]);
-  setColumnListValidation(bhSheet, COL_BH.HINH_THUC_TT, ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Hỗn hợp"]);
-  setColumnListValidation(bhSheet, COL_BH.TRANG_THAI, ["Đang xử lý", "Hoàn thành", "Huỷ"]);
+  setColumnListValidation(bhSheet, COL_BH.HINH_THUC_TT, [PAYMENT_METHOD.CASH, PAYMENT_METHOD.TRANSFER, PAYMENT_METHOD.POS, PAYMENT_METHOD.MIXED]);
+  setColumnListValidation(bhSheet, COL_BH.TRANG_THAI, [ORDER_STATUS.PROCESSING, ORDER_STATUS.DONE, ORDER_STATUS.CANCELLED]);
   bhSheet.getRange(columnToLetter(COL_BH.CHI_NHANH) + "2:" + columnToLetter(COL_BH.CHI_NHANH)).setDataValidation(chiNhanhRule);
 }

@@ -275,61 +275,7 @@ function _onEditLichSuTraGop(sheet, row, col, e) {
  * Tự động cập nhật khi sửa trực tiếp trên sheet Trả góp
  */
 function _onEditTraGop(sheet, row, col, e) {
-  // Lắng nghe thay đổi Trạng thái hợp đồng
-  if (col === COL_TG.TRANG_THAI) {
-    const statusVal = String(e.value).trim();
-    if (
-      statusVal === "Đã huỷ" ||
-      statusVal.toLowerCase() === "huy" ||
-      statusVal.toLowerCase() === "huỷ"
-    ) {
-      const maTG = sheet.getRange(row, COL_TG.MA_TG).getValue();
-      const maDH = sheet.getRange(row, COL_TG.MA_DH).getValue();
-
-      if (maTG && maDH) {
-        // 1. Hoàn trả kho máy sang "Còn hàng" nếu là điện thoại
-        const maSP = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.MA_SP);
-        const nguonSP = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.NGUON_SP);
-        if (nguonSP === "Điện thoại" && maSP) {
-          const ghiChuDH = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.GHI_CHU) || "";
-          const imeiMatch = ghiChuDH.match(/\[IMEI:\s*([^\s\]]+)\]/);
-          const imei = imeiMatch ? imeiMatch[1] : "";
-          updateTrangThaiKhoDT(imei || maSP, "Còn hàng");
-        }
-
-        // 2. Chuyển các kỳ chưa trả của HĐ này sang "Đã huỷ"
-        const ss = SpreadsheetApp.getActiveSpreadsheet();
-        const lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
-        if (lstgSheet) {
-          const lastRow = lstgSheet.getLastRow();
-          if (lastRow > 1) {
-            const lastCol = lstgSheet.getLastColumn();
-            const range = lstgSheet.getRange(2, 1, lastRow - 1, lastCol);
-            const allData = range.getValues();
-            let changed = false;
-            for (let i = 0; i < allData.length; i++) {
-              if (
-                String(allData[i][COL_LSTG.MA_TG - 1]) === maTG &&
-                String(allData[i][COL_LSTG.TRANG_THAI - 1]) !== "Đã trả"
-              ) {
-                allData[i][COL_LSTG.TRANG_THAI - 1] = "Đã huỷ";
-                changed = true;
-              }
-            }
-            if (changed) {
-              range.setValues(allData);
-            }
-          }
-        }
-
-        showToast(
-          "Hợp đồng " +
-            maTG +
-            " đã được huỷ. Đã hoàn kho sản phẩm và huỷ lịch sử trả góp!",
-        );
-      }
-    }
-  }
+  // Bỏ xử lý tự động hoàn kho từ onEdit để tránh race condition/timeout (đơn hàng phải huỷ qua UI)
 }
 
 /**
@@ -403,58 +349,6 @@ function _onEditDonHang(sheet, row, col, e) {
     }
   }
 
-  // Lắng nghe thay đổi trạng thái đơn hàng để tự động xử lý kho và trả góp khi đơn bị Huỷ trực tiếp trên sheet
-  if (col === COL_DH.TRANG_THAI) {
-    const statusVal = String(e.value).trim();
-    if (
-      statusVal === "Huỷ" ||
-      statusVal.toLowerCase() === "huy" ||
-      statusVal.toLowerCase() === "huỷ"
-    ) {
-      const lastCol = sheet.getLastColumn();
-      const rowValues = sheet.getRange(row, 1, 1, lastCol).getValues()[0];
-
-      const maDH = rowValues[COL_DH.MA_DH - 1];
-      const maSP = rowValues[COL_DH.MA_SP - 1];
-      const nguonSP = rowValues[COL_DH.NGUON_SP - 1];
-      const hinhThucBan = rowValues[COL_DH.HINH_THUC_BAN - 1];
-      const soLuong = Number(rowValues[COL_DH.SO_LUONG - 1]) || 1;
-      const branch = rowValues[COL_DH.CHI_NHANH - 1];
-      const coNhanQua = rowValues[COL_DH.CO_NHAN_QUA - 1];
-      const maQua = rowValues[COL_DH.MA_QUA_TANG - 1];
-
-      // 1. Hoàn trả kho sản phẩm chính
-      if (nguonSP === "Điện thoại") {
-        const ghiChuDH = rowValues[COL_DH.GHI_CHU - 1] || "";
-        const imeiMatch = ghiChuDH.match(/\[IMEI:\s*([^\s\]]+)\]/);
-        const imei = imeiMatch ? imeiMatch[1] : "";
-        updateTrangThaiKhoDT(imei || maSP, "Còn hàng");
-        // Huỷ hợp đồng trả góp nếu bán trả góp
-        if (hinhThucBan === "Trả góp") {
-          huyHopDongTraGop(maDH);
-        }
-      } else {
-        updateTonKhoPhuKien(maSP, soLuong, "nhap", branch);
-      }
-
-      // 2. Hoàn trả kho quà tặng nếu có
-      if (coNhanQua === "✓" && maQua) {
-        const maQuaList = String(maQua).split(",");
-        for (let i = 0; i < maQuaList.length; i++) {
-          const code = maQuaList[i].trim();
-          if (code) {
-            updateTonKhoPhuKien(code, 1, "nhap", branch);
-          }
-        }
-      }
-
-      showToast(
-        "Đơn hàng " +
-          maDH +
-          " đã được huỷ trực tiếp trên sheet. Đã đồng bộ kho hàng!",
-      );
-    }
-  }
 }
 
 /**
