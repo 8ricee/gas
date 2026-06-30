@@ -136,7 +136,8 @@ SCHEMA[SHEET_NAMES.TRA_GOP] = [
   ["TRANG_THAI", "Trạng thái"],
   ["CHI_NHANH", "Chi nhánh"],
   ["TIEN_MAT", "Tiền mặt"],
-  ["CHUYEN_KHOAN", "Chuyển khoản"]
+  ["CHUYEN_KHOAN", "Chuyển khoản"],
+  ["NGAY_THANH_KHOAN", "Ngày thanh khoản"]
 ];
 
 SCHEMA[SHEET_NAMES.LICH_SU_TRA_GOP] = [
@@ -255,24 +256,32 @@ SCHEMA[SHEET_NAMES.BAO_HANH] = [
   ["CHUYEN_KHOAN", "Chuyển khoản"]
 ];
 
+// Helper to retrieve the schema definition for a sheet safely.
+function getSchemaDefinition(sheetName) {
+  return Array.isArray(SCHEMA[sheetName]) ? SCHEMA[sheetName] : [];
+}
+
+// Helper to retrieve the header labels for a sheet safely.
+function getSchemaColumnNames(sheetName) {
+  return getSchemaDefinition(sheetName).map(function (colDef) {
+    return colDef[1];
+  });
+}
+
 // Helper to construct default enum structure from schema definition (1-indexed)
 function getDefaultSchemaIndices(sheetName) {
   const indices = {};
-  const schemaList = SCHEMA[sheetName];
-  if (schemaList) {
-    schemaList.forEach(function (colDef, i) {
-      indices[colDef[0]] = i + 1;
-    });
-  }
+  const schemaList = getSchemaDefinition(sheetName);
+  schemaList.forEach(function (colDef, i) {
+    indices[colDef[0]] = i + 1;
+  });
   return indices;
 }
 
 // Populate the SHEET_HEADERS object on script load
 function populateSheetHeaders() {
   for (const sheetName in SCHEMA) {
-    SHEET_HEADERS[sheetName] = SCHEMA[sheetName].map(function (colDef) {
-      return colDef[1];
-    });
+    SHEET_HEADERS[sheetName] = getSchemaColumnNames(sheetName);
   }
 }
 

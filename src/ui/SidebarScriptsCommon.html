@@ -224,8 +224,13 @@
     });
     setupDatalistSearch('ck-maSP', 'ck-maSP-list', function(query, callback) {
       let branch = document.getElementById('ck-cnNguon').value;
+      let source = document.getElementById('ck-nguonSP').value;
       if (!branch) return callback([]);
-      callback(searchDienThoaiLocal(branch, query));
+      if (source === 'Phụ kiện') {
+        callback(searchPhuKienLocal(branch, query));
+      } else {
+        callback(searchDienThoaiLocal(branch, query));
+      }
     });
     setupDatalistSearch('dt-maSP-Nhan', 'dt-maSP-Nhan-list', function(query, callback) {
       let branch = document.getElementById('dt-chiNhanh').value;

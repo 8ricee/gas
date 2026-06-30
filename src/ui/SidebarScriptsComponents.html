@@ -249,7 +249,10 @@
         if (inputId === 'dh-maSP') {
           let source = document.getElementById('dh-nguonSP').value;
           items = (source === 'Điện thoại') ? (localCache.dienThoai || []) : (localCache.phuKien || []);
-        } else if (inputId === 'ck-maSP' || inputId === 'tm-maSP-Moi') {
+        } else if (inputId === 'ck-maSP') {
+          let source = document.getElementById('ck-nguonSP').value;
+          items = (source === 'Phụ kiện') ? (localCache.phuKien || []) : (localCache.dienThoai || []);
+        } else if (inputId === 'tm-maSP-Moi') {
           items = localCache.dienThoai || [];
         } else if (inputId === 'dt-maSP-Nhan') {
           let doiTuong = document.getElementById('dt-doiTuong').value;

@@ -23,6 +23,13 @@ function rebuildTonKhoSheet(ss) {
   const N = branches.length || 1;
   const totalSummaryColIdx = 2 + N;
 
+  // Đảm bảo số cột tối thiểu của sheet Tồn kho để tránh lỗi vượt quá phạm vi khi vẽ bảng
+  const expectedNeededCols = 3 * N + 15;
+  const maxCols = tonKhoSheet.getMaxColumns();
+  if (maxCols < expectedNeededCols) {
+    tonKhoSheet.insertColumnsAfter(maxCols, expectedNeededCols - maxCols);
+  }
+
   // 1. Chuẩn bị sheet và ô tìm kiếm
   _prepareTonKhoSheet(tonKhoSheet, totalSummaryColIdx);
 

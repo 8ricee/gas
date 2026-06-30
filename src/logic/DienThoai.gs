@@ -226,7 +226,11 @@ function updateDienThoai(maDT, data) {
  * @return {boolean}
  */
 function updateTrangThaiKhoDT(maDT_or_imei, trangThai) {
-  let row = findRow(SHEET_NAMES.DIEN_THOAI, COL_DT.IMEI, maDT_or_imei); // Tìm theo IMEI trước
+  const resolved = resolvePhoneRowForSale({ imei: maDT_or_imei, maSP: maDT_or_imei }, "");
+  let row = resolved.row;
+  if (row === -1) {
+    row = findRow(SHEET_NAMES.DIEN_THOAI, COL_DT.IMEI, maDT_or_imei); // Tìm theo IMEI trước
+  }
   if (row === -1 && COL_DT.IMEI_2) {
     row = findRow(SHEET_NAMES.DIEN_THOAI, COL_DT.IMEI_2, maDT_or_imei); // Fallback tìm theo IMEI 2
   }

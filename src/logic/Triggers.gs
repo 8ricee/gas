@@ -17,6 +17,7 @@ EDIT_HANDLERS[SHEET_NAMES.NHAP_KHO] = _onEditNhapKho;
 EDIT_HANDLERS[SHEET_NAMES.BAO_CAO_NGAY] = _onEditBaoCaoNgay;
 EDIT_HANDLERS[SHEET_NAMES.BAO_CAO_DOANH_SO] = _onEditBaoCaoDoanhSo;
 EDIT_HANDLERS[SHEET_NAMES.LICH_SU_TRA_GOP] = _onEditLichSuTraGop;
+EDIT_HANDLERS[SHEET_NAMES.TRA_GOP] = _onEditTraGop;
 
 /**
  * onEdit trigger — auto-calculate khi chỉnh sửa
@@ -59,8 +60,11 @@ function onEdit(e) {
   } else if (sheetName === SHEET_NAMES.LICH_SU_TRA_GOP) {
     isRelevant = (col === COL_LSTG.SO_TIEN_DA_TRA || col === COL_LSTG.TRANG_THAI);
     shouldInvalidateCache = isRelevant;
+  } else if (sheetName === SHEET_NAMES.TRA_GOP) {
+    isRelevant = (col === COL_TG.TRANG_THAI || col === COL_TG.NGAY_THANH_KHOAN);
+    shouldInvalidateCache = isRelevant;
   } else if (sheetName === SHEET_NAMES.BAO_CAO_NGAY) {
-    isRelevant = (row === 3 && col === 2);
+    isRelevant = (row === 3 && (col === 2 || col === 4));
   } else if (sheetName === SHEET_NAMES.BAO_CAO_DOANH_SO) {
     isRelevant = (row === 3 && (col === 2 || col === 4 || col === 6 || col === 8));
   } else if (sheetName === SHEET_NAMES.CAU_HINH) {
@@ -89,8 +93,8 @@ function onEdit(e) {
  * Xử lý sự kiện chỉnh sửa trên sheet Báo cáo ngày
  */
 function _onEditBaoCaoNgay(sheet, row, col, e) {
-  if (row === 3 && col === 2) {
-    // Ô B3
+  if (row === 3 && (col === 2 || col === 4)) {
+    // Ô B3 hoặc Ô D3
     updateDailyReportFromSheet();
   }
 }
@@ -141,6 +145,43 @@ function _onEditLichSuTraGop(sheet, row, col, e) {
 
   // Cập nhật lại tổng trong TraGop và trạng thái máy (chạy cho cả 2 trường hợp thay đổi cột trạng thái hoặc số tiền)
   _capNhatTongTraGop(maTG);
+}
+
+/**
+ * Auto-calculate / auto-fill khi chỉnh sửa trên sheet Trả góp
+ */
+function _onEditTraGop(sheet, row, col, e) {
+  if (col !== COL_TG.TRANG_THAI) return;
+
+  const status = String(sheet.getRange(row, COL_TG.TRANG_THAI).getValue() || "").trim();
+  const loaiTG = String(sheet.getRange(row, COL_TG.LOAI_TRA_GOP).getValue() || "").trim();
+
+  if (loaiTG === INSTALLMENT_TYPE.FINANCE) {
+    if (status === INSTALLMENT_STATUS.DONE) {
+      // Khi chuyển sang Hoàn tất: Tự động điền ngày thanh khoản (nếu chưa có) và cập nhật số tiền đã trả
+      const ngayThanhKhoanRange = sheet.getRange(row, COL_TG.NGAY_THANH_KHOAN);
+      if (!ngayThanhKhoanRange.getValue()) {
+        ngayThanhKhoanRange.setValue(new Date()).setNumberFormat("dd/MM/yyyy");
+      }
+      
+      const tongTien = Number(sheet.getRange(row, COL_TG.TONG_TIEN).getValue()) || 0;
+      const soKy = Number(sheet.getRange(row, COL_TG.SO_KY).getValue()) || 1;
+      
+      sheet.getRange(row, COL_TG.DA_TRA_SO_KY).setValue(soKy);
+      sheet.getRange(row, COL_TG.DA_TRA_SO_TIEN).setValue(tongTien);
+      sheet.getRange(row, COL_TG.CON_LAI).setValue(0);
+    } else if (status === INSTALLMENT_STATUS.PENDING || status === INSTALLMENT_STATUS.CANCELLED) {
+      // Khi chuyển về Chờ thanh khoản hoặc Huỷ: Xoá ngày thanh khoản, hoàn trả số tiền đã trả về traTruoc
+      sheet.getRange(row, COL_TG.NGAY_THANH_KHOAN).clearContent();
+      
+      const traTruoc = Number(sheet.getRange(row, COL_TG.TRA_TRUOC).getValue()) || 0;
+      const tongTien = Number(sheet.getRange(row, COL_TG.TONG_TIEN).getValue()) || 0;
+      
+      sheet.getRange(row, COL_TG.DA_TRA_SO_KY).setValue(0);
+      sheet.getRange(row, COL_TG.DA_TRA_SO_TIEN).setValue(traTruoc);
+      sheet.getRange(row, COL_TG.CON_LAI).setValue(Math.max(0, tongTien - traTruoc));
+    }
+  }
 }
 
 /**

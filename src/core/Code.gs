@@ -55,72 +55,84 @@ const DEFAULT_CONFIG = [
 ];
 
 // ======================== CONDITIONAL FORMATTING COLORS ========================
-const CONDITIONAL_COLOR_MAP = {
-  // 1. Trạng thái tốt, hoàn thành, đang làm, có, mới
-  "Đang làm": { bg: "#e6f4ea", fg: "#137333" },
-  "Còn hàng": { bg: "#e6f4ea", fg: "#137333" },
-  "Hoàn thành": { bg: "#e6f4ea", fg: "#137333" },
-  "Hoàn tất": { bg: "#e6f4ea", fg: "#137333" },
-  "Đã trả": { bg: "#e6f4ea", fg: "#137333" },
-  "Đang bán": { bg: "#e6f4ea", fg: "#137333" },
-  "✓": { bg: "#e6f4ea", fg: "#137333" },
-  "Mới 100%": { bg: "#e6f4ea", fg: "#137333" },
-  "Tiền mặt": { bg: "#e6f4ea", fg: "#137333" },
-  "Rút tiền mặt": { bg: "#e6f4ea", fg: "#137333" },
+let _conditionalColorMapCache = null;
 
-  // 2. Trạng thái nghỉ việc, huỷ, quá hạn, không, trả máy, đổi trả
-  "Nghỉ việc": { bg: "#fce8e6", fg: "#c5221f" },
-  "Huỷ": { bg: "#fce8e6", fg: "#c5221f" },
-  "Quá hạn": { bg: "#fce8e6", fg: "#c5221f" },
-  "Đã huỷ": { bg: "#fce8e6", fg: "#c5221f" },
-  "Ngừng bán": { bg: "#fce8e6", fg: "#c5221f" },
-  "✗": { bg: "#fce8e6", fg: "#c5221f" },
-  "Trả máy": { bg: "#fce8e6", fg: "#c5221f" },
-  "Đã trả lại": { bg: "#fce8e6", fg: "#c5221f" },
-  "Đổi trả": { bg: "#fce8e6", fg: "#c5221f" },
-  "Máy lỗi": { bg: "#fce8e6", fg: "#c5221f" },
+function getConditionalColorMap() {
+  if (_conditionalColorMapCache) return _conditionalColorMapCache;
 
-  // 3. Trạng thái chờ, đang xử lý, đang trả, chưa trả, đổi máy, phụ kiện
-  "Đang trả góp": { bg: "#fef7e0", fg: "#b06000" },
-  "Đang xử lý": { bg: "#fef7e0", fg: "#b06000" },
-  "Đang trả": { bg: "#fef7e0", fg: "#b06000" },
-  "Chưa trả": { bg: "#fef7e0", fg: "#b06000" },
-  "Thu cũ đổi mới": { bg: "#fef7e0", fg: "#b06000" },
-  "Đổi máy": { bg: "#fef7e0", fg: "#b06000" },
-  "Nạp thẻ điện thoại": { bg: "#fef7e0", fg: "#b06000" },
-  "Cường lực": { bg: "#fef7e0", fg: "#b06000" },
-  "Quẹt thẻ (POS)": { bg: "#fef7e0", fg: "#b06000" },
-  "Kỹ thuật": { bg: "#fef7e0", fg: "#b06000" },
+  _conditionalColorMapCache = {
+    // 1. Trạng thái tốt, hoàn thành, đang làm, có, mới
+    [EMPLOYEE_STATUS.ACTIVE]: { bg: "#e6f4ea", fg: "#137333" },
+    [STOCK_STATUS.IN_STOCK]: { bg: "#e6f4ea", fg: "#137333" },
+    [ORDER_STATUS.DONE]: { bg: "#e6f4ea", fg: "#137333" },
+    [INSTALLMENT_STATUS.DONE]: { bg: "#e6f4ea", fg: "#137333" },
+    [LSTG_STATUS.PAID]: { bg: "#e6f4ea", fg: "#137333" },
+    [PK_STATUS.ACTIVE]: { bg: "#e6f4ea", fg: "#137333" },
+    [YES_NO_VALUES.YES]: { bg: "#e6f4ea", fg: "#137333" },
+    "Mới 100%": { bg: "#e6f4ea", fg: "#137333" },
+    [PAYMENT_METHOD.CASH]: { bg: "#e6f4ea", fg: "#137333" },
+    [SERVICE_TYPES.CASH_WITHDRAWAL]: { bg: "#e6f4ea", fg: "#137333" },
 
-  // 4. Trạng thái khác, đã qua sử dụng, đã bán
-  "Đã bán": { bg: "#cbd5e1", fg: "#334155" },
-  "Đã qua sử dụng": { bg: "#e2e8f0", fg: "#334155" },
-  "Khác": { bg: "#e2e8f0", fg: "#475569" },
+    // 2. Trạng thái nghỉ việc, huỷ, quá hạn, không, trả máy, đổi trả
+    [EMPLOYEE_STATUS.INACTIVE]: { bg: "#fce8e6", fg: "#c5221f" },
+    [ORDER_STATUS.CANCELLED]: { bg: "#fce8e6", fg: "#c5221f" },
+    [INSTALLMENT_STATUS.LATE]: { bg: "#fce8e6", fg: "#c5221f" },
+    [INSTALLMENT_STATUS.CANCELLED]: { bg: "#fce8e6", fg: "#c5221f" },
+    [LSTG_STATUS.LATE]: { bg: "#fce8e6", fg: "#c5221f" },
+    [LSTG_STATUS.CANCELLED]: { bg: "#fce8e6", fg: "#c5221f" },
+    [PK_STATUS.INACTIVE]: { bg: "#fce8e6", fg: "#c5221f" },
+    [YES_NO_VALUES.NO]: { bg: "#fce8e6", fg: "#c5221f" },
+    [EXCHANGE_TYPES.RETURN_DEVICE]: { bg: "#fce8e6", fg: "#c5221f" },
+    [EXCHANGE_TYPES.RETURN_GOODS]: { bg: "#fce8e6", fg: "#c5221f" },
+    [STOCK_STATUS.RETURNED]: { bg: "#fce8e6", fg: "#c5221f" },
+    [ORDER_STATUS.EXCHANGED]: { bg: "#fce8e6", fg: "#c5221f" },
+    [STOCK_STATUS.FAULTY]: { bg: "#fce8e6", fg: "#c5221f" },
 
-  // 5. Chi nhánh, vai trò, hình thức, nguồn
-  "Bán hàng": { bg: "#e8f0fe", fg: "#1a73e8" },
-  "Chuyển khoản": { bg: "#e8f0fe", fg: "#1a73e8" },
-  "Chuyển khoản hộ": { bg: "#e8f0fe", fg: "#1a73e8" },
-  "Sạc": { bg: "#e8f0fe", fg: "#1a73e8" },
-  "Like New": { bg: "#e8f0fe", fg: "#1a73e8" },
-  "Điện thoại": { bg: "#e8f0fe", fg: "#1a73e8" },
+    // 3. Trạng thái chờ, đang xử lý, đang trả, chưa trả, đổi máy, phụ kiện
+    [STOCK_STATUS.INSTALLMENT]: { bg: "#fef7e0", fg: "#b06000" },
+    [ORDER_STATUS.PROCESSING]: { bg: "#fef7e0", fg: "#b06000" },
+    [INSTALLMENT_STATUS.RUNNING]: { bg: "#fef7e0", fg: "#b06000" },
+    [LSTG_STATUS.UNPAID]: { bg: "#fef7e0", fg: "#b06000" },
+    [SALES_METHOD.INSTALLMENT]: { bg: "#f3e8fd", fg: "#a142f4" }, // Tím nhẹ cho trả góp
+    [EXCHANGE_TYPES.EXCHANGE_DEVICE]: { bg: "#fef7e0", fg: "#b06000" },
+    [EXCHANGE_TYPES.EXCHANGE_GOODS]: { bg: "#fef7e0", fg: "#b06000" },
+    [SERVICE_TYPES.PHONE_TOPUP]: { bg: "#fef7e0", fg: "#b06000" },
+    [INSTALLMENT_STATUS.PENDING]: { bg: "#fef7e0", fg: "#b06000" },
+    "Cường lực": { bg: "#fef7e0", fg: "#b06000" },
+    [PAYMENT_METHOD.POS]: { bg: "#fef7e0", fg: "#b06000" },
+    "Kỹ thuật": { bg: "#fef7e0", fg: "#b06000" },
 
-  "Kế toán": { bg: "#f3e8fd", fg: "#a142f4" },
-  "Tai nghe": { bg: "#f3e8fd", fg: "#a142f4" },
-  "Phụ kiện": { bg: "#f3e8fd", fg: "#a142f4" },
-  "Công ty tài chính": { bg: "#f3e8fd", fg: "#a142f4" },
+    // 4. Trạng thái khác, đã qua sử dụng, đã bán
+    [STOCK_STATUS.SOLD]: { bg: "#cbd5e1", fg: "#334155" },
+    "Đã qua sử dụng": { bg: "#e2e8f0", fg: "#334155" },
+    "Khác": { bg: "#e2e8f0", fg: "#475569" },
 
-  "Ốp lưng": { bg: "#e0f7fa", fg: "#006064" },
-  "Cáp": { bg: "#fce4ec", fg: "#880e4f" },
-  "Cửa hàng": { bg: "#fef7e0", fg: "#b06000" },
+    // 5. Chi nhánh, vai trò, hình thức, nguồn
+    "Bán hàng": { bg: "#e8f0fe", fg: "#1a73e8" },
+    [PAYMENT_METHOD.TRANSFER]: { bg: "#e8f0fe", fg: "#1a73e8" },
+    [SERVICE_TYPES.TRANSFER_HO]: { bg: "#e8f0fe", fg: "#1a73e8" },
+    "Sạc": { bg: "#e8f0fe", fg: "#1a73e8" },
+    "Like New": { bg: "#e8f0fe", fg: "#1a73e8" },
+    "Điện thoại": { bg: "#e8f0fe", fg: "#1a73e8" },
 
-  "Bán thẳng": { bg: "#e6f4ea", fg: "#137333" },
-  "Trả góp": { bg: "#f3e8fd", fg: "#a142f4" },
-  "Hỗn hợp": { bg: "#e0f7fa", fg: "#006064" },
-  "Trừ vào đơn mới": { bg: "#fef7e0", fg: "#b06000" },
-  "Sửa chữa": { bg: "#e0f7fa", fg: "#006064" },
-  "Bảo hành": { bg: "#fce4ec", fg: "#880e4f" }
-};
+    "Kế toán": { bg: "#f3e8fd", fg: "#a142f4" },
+    "Tai nghe": { bg: "#f3e8fd", fg: "#a142f4" },
+    "Phụ kiện": { bg: "#f3e8fd", fg: "#a142f4" },
+    "Công ty tài chính": { bg: "#f3e8fd", fg: "#a142f4" },
+
+    "Ốp lưng": { bg: "#e0f7fa", fg: "#006064" },
+    "Cáp": { bg: "#fce4ec", fg: "#880e4f" },
+    "Cửa hàng": { bg: "#fef7e0", fg: "#b06000" },
+
+    [SALES_METHOD.DIRECT]: { bg: "#e6f4ea", fg: "#137333" },
+    [PAYMENT_METHOD.MIXED]: { bg: "#e0f7fa", fg: "#006064" },
+    "Trừ vào đơn mới": { bg: "#fef7e0", fg: "#b06000" },
+    "Sửa chữa": { bg: "#e0f7fa", fg: "#006064" },
+    "Bảo hành": { bg: "#fce4ec", fg: "#880e4f" }
+  };
+
+  return _conditionalColorMapCache;
+}
 
 // ======================== TRIGGERS & WebApp Serving ========================
 
@@ -137,7 +149,7 @@ function onOpen() {
  */
 function doGet(e) {
   const html = HtmlService.createTemplateFromFile("ui/Sidebar");
-  const validModes = ["donHang", "khachHang", "nhapKho", "dichVu", "thanhToan", "chuyenKho", "doiTra", "thuMua", "doanhSo", "baoHanh"];
+  const validModes = UI_MODES;
   let mode = (e && e.parameter && e.parameter.mode) || "donHang";
   if (validModes.indexOf(mode) === -1) {
     mode = "donHang";

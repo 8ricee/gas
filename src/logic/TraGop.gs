@@ -69,14 +69,15 @@ function taoHopDongTraGop(data) {
   rowData[COL_TG.TIEN_MOI_KY - 1] = tienMoiKy;
   rowData[COL_TG.NGAY_BAT_DAU - 1] = ngayBatDau;
   rowData[COL_TG.NGAY_KET_THUC - 1] = ngayKetThuc;
-  rowData[COL_TG.DA_TRA_SO_KY - 1] = isCTTC ? soKy : 0;
-  rowData[COL_TG.DA_TRA_SO_TIEN - 1] = isCTTC ? tongTien : traTruocNum;
+  rowData[COL_TG.DA_TRA_SO_KY - 1] = 0;
+  rowData[COL_TG.DA_TRA_SO_TIEN - 1] = traTruocNum;
   rowData[COL_TG.LOAI_TRA_GOP - 1] = loaiTraGop;
   rowData[COL_TG.CONG_TY_TC - 1] = data.congTyTC || "";
-  rowData[COL_TG.TRANG_THAI - 1] = isCTTC ? INSTALLMENT_STATUS.DONE : INSTALLMENT_STATUS.RUNNING;
+  rowData[COL_TG.TRANG_THAI - 1] = isCTTC ? INSTALLMENT_STATUS.PENDING : INSTALLMENT_STATUS.RUNNING;
   rowData[COL_TG.CHI_NHANH - 1] = data.chiNhanh || "";
   rowData[COL_TG.TIEN_MAT - 1] = tienMat;
   rowData[COL_TG.CHUYEN_KHOAN - 1] = chuyenKhoan;
+  rowData[COL_TG.NGAY_THANH_KHOAN - 1] = "";
 
   appendRow(SHEET_NAMES.TRA_GOP, rowData);
 

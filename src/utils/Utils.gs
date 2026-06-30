@@ -10,6 +10,65 @@ let _sheetDataCache = {};
 let _sheetIndexCache = {};
 const _LockState = { depth: 0, lock: null };
 
+function getSheetOrThrow(sheetName) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(sheetName);
+  if (!sheet) {
+    throw new Error('Sheet "' + sheetName + '" không tồn tại!');
+  }
+  return sheet;
+}
+
+function normalizeSheetValue(value) {
+  if (typeof value === "string" && value.length > 1 && /^\d+$/.test(value)) {
+    if (value.indexOf("0") === 0 || value.length >= 10) {
+      return "'" + value;
+    }
+  }
+  return value;
+}
+
+function normalizeSheetRowValues(rowData) {
+  if (!Array.isArray(rowData)) return rowData;
+  return rowData.map(function (value) {
+    return normalizeSheetValue(value);
+  });
+}
+
+function ensureSheetColumnCapacity(sheet, requiredCols) {
+  const maxCols = sheet.getMaxColumns();
+  if (maxCols < requiredCols) {
+    sheet.insertColumnsAfter(maxCols, requiredCols - maxCols);
+  }
+}
+
+function runWithDocumentLock(action, timeoutMs) {
+  const hasLock = _LockState.depth > 0;
+  let lock = null;
+  if (!hasLock) {
+    lock = LockService.getDocumentLock();
+    try {
+      lock.waitLock(timeoutMs || 10000);
+    } catch (e) {
+      throw new Error("Hệ thống hiện đang bận xử lý giao dịch khác. Vui lòng thử lại sau vài giây!");
+    }
+  }
+
+  _LockState.depth += 1;
+  try {
+    return action();
+  } finally {
+    _LockState.depth = Math.max(0, _LockState.depth - 1);
+    if (lock) {
+      try {
+        lock.releaseLock();
+      } catch (err) {
+        Logger.log("Không thể giải phóng khóa: " + err.message);
+      }
+    }
+  }
+}
+
 function clearSheetCache(sheetName) {
   if (sheetName) {
     delete _sheetDataCache[sheetName];
@@ -94,7 +153,7 @@ function reconcileAllSchemas() {
 
     // Load actual column map from the sheet
     const actualMap = getColMapFromSheet(sheetName);
-    const schemaList = SCHEMA[sheetName];
+    const schemaList = getSchemaDefinition(sheetName);
 
     if (actualMap && Object.keys(actualMap).length > 0) {
       // Reconcile index based on current sheet header label
@@ -185,8 +244,8 @@ function ensureSheetColumnsExist(sheetName) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = ss.getSheetByName(sheetName);
-    const expected = SHEET_HEADERS[sheetName];
-    if (!sheet || !expected) return;
+    const expected = SHEET_HEADERS[sheetName] || getSchemaColumnNames(sheetName);
+    if (!sheet || !expected || expected.length === 0) return;
 
     const current = sheet.getLastColumn();
     if (expected.length > current) {
@@ -418,21 +477,11 @@ function getNewIdCounter(prefix, sheetName) {
 }
 
 function generateId(prefix, sheetName) {
-  const hasLock = _LockState.depth > 0;
-  let lock = null;
-  if (!hasLock) {
-    lock = LockService.getDocumentLock();
-    try {
-      lock.waitLock(10000); // 10s wait
-    } catch (e) {
-      throw new Error("Hệ thống hiện đang bận xử lý giao dịch khác. Vui lòng thử lại sau vài giây!");
-    }
-  }
-  try {
+  return runWithDocumentLock(function () {
     const props = PropertiesService.getDocumentProperties();
     const key = "id_counter_" + prefix + "_" + sheetName;
     let count = Number(props.getProperty(key) || "0");
-    
+
     // Tự phục hồi: nếu counter = 0 -> seed lại từ dữ liệu sheet
     if (count === 0) {
       count = getNewIdCounter(prefix, sheetName);
@@ -441,16 +490,8 @@ function generateId(prefix, sheetName) {
     count += 1;
     props.setProperty(key, String(count));
     const padded = ("00000" + count).slice(-5);
-    return prefix + padded; 
-  } finally {
-    if (lock) {
-      try {
-        lock.releaseLock();
-      } catch (err) {
-        Logger.log("Không thể giải phóng khóa trong generateId: " + err.message);
-      }
-    }
-  }
+    return prefix + padded;
+  }, 10000);
 }
 /**
  * Lookup giá trị từ sheet
@@ -553,6 +594,69 @@ function formatMonthYear(val) {
  * @param {string} key - Tên cấu hình (cột A)
  * @return {string} Giá trị cấu hình (cột B) hoặc ''
  */
+function resolvePhoneRowForSale(data, chiNhanh) {
+  const normalizedImei = String(data && data.imei ? data.imei : "").trim();
+  const normalizedMaSp = String(data && data.maSP ? data.maSP : "").trim();
+  const normalizedBranch = String(chiNhanh || "").trim();
+
+  if (!normalizedImei && !normalizedMaSp) {
+    return { row: -1, resolvedImei: "" };
+  }
+
+  const dtData = getAllData(SHEET_NAMES.DIEN_THOAI);
+  const maDtIdx = COL_DT.MA_DT - 1;
+  const imeiIdx = COL_DT.IMEI - 1;
+  const imei2Idx = COL_DT.IMEI_2 ? COL_DT.IMEI_2 - 1 : -1;
+  const branchIdx = COL_DT.CHI_NHANH - 1;
+  const statusIdx = COL_DT.TRANG_THAI_KHO - 1;
+
+  if (normalizedImei) {
+    const imeiKey = normalizedImei.toLowerCase();
+    for (let i = 0; i < dtData.length; i++) {
+      const row = dtData[i] || [];
+      const rowImei = String(row[imeiIdx] || "").trim().toLowerCase();
+      const rowImei2 = imei2Idx >= 0 ? String(row[imei2Idx] || "").trim().toLowerCase() : "";
+      if (rowImei === imeiKey || rowImei2 === imeiKey) {
+        return {
+          row: i + 2,
+          resolvedImei: String(row[imeiIdx] || "").trim() || normalizedImei,
+        };
+      }
+    }
+  }
+
+  if (normalizedMaSp) {
+    let fallbackRow = -1;
+    let fallbackImei = "";
+    for (let i = 0; i < dtData.length; i++) {
+      const row = dtData[i] || [];
+      const rowMaDt = String(row[maDtIdx] || "").trim().toLowerCase();
+      const rowBranch = String(row[branchIdx] || "").trim();
+      if (rowMaDt !== normalizedMaSp.toLowerCase()) continue;
+      if (normalizedBranch && rowBranch !== normalizedBranch) continue;
+
+      const rowStatus = String(row[statusIdx] || "").trim();
+      if (rowStatus === STOCK_STATUS.IN_STOCK) {
+        return {
+          row: i + 2,
+          resolvedImei: String(row[imeiIdx] || "").trim(),
+        };
+      }
+
+      if (fallbackRow === -1) {
+        fallbackRow = i + 2;
+        fallbackImei = String(row[imeiIdx] || "").trim();
+      }
+    }
+
+    if (fallbackRow !== -1) {
+      return { row: fallbackRow, resolvedImei: fallbackImei };
+    }
+  }
+
+  return { row: -1, resolvedImei: "" };
+}
+
 function getConfig(key) {
   const val = lookupValue(SHEET_NAMES.CAU_HINH, 1, key, 2);
   return val !== null ? String(val) : "";
@@ -596,124 +700,90 @@ function getAllData(sheetName) {
  * @return {number} Số dòng đã ghi nhận (row number)
  */
 function saveRowData(sheetName, row, columnValueMap) {
-  clearSheetCache(sheetName);
-  invalidateDropdownCache(sheetName);
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(sheetName);
-  if (!sheet) throw new Error('Sheet "' + sheetName + '" không tồn tại!');
+  return runWithDocumentLock(function () {
+    clearSheetCache(sheetName);
+    invalidateDropdownCache(sheetName);
+    const sheet = getSheetOrThrow(sheetName);
 
-  // Xác định số cột lớn nhất cần thiết
-  let maxColNeeded = 0;
-  Object.keys(columnValueMap).forEach(function(colStr) {
-    const col = parseInt(colStr, 10);
-    if (!isNaN(col) && col > maxColNeeded) {
-      maxColNeeded = col;
+    // Xác định số cột lớn nhất cần thiết
+    let maxColNeeded = 0;
+    Object.keys(columnValueMap).forEach(function(colStr) {
+      const col = parseInt(colStr, 10);
+      if (!isNaN(col) && col > maxColNeeded) {
+        maxColNeeded = col;
+      }
+    });
+
+    ensureSheetColumnCapacity(sheet, maxColNeeded);
+
+    // Nếu là dòng mới (-1), append dòng trống để lấy số dòng cuối
+    if (row === -1) {
+      sheet.appendRow([]);
+      row = sheet.getLastRow();
     }
-  });
 
-  // Tự động mở rộng số cột nếu thiếu
-  const maxCols = sheet.getMaxColumns();
-  if (maxCols < maxColNeeded) {
-    sheet.insertColumnsAfter(maxCols, maxColNeeded - maxCols);
-  }
+    const range = sheet.getRange(row, 1, 1, maxColNeeded);
+    const rowValues = range.getValues()[0];
 
-  // Nếu là dòng mới (-1), append dòng trống để lấy số dòng cuối
-  if (row === -1) {
-    sheet.appendRow([]);
-    row = sheet.getLastRow();
-  }
+    // Áp dụng dữ liệu cập nhật
+    Object.keys(columnValueMap).forEach(function(colStr) {
+      const col = parseInt(colStr, 10);
+      if (isNaN(col)) return;
+      let value = columnValueMap[colStr];
+      value = normalizeSheetValue(value);
+      rowValues[col - 1] = (value !== undefined && value !== null) ? value : "";
+    });
 
-  const range = sheet.getRange(row, 1, 1, maxColNeeded);
-  const rowValues = range.getValues()[0];
+    range.setValues([rowValues]);
 
-  // Áp dụng dữ liệu cập nhật
-  Object.keys(columnValueMap).forEach(function(colStr) {
-    const col = parseInt(colStr, 10);
-    if (isNaN(col)) return;
-    let value = columnValueMap[colStr];
-
-    // Tránh mất số 0 ở đầu đối với chuỗi số điện thoại hoặc mã bắt đầu bằng 0
-    if (typeof value === "string" && value.indexOf("0") === 0 && value.length > 1 && /^\d+$/.test(value)) {
-      value = "'" + value;
-    }
-    rowValues[col - 1] = (value !== undefined && value !== null) ? value : "";
-  });
-
-  range.setValues([rowValues]);
-
-  return row;
+    return row;
+  }, 10000);
 }
 
 function appendRow(sheetName, rowData) {
-  clearSheetCache(sheetName);
-  invalidateDropdownCache(sheetName);
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(sheetName);
-  if (!sheet) throw new Error('Sheet "' + sheetName + '" không tồn tại!');
+  return runWithDocumentLock(function () {
+    clearSheetCache(sheetName);
+    invalidateDropdownCache(sheetName);
+    const sheet = getSheetOrThrow(sheetName);
 
-  // Tự động mở rộng số cột nếu dòng dữ liệu mới dài hơn số cột hiện tại
-  const maxCols = sheet.getMaxColumns();
-  if (maxCols < rowData.length) {
-    sheet.insertColumnsAfter(maxCols, rowData.length - maxCols);
-  }
+    ensureSheetColumnCapacity(sheet, rowData.length);
 
-  // Tránh mất số 0 ở đầu hoặc định dạng khoa học đối với chuỗi số điện thoại, IMEI, hoặc mã số dài
-  for (let i = 0; i < rowData.length; i++) {
-    const val = rowData[i];
-    if (typeof val === "string" && val.length > 1 && /^\d+$/.test(val)) {
-      if (val.indexOf("0") === 0 || val.length >= 10) {
-        rowData[i] = "'" + val;
-      }
-    }
-  }
-
-  sheet.appendRow(rowData);
-  const lastRow = sheet.getLastRow();
-
-  return lastRow;
+    const normalizedRowData = normalizeSheetRowValues(rowData);
+    sheet.appendRow(normalizedRowData);
+    return sheet.getLastRow();
+  }, 10000);
 }
 
 function appendRows(sheetName, rowsData) {
   if (!rowsData || rowsData.length === 0) return 0;
-  clearSheetCache(sheetName);
-  invalidateDropdownCache(sheetName);
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(sheetName);
-  if (!sheet) throw new Error('Sheet "' + sheetName + '" không tồn tại!');
+  return runWithDocumentLock(function () {
+    clearSheetCache(sheetName);
+    invalidateDropdownCache(sheetName);
+    const sheet = getSheetOrThrow(sheetName);
 
-  // Tìm số cột dữ liệu lớn nhất trong các dòng
-  const maxDataCols = Math.max.apply(null, rowsData.map(function(r) { return r.length; }));
-  const maxCols = sheet.getMaxColumns();
-  if (maxCols < maxDataCols) {
-    sheet.insertColumnsAfter(maxCols, maxDataCols - maxCols);
-  }
+    // Tìm số cột dữ liệu lớn nhất trong các dòng
+    const maxDataCols = Math.max.apply(null, rowsData.map(function(r) { return r.length; }));
+    ensureSheetColumnCapacity(sheet, maxDataCols);
 
-  // Tránh mất số 0 ở đầu hoặc định dạng khoa học đối với chuỗi số điện thoại, IMEI, hoặc mã số dài
-  rowsData.forEach(function (rowData) {
-    for (let i = 0; i < rowData.length; i++) {
-      const val = rowData[i];
-      if (typeof val === "string" && val.length > 1 && /^\d+$/.test(val)) {
-        if (val.indexOf("0") === 0 || val.length >= 10) {
-          rowData[i] = "'" + val;
-        }
+    const normalizedRows = rowsData.map(function (rowData) {
+      return normalizeSheetRowValues(rowData).slice();
+    });
+
+    const lastRow = sheet.getLastRow();
+    // Pad các hàng ngắn để khớp với kích thước mảng 2 chiều
+    const preparedRows = normalizedRows.map(function(r) {
+      const arr = r.slice();
+      while (arr.length < maxDataCols) {
+        arr.push("");
       }
-    }
-  });
+      return arr;
+    });
 
-  const lastRow = sheet.getLastRow();
-  // Pad các hàng ngắn để khớp với kích thước mảng 2 chiều
-  const normalizedRows = rowsData.map(function(r) {
-    const arr = r.slice();
-    while (arr.length < maxDataCols) {
-      arr.push("");
-    }
-    return arr;
-  });
+    const range = sheet.getRange(lastRow + 1, 1, preparedRows.length, maxDataCols);
+    range.setValues(preparedRows);
 
-  const range = sheet.getRange(lastRow + 1, 1, normalizedRows.length, maxDataCols);
-  range.setValues(normalizedRows);
-
-  return lastRow + normalizedRows.length;
+    return lastRow + preparedRows.length;
+  }, 10000);
 }
 
 /**
@@ -725,24 +795,16 @@ function appendRows(sheetName, rowsData) {
  * @param {*} value - Giá trị mới
  */
 function updateCell(sheetName, row, col, value) {
-  clearSheetCache(sheetName);
-  invalidateDropdownCache(sheetName);
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(sheetName);
-  if (!sheet) throw new Error('Sheet "' + sheetName + '" không tồn tại!');
+  return runWithDocumentLock(function () {
+    clearSheetCache(sheetName);
+    invalidateDropdownCache(sheetName);
+    const sheet = getSheetOrThrow(sheetName);
 
-  // Tự động mở rộng số cột nếu cột cần cập nhật vượt quá số cột hiện tại
-  const maxCols = sheet.getMaxColumns();
-  if (maxCols < col) {
-    sheet.insertColumnsAfter(maxCols, col - maxCols);
-  }
+    ensureSheetColumnCapacity(sheet, col);
 
-  const cell = sheet.getRange(row, col);
-  // Tránh mất số 0 ở đầu đối với chuỗi số điện thoại hoặc mã bắt đầu bằng 0
-  if (typeof value === "string" && value.indexOf("0") === 0 && value.length > 1 && /^\d+$/.test(value)) {
-    value = "'" + value;
-  }
-  cell.setValue(value);
+    const cell = sheet.getRange(row, col);
+    cell.setValue(normalizeSheetValue(value));
+  }, 10000);
 }
 
 /**

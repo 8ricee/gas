@@ -151,8 +151,9 @@ function applyConditionalFormatting(ss) {
 
 function _buildColorMap(branches, brands) {
   const colorMap = {};
-  for (const key in CONDITIONAL_COLOR_MAP) {
-    colorMap[key] = CONDITIONAL_COLOR_MAP[key];
+  const colorMapConfig = getConditionalColorMap();
+  for (const key in colorMapConfig) {
+    colorMap[key] = colorMapConfig[key];
   }
 
   const BRANCH_COLORS = [
@@ -316,7 +317,7 @@ function _applyTraGopFormatting(ss, colorMap, branches) {
 
   _applyRulesForSheet(sheet, [
     { range: colTGLoaiTG + "2:" + colTGLoaiTG, values: [INSTALLMENT_TYPE.STORE, INSTALLMENT_TYPE.FINANCE] },
-    { range: colTGTrangThai + "2:" + colTGTrangThai, values: [INSTALLMENT_STATUS.RUNNING, INSTALLMENT_STATUS.DONE, INSTALLMENT_STATUS.LATE, INSTALLMENT_STATUS.CANCELLED] },
+    { range: colTGTrangThai + "2:" + colTGTrangThai, values: [INSTALLMENT_STATUS.RUNNING, INSTALLMENT_STATUS.DONE, INSTALLMENT_STATUS.LATE, INSTALLMENT_STATUS.CANCELLED, INSTALLMENT_STATUS.PENDING] },
     { range: colTGChiNhanh + "2:" + colTGChiNhanh, values: branches },
   ], colorMap);
 }
@@ -351,7 +352,7 @@ function _applyDoiTraFormatting(ss, colorMap, branches) {
   const colDTRTrangThai = columnToLetter(COL_DT_TRA.TRANG_THAI);
 
   _applyRulesForSheet(sheet, [
-    { range: colDTRLoaiGD + "2:" + colDTRLoaiGD, values: ["Trả máy", "Đổi máy"] },
+    { range: colDTRLoaiGD + "2:" + colDTRLoaiGD, values: ["Trả máy", "Đổi máy", "Trả hàng", "Đổi hàng"] },
     { range: colDTRHTTT + "2:" + colDTRHTTT, values: [PAYMENT_METHOD.CASH, PAYMENT_METHOD.TRANSFER, PAYMENT_METHOD.MIXED] },
     { range: colDTRChiNhanh + "2:" + colDTRChiNhanh, values: branches },
     { range: colDTRTrangThai + "2:" + colDTRTrangThai, values: [ORDER_STATUS.DONE, ORDER_STATUS.CANCELLED] },

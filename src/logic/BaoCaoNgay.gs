@@ -13,20 +13,28 @@ function updateDailyReportFromSheet() {
   const sheet = ss.getSheetByName(SHEET_NAMES.BAO_CAO_NGAY);
   if (!sheet) return;
 
-  const dateVal = sheet.getRange(3, 2).getValue(); // Cell B3
-  const date = _parseDate(dateVal);
-  if (!date) {
+  const fromDateVal = sheet.getRange(3, 2).getValue(); // Cell B3
+  const toDateVal = sheet.getRange(3, 4).getValue(); // Cell D3
+  const fromDate = _parseDate(fromDateVal);
+  let toDate = _parseDate(toDateVal);
+
+  if (!fromDate) {
     sheet
       .getRange(4, 2)
-      .setValue("Ngày không hợp lệ! Vui lòng nhập định dạng dd/MM/yyyy");
+      .setValue("Ngày bắt đầu không hợp lệ! Vui lòng nhập định dạng dd/MM/yyyy");
     return;
+  }
+
+  // Nếu ô Đến ngày bỏ trống, mặc định Đến ngày = Từ ngày
+  if (!toDate) {
+    toDate = fromDate;
   }
 
   sheet.getRange(4, 2).setValue("Đang tải báo cáo...");
   SpreadsheetApp.flush();
 
   try {
-    generateDailyReport(date);
+    generateDailyReport(fromDate, toDate);
     const nowStr = Utilities.formatDate(
       new Date(),
       "Asia/Ho_Chi_Minh",
@@ -43,12 +51,15 @@ function updateDailyReportFromSheet() {
  *
  * @param {Date} targetDate - Ngày cần báo cáo
  */
-function generateDailyReport(targetDate) {
+function generateDailyReport(fromDate, toDate) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let reportSheet = ss.getSheetByName(SHEET_NAMES.BAO_CAO_NGAY);
   if (!reportSheet) {
     reportSheet = ss.insertSheet(SHEET_NAMES.BAO_CAO_NGAY);
   }
+
+  const isMultiDay = (toDate instanceof Date && !_isSameDay(fromDate, toDate));
+  const dateFilter = isMultiDay ? { startDate: fromDate, endDate: toDate } : fromDate;
 
   // Đọc danh sách chi nhánh động
   const branches = getBranchesList();
@@ -58,19 +69,22 @@ function generateDailyReport(targetDate) {
   const branchMetrics = _initBranchMetrics(branches, fallbackBranch);
   const transactions = [];
 
-  // Thu thập giao dịch theo ngày
-  _collectDonHang(targetDate, branchMetrics, fallbackBranch, transactions, ss);
-  _collectDichVu(targetDate, branchMetrics, fallbackBranch, transactions);
-  _collectRepayments(targetDate, branchMetrics, fallbackBranch, transactions);
-  _collectNhapKho(targetDate, branchMetrics, fallbackBranch, transactions);
-  _collectDoiTra(targetDate, branchMetrics, fallbackBranch, transactions, ss);
-  _collectThuMua(targetDate, branchMetrics, fallbackBranch, transactions);
-  _collectBaoHanh(targetDate, branchMetrics, fallbackBranch, transactions);
+  // Thu thập giao dịch theo ngày hoặc khoảng ngày
+  _collectDonHang(dateFilter, branchMetrics, fallbackBranch, transactions, ss);
+  _collectDichVu(dateFilter, branchMetrics, fallbackBranch, transactions);
+  _collectRepayments(dateFilter, branchMetrics, fallbackBranch, transactions);
+  _collectCttcDisbursements(dateFilter, branchMetrics, fallbackBranch, transactions);
+  _collectNhapKho(dateFilter, branchMetrics, fallbackBranch, transactions);
+  _collectDoiTra(dateFilter, branchMetrics, fallbackBranch, transactions, ss);
+  _collectThuMua(dateFilter, branchMetrics, fallbackBranch, transactions);
+  _collectBaoHanh(dateFilter, branchMetrics, fallbackBranch, transactions);
 
-  // Sắp xếp tăng dần theo thời gian
-  transactions.sort(function (a, b) {
-    return a.time.getTime() - b.time.getTime();
-  });
+  // Sắp xếp tăng dần theo thời gian (chỉ khi có chi tiết)
+  if (!isMultiDay) {
+    transactions.sort(function (a, b) {
+      return a.time.getTime() - b.time.getTime();
+    });
+  }
 
   // --- 2. GHI BÁO CÁO LÊN SHEET ---
   const totalRows = reportSheet.getMaxRows();
@@ -80,18 +94,36 @@ function generateDailyReport(targetDate) {
   }
 
   // Tạo tiêu đề
+  const reportTitle = isMultiDay ? "BÁO CÁO TỔNG HỢP GIAO DỊCH" : "BÁO CÁO GIAO DỊCH THEO NGÀY";
   reportSheet
     .getRange(1, 1)
-    .setValue("BÁO CÁO GIAO DỊCH THEO NGÀY")
+    .setValue(reportTitle)
     .setFontSize(14)
     .setFontWeight("bold");
 
-  reportSheet.getRange(3, 1).setValue("Ngày báo cáo:").setFontWeight("bold");
+  reportSheet.getRange(3, 1).setValue("Từ ngày:").setFontWeight("bold");
+  reportSheet.getRange(3, 3).setValue("Đến ngày:").setFontWeight("bold");
 
-  const dateCell = reportSheet.getRange(3, 2);
-  dateCell
-    .setValue(targetDate)
+  const fromDateCell = reportSheet.getRange(3, 2);
+  fromDateCell
+    .setValue(fromDate)
     .setNumberFormat("dd/MM/yyyy")
+    .setBackground("#ffffff")
+    .setBorder(
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      "#cccccc",
+      SpreadsheetApp.BorderStyle.SOLID,
+    )
+    .setHorizontalAlignment("left");
+
+  const toDateCell = reportSheet.getRange(3, 4);
+  toDateCell.setValue(toDate || fromDate).setNumberFormat("dd/MM/yyyy");
+  toDateCell
     .setBackground("#ffffff")
     .setBorder(
       true,
@@ -119,7 +151,9 @@ function generateDailyReport(targetDate) {
     fb.thuTM !== 0 ||
     fb.chiTM !== 0 ||
     fb.thuCK !== 0 ||
-    fb.chiCK !== 0
+    fb.chiCK !== 0 ||
+    fb.congNoCH !== 0 ||
+    fb.congNoCTTC !== 0
   ) {
     activeBranches.push(fallbackBranch);
   }
@@ -129,8 +163,10 @@ function generateDailyReport(targetDate) {
   // Ghi bảng tổng hợp chỉ tiêu tài chính
   _writeSummaryTableToSheet(reportSheet, branchMetrics, activeBranches, totalSummaryColIdx);
 
-  // Ghi chi tiết giao dịch các chi nhánh
-  _writeDetailedTablesToSheet(reportSheet, transactions, activeBranches, fallbackBranch);
+  // Ghi chi tiết giao dịch các chi nhánh nếu không phải báo cáo tổng hợp nhiều ngày
+  if (!isMultiDay) {
+    _writeDetailedTablesToSheet(reportSheet, transactions, activeBranches, fallbackBranch);
+  }
 
   // Áp dụng font Times New Roman 12 cho toàn sheet
   const maxRows = reportSheet.getMaxRows();
@@ -161,7 +197,8 @@ function _initBranchMetrics(branches, fallbackBranch) {
       chiTM: 0,
       thuCK: 0,
       chiCK: 0,
-      congNoCTTC : 0,
+      congNoCH: 0,
+      congNoCTTC: 0,
     };
   });
   branchMetrics[fallbackBranch] = {
@@ -171,7 +208,8 @@ function _initBranchMetrics(branches, fallbackBranch) {
     chiTM: 0,
     thuCK: 0,
     chiCK: 0,
-    congNoCTTC : 0,
+    congNoCH: 0,
+    congNoCTTC: 0,
   };
   return branchMetrics;
 }
@@ -211,8 +249,9 @@ function _writeSummaryTableToSheet(reportSheet, branchMetrics, activeBranches, t
     { name: "4. Tiền mặt Chi", key: "chiTM" },
     { name: "5. Chuyển khoản Thu", key: "thuCK" },
     { name: "6. Chuyển khoản Chi", key: "chiCK" },
-    { name: "7. Phải thu Trả góp (Công nợ)", key: "congNoCTTC" },
-    { name: "8. Dòng tiền ròng trong ngày", key: "netCash" },
+    { name: "7. Công nợ Cửa hàng", key: "congNoCH" },
+    { name: "8. Công nợ CTTC", key: "congNoCTTC" },
+    { name: "9. Dòng tiền ròng trong ngày", key: "netCash" },
   ];
 
   const summaryData = [];
@@ -240,12 +279,19 @@ function _writeSummaryTableToSheet(reportSheet, branchMetrics, activeBranches, t
     .getRange(8, 1, summaryData.length, totalSummaryColIdx)
     .setValues(summaryData);
 
+  // Tô màu hàng công nợ cửa hàng (vàng nhạt) và hàng công nợ CTTC (xanh lá nhạt)
+  const storeDebtRowIdx = 8 + 6;
+  const bankDebtRowIdx = 8 + 7;
+  reportSheet.getRange(storeDebtRowIdx, 1, 1, totalSummaryColIdx).setBackground("#fef7e0"); // Soft yellow
+  reportSheet.getRange(bankDebtRowIdx, 1, 1, totalSummaryColIdx).setBackground("#e6f4ea"); // Soft green
+
   // Định dạng số và kiểu chữ bảng tổng hợp
   reportSheet
     .getRange(8, 2, summaryData.length, totalSummaryColIdx - 1)
     .setNumberFormat("#,##0");
+  const netCashRowIdx = 8 + summaryData.length - 1;
   reportSheet
-    .getRange(14, 1, 1, totalSummaryColIdx)
+    .getRange(netCashRowIdx, 1, 1, totalSummaryColIdx)
     .setFontColor("#1a73e8")
     .setFontWeight("bold"); // Dòng tiền ròng nổi bật
   reportSheet
@@ -272,7 +318,7 @@ function _writeSummaryTableToSheet(reportSheet, branchMetrics, activeBranches, t
  * @private
  */
 function _writeDetailedTablesToSheet(reportSheet, transactions, activeBranches, fallbackBranch) {
-  let startRow = 17;
+  let startRow = 18;
 
   activeBranches.forEach(function (branchName) {
     const branchTxs = transactions.filter(function (tx) {
@@ -316,6 +362,7 @@ function _writeDetailedTablesToSheet(reportSheet, transactions, activeBranches, 
     // 3. Ghi dữ liệu giao dịch chi tiết
     if (branchTxs.length > 0) {
       const detailRows = [];
+      const backgrounds = [];
       let sumThuTM = 0,
         sumChiTM = 0,
         sumThuCK = 0,
@@ -343,11 +390,30 @@ function _writeDetailedTablesToSheet(reportSheet, transactions, activeBranches, 
         sumChiCK += tx.chiCK;
         sumCongNo += tx.congNo || 0;
         sumLoiNhuan += tx.loiNhuan;
+
+        // Xác định màu nền cho dòng giao dịch trả góp
+        let rowBg = null; // Mặc định không tô màu (giữ màu nền trắng)
+        if (tx.congNo > 0) {
+          if (tx.isStoreInstallment) {
+            rowBg = "#fef7e0"; // Màu vàng nhạt cho trả góp cửa hàng
+          } else if (tx.isFinanceInstallment) {
+            rowBg = "#e6f4ea"; // Màu xanh lá nhạt cho trả góp CTTC
+          }
+        }
+        const rowBgArray = [];
+        for (let col = 0; col < 11; col++) {
+          rowBgArray.push(rowBg);
+        }
+        backgrounds.push(rowBgArray);
       });
 
       reportSheet
         .getRange(startRow + 2, 1, detailRows.length, 11)
         .setValues(detailRows);
+
+      reportSheet
+        .getRange(startRow + 2, 1, detailRows.length, 11)
+        .setBackgrounds(backgrounds);
 
       // Format tiền tệ
       reportSheet

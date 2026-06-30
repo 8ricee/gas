@@ -14,42 +14,23 @@ const ProductStrategy = {
       };
     },
     checkStock: function(data, chiNhanh, soLuong, ss) {
-      const dtSheet = ss.getSheetByName(SHEET_NAMES.DIEN_THOAI);
-      let phoneRow = -1;
-
-      if (data.imei) {
-        phoneRow = findRow(SHEET_NAMES.DIEN_THOAI, COL_DT.IMEI, data.imei);
-        if (phoneRow === -1 && COL_DT.IMEI_2) {
-          phoneRow = findRow(SHEET_NAMES.DIEN_THOAI, COL_DT.IMEI_2, data.imei);
-        }
-      } else {
-        // Tự động tìm máy có mã SP tại chi nhánh này và đang "Còn hàng"
-        const dtData = getAllData(SHEET_NAMES.DIEN_THOAI);
-        const maDTIdx = COL_DT.MA_DT - 1;
-        const chiNhanhIdx = COL_DT.CHI_NHANH - 1;
-        const trangThaiKhoIdx = COL_DT.TRANG_THAI_KHO - 1;
-        const imeiIdx = COL_DT.IMEI - 1;
-
-        for (let i = 0; i < dtData.length; i++) {
-          if (
-            String(dtData[i][maDTIdx]) === data.maSP &&
-            String(dtData[i][chiNhanhIdx]) === chiNhanh &&
-            String(dtData[i][trangThaiKhoIdx]) === STOCK_STATUS.IN_STOCK
-          ) {
-            phoneRow = i + 2;
-            data.imei = String(dtData[i][imeiIdx]); // Tự động điền IMEI tìm được
-            break;
-          }
-        }
-        // Remove incorrect fallback using only maSP which ignored branch and stock status.
+      const normalizedQty = Number(soLuong) || 1;
+      if (normalizedQty !== 1) {
+        throw new Error("Điện thoại chỉ được bán với số lượng 1 cho mỗi IMEI/đơn hàng.");
       }
 
+      const resolved = resolvePhoneRowForSale(data, chiNhanh);
+      const phoneRow = resolved.row;
       if (phoneRow === -1) {
         throw new Error(
           "Không tìm thấy điện thoại " +
             (data.imei ? "IMEI: " + data.imei : data.maSP) +
             " còn hàng tại chi nhánh " + chiNhanh + "!"
         );
+      }
+
+      if (resolved.resolvedImei) {
+        data.imei = resolved.resolvedImei;
       }
 
       const trangThaiKho = getCachedCellValue(SHEET_NAMES.DIEN_THOAI, phoneRow, COL_DT.TRANG_THAI_KHO);
@@ -62,9 +43,9 @@ const ProductStrategy = {
             ")",
         );
       }
-      
+
       const dtBranch = getCachedCellValue(SHEET_NAMES.DIEN_THOAI, phoneRow, COL_DT.CHI_NHANH);
-      if (dtBranch !== chiNhanh) {
+      if (String(dtBranch).trim() !== String(chiNhanh).trim()) {
         throw new Error(
           "Điện thoại " +
             data.maSP +
@@ -77,7 +58,7 @@ const ProductStrategy = {
     updateStock: function(data, chiNhanh, soLuong, rollbackActions, ss) {
       let trangThaiMoi = STOCK_STATUS.SOLD;
       if (
-        data.hinhThucBan === "Trả góp" &&
+        data.hinhThucBan === SALES_METHOD.INSTALLMENT &&
         data.traGop &&
         data.traGop.loaiTraGop === INSTALLMENT_TYPE.STORE
       ) {

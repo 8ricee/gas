@@ -394,7 +394,7 @@ const DoiTraStrategy = {
           nguonSP: PRODUCT_SOURCE.ACCESSORY,
           soLuong: 1, // Đổi mặc định 1
           donGia: giaBanMoi,
-          hinhThucBan: "Bán thẳng",
+          hinhThucBan: SALES_METHOD.DIRECT,
           hinhThucThanhToan: data.hinhThucThanhToan || "Tiền mặt",
           nguoiBan: data.nguoiThucHien,
           chiNhanh: chiNhanh,
@@ -606,7 +606,7 @@ const DoiTraStrategy = {
           nguonSP: "Điện thoại",
           soLuong: 1,
           donGia: giaBanMoi,
-          hinhThucBan: "Bán thẳng",
+          hinhThucBan: SALES_METHOD.DIRECT,
           hinhThucThanhToan: data.hinhThucThanhToan || "Tiền mặt",
           nguoiBan: data.nguoiThucHien,
           chiNhanh: chiNhanh,

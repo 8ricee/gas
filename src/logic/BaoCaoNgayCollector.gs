@@ -14,9 +14,9 @@ function _collectDonHang(targetDate, branchMetrics, fallbackBranch, transactions
 
   orders.forEach(function (row) {
     const ngayBan = row[COL_DH.NGAY_BAN - 1];
-    if (ngayBan instanceof Date && _isSameDay(ngayBan, targetDate)) {
+    if (ngayBan instanceof Date && _isDateMatch(ngayBan, targetDate)) {
       const status = String(row[COL_DH.TRANG_THAI - 1]);
-      if (isCancelStatus(status) || status === ORDER_STATUS.EXCHANGED) return;
+      if (isCancelStatus(status)) return;
 
       const maDH = String(row[COL_DH.MA_DH - 1]);
       const tenKH = String(row[COL_DH.TEN_KH - 1]);
@@ -95,14 +95,14 @@ function _collectDonHang(targetDate, branchMetrics, fallbackBranch, transactions
       if (hasNewColumns) {
         thuTM = Number(cellTM) || 0;
         thuCK = Number(cellCK) || 0;
-        if (hinhThucBan === "Trả góp") {
+        if (hinhThucBan === SALES_METHOD.INSTALLMENT) {
           // Nợ (Công nợ) = Thành tiền đơn hàng - Số tiền trả trước đã thu (thuTM + thuCK)
           congNo += Math.max(0, thanhTien - (thuTM + thuCK));
         }
       } else {
         // Fallback cho dữ liệu cũ (chưa chia cột)
         let amountForPayment = thanhTien;
-        if (hinhThucBan === "Trả góp") {
+        if (hinhThucBan === SALES_METHOD.INSTALLMENT) {
           const traTruocRaw = lookupValue(
             SHEET_NAMES.TRA_GOP,
             COL_TG.MA_DH,
@@ -119,12 +119,37 @@ function _collectDonHang(targetDate, branchMetrics, fallbackBranch, transactions
         thuCK = payments.ck;
       }
 
+      let congNoCH = 0;
+      let congNoCTTC = 0;
+      let installmentTypeSuffix = "";
+      let isStoreInstallment = false;
+      let isFinanceInstallment = false;
+
+      if (hinhThucBan === SALES_METHOD.INSTALLMENT) {
+        const loaiTG = lookupValue(
+          SHEET_NAMES.TRA_GOP,
+          COL_TG.MA_DH,
+          maDH,
+          COL_TG.LOAI_TRA_GOP
+        );
+        if (loaiTG === INSTALLMENT_TYPE.FINANCE) {
+          congNoCTTC = congNo;
+          installmentTypeSuffix = " qua CTTC";
+          isFinanceInstallment = true;
+        } else {
+          congNoCH = congNo;
+          installmentTypeSuffix = " qua cửa hàng";
+          isStoreInstallment = true;
+        }
+      }
+
       const metrics = _getInitializedBranchMetric(branchMetrics, branch, fallbackBranch);
       metrics.doanhSo += netRevenue;
       metrics.loiNhuan += loiNhuan;
       metrics.thuTM += thuTM;
       metrics.thuCK += thuCK;
-      metrics.congNoCTTC += congNo;
+      metrics.congNoCH += congNoCH;
+      metrics.congNoCTTC += congNoCTTC;
 
       transactions.push({
         maGD: maDH,
@@ -138,8 +163,10 @@ function _collectDonHang(targetDate, branchMetrics, fallbackBranch, transactions
         thuCK: thuCK,
         chiCK: 0,
         loiNhuan: loiNhuan,
+        isStoreInstallment: isStoreInstallment,
+        isFinanceInstallment: isFinanceInstallment,
         detail:
-          tenSP + " (SL: " + sl + ", " + hinhThucBan + " - " + hinhThucTT + ")" + 
+          tenSP + " (SL: " + sl + ", " + hinhThucBan + installmentTypeSuffix + " - " + hinhThucTT + ")" + 
           (tienThuMua > 0 ? " [Trừ máy thu: -" + formatCurrency(tienThuMua) + "đ]" : ""),
       });
     }
@@ -154,7 +181,7 @@ function _collectDichVu(targetDate, branchMetrics, fallbackBranch, transactions)
   const services = getAllData(SHEET_NAMES.DICH_VU);
   services.forEach(function (row) {
     const ngayGD = row[COL_DV.NGAY_GD - 1];
-    if (ngayGD instanceof Date && _isSameDay(ngayGD, targetDate)) {
+    if (ngayGD instanceof Date && _isDateMatch(ngayGD, targetDate)) {
       const status = String(row[COL_DV.TRANG_THAI - 1]);
       if (isCancelStatus(status)) return;
 
@@ -239,7 +266,7 @@ function _collectRepayments(targetDate, branchMetrics, fallbackBranch, transacti
     const status = String(row[COL_LSTG.TRANG_THAI - 1]);
     if (
       ngayTra instanceof Date &&
-      _isSameDay(ngayTra, targetDate) &&
+      _isDateMatch(ngayTra, targetDate) &&
       status === "Đã trả"
     ) {
       const maLS = String(row[COL_LSTG.MA_LS - 1]);
@@ -303,7 +330,7 @@ function _collectNhapKho(targetDate, branchMetrics, fallbackBranch, transactions
   imports.forEach(function (row) {
     const obj = mapRowToObject(row, SHEET_NAMES.NHAP_KHO);
     const ngayNhap = obj.NGAY_NHAP;
-    if (ngayNhap instanceof Date && _isSameDay(ngayNhap, targetDate)) {
+    if (ngayNhap instanceof Date && _isDateMatch(ngayNhap, targetDate)) {
       const maNK = String(obj.MA_NK);
       const nguonNhap = String(obj.NGUON_NHAP);
       const tenSP = String(obj.TEN_SP);
@@ -342,7 +369,7 @@ function _collectDoiTra(targetDate, branchMetrics, fallbackBranch, transactions,
   const returns = getAllData(SHEET_NAMES.DOI_TRA);
   returns.forEach(function (row) {
     const ngayDT = row[COL_DT_TRA.NGAY_DT - 1];
-    if (ngayDT instanceof Date && _isSameDay(ngayDT, targetDate)) {
+    if (ngayDT instanceof Date && _isDateMatch(ngayDT, targetDate)) {
       const status = String(row[COL_DT_TRA.TRANG_THAI - 1]);
       if (isCancelStatus(status)) return;
 
@@ -471,7 +498,7 @@ function _collectThuMua(targetDate, branchMetrics, fallbackBranch, transactions)
   const buybacks = getAllData(SHEET_NAMES.THU_MUA);
   buybacks.forEach(function (row) {
     const ngayTM = row[COL_TM.NGAY_TM - 1];
-    if (ngayTM instanceof Date && _isSameDay(ngayTM, targetDate)) {
+    if (ngayTM instanceof Date && _isDateMatch(ngayTM, targetDate)) {
       const status = String(row[COL_TM.TRANG_THAI - 1]);
       if (isCancelStatus(status)) return;
 
@@ -531,7 +558,7 @@ function _collectBaoHanh(targetDate, branchMetrics, fallbackBranch, transactions
   const repairs = getAllData(SHEET_NAMES.BAO_HANH);
   repairs.forEach(function (row) {
     const ngayNhan = row[COL_BH.NGAY_NHAN - 1];
-    if (ngayNhan instanceof Date && _isSameDay(ngayNhan, targetDate)) {
+    if (ngayNhan instanceof Date && _isDateMatch(ngayNhan, targetDate)) {
       const status = String(row[COL_BH.TRANG_THAI - 1]);
       if (isCancelStatus(status)) return;
 
@@ -613,6 +640,7 @@ function _getInitializedBranchMetric(branchMetrics, branch, fallbackBranch) {
       chiTM: 0,
       thuCK: 0,
       chiCK: 0,
+      congNoCH: 0,
       congNoCTTC: 0
     };
   }
@@ -649,4 +677,77 @@ function _parsePaymentColumns(cellTM, cellCK, hinhThucTT, amountVal) {
     tm: payment.tm,
     ck: payment.ck
   };
+}
+
+/**
+ * Kiểm tra xem ngày có khớp với bộ lọc ngày hay không (một ngày cụ thể hoặc khoảng ngày)
+ * @private
+ */
+function _isDateMatch(date, filterVal) {
+  if (!(date instanceof Date) || !filterVal) return false;
+  if (filterVal instanceof Date) {
+    return (
+      date.getDate() === filterVal.getDate() &&
+      date.getMonth() === filterVal.getMonth() &&
+      date.getFullYear() === filterVal.getFullYear()
+    );
+  }
+  if (filterVal.startDate instanceof Date && filterVal.endDate instanceof Date) {
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+    const start = new Date(filterVal.startDate.getFullYear(), filterVal.startDate.getMonth(), filterVal.startDate.getDate()).getTime();
+    const end = new Date(filterVal.endDate.getFullYear(), filterVal.endDate.getMonth(), filterVal.endDate.getDate()).getTime();
+    return d >= start && d <= end;
+  }
+  return false;
+}
+
+/**
+ * Thu thập giao dịch giải ngân trả góp CTTC (tất toán công nợ CTTC)
+ * @private
+ */
+function _collectCttcDisbursements(targetDate, branchMetrics, fallbackBranch, transactions) {
+  const installments = getAllData(SHEET_NAMES.TRA_GOP);
+  installments.forEach(function (row) {
+    const obj = mapRowToObject(row, SHEET_NAMES.TRA_GOP);
+    if (
+      obj.LOAI_TRA_GOP === INSTALLMENT_TYPE.FINANCE &&
+      obj.TRANG_THAI === INSTALLMENT_STATUS.DONE
+    ) {
+      const ngayThanhKhoan = obj.NGAY_THANH_KHOAN;
+      if (ngayThanhKhoan instanceof Date && _isDateMatch(ngayThanhKhoan, targetDate)) {
+        const maTG = String(obj.MA_TG);
+        const maDH = String(obj.MA_DH);
+        const tenKH = String(obj.TEN_KH || "Khách hàng");
+        const congTyTC = String(obj.CONG_TY_TC || "Ngân hàng/CTTC");
+        const conLai = Number(obj.TONG_TIEN) - Number(obj.TRA_TRUOC);
+        const branch = String(obj.CHI_NHANH || "").trim();
+
+        // Số tiền CTTC giải ngân (chuyển khoản)
+        const thuCK = conLai;
+
+        const metrics = _getInitializedBranchMetric(branchMetrics, branch, fallbackBranch);
+        metrics.thuCK += thuCK;
+
+        // Nếu ngày giải ngân trùng ngày tạo hợp đồng (ngày bán), khấu trừ nợ CTTC phát sinh trong ngày về 0
+        const ngayBatDau = obj.NGAY_BAT_DAU;
+        if (ngayBatDau instanceof Date && _isSameDay(ngayBatDau, ngayThanhKhoan)) {
+          metrics.congNoCTTC -= thuCK;
+        }
+
+        transactions.push({
+          maGD: maTG,
+          time: ngayThanhKhoan,
+          loaiGD: "Thu nợ CTTC",
+          khachHang: tenKH,
+          branch: branch,
+          thuTM: 0,
+          chiTM: 0,
+          thuCK: thuCK,
+          chiCK: 0,
+          loiNhuan: 0,
+          detail: "Thu nợ giải ngân CTTC đơn " + maDH + " từ " + congTyTC,
+        });
+      }
+    }
+  });
 }

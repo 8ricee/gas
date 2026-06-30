@@ -33,7 +33,7 @@ function taoDonHang(data) {
     const netToPay = Math.max(0, netPayable - deduction);
 
     let expectedPaid = netToPay;
-    if (data.hinhThucBan === "Trả góp" && data.traGop) {
+    if (data.hinhThucBan === SALES_METHOD.INSTALLMENT && data.traGop) {
       let ttVal = 0;
       if (
         typeof data.traGop.traTruoc === "string" &&
@@ -93,7 +93,7 @@ function taoDonHang(data) {
             soLuong: item.soLuong,
             donGia: item.donGia,
             tienGiamGia: itemDiscount,
-            hinhThucBan: "Bán thẳng",
+            hinhThucBan: SALES_METHOD.DIRECT,
             hinhThucThanhToan: data.hinhThucThanhToan,
             nguoiBan: data.nguoiBan,
             nguoiHoTro: data.nguoiHoTro,
@@ -176,7 +176,7 @@ function _taoDonHangSingle(data, rollbackActions, ss) {
   const deduction = Number(data.tradeInDeduction) || 0;
   const thanhTien = calcThanhTien(soLuong, donGia, tienGiamGia, deduction);
 
-  if (nguonSP === PRODUCT_SOURCE.ACCESSORY && data.hinhThucBan === "Trả góp") {
+  if (nguonSP === PRODUCT_SOURCE.ACCESSORY && data.hinhThucBan === SALES_METHOD.INSTALLMENT) {
     throw new Error(
       "Hình thức trả góp chỉ hỗ trợ cho Điện thoại, không áp dụng cho Phụ kiện!",
     );
@@ -229,7 +229,7 @@ function _taoDonHangSingle(data, rollbackActions, ss) {
     tenQuaTang = tenQuaList.join(", ");
   }
 
-  const paidAmount = (data.hinhThucBan === "Trả góp" && data.traGop) ? (Number(data.traGop.traTruoc) || 0) : thanhTien;
+  const paidAmount = (data.hinhThucBan === SALES_METHOD.INSTALLMENT && data.traGop) ? (Number(data.traGop.traTruoc) || 0) : thanhTien;
   const splitResult = calculatePaymentSplit(data, paidAmount);
   const tienMat = splitResult.tienMat;
   const chuyenKhoan = splitResult.chuyenKhoan;
@@ -246,7 +246,7 @@ function _taoDonHangSingle(data, rollbackActions, ss) {
     SO_LUONG: soLuong,
     DON_GIA: donGia,
     THANH_TIEN: thanhTien,
-    HINH_THUC_BAN: data.hinhThucBan || "Bán thẳng",
+    HINH_THUC_BAN: data.hinhThucBan || SALES_METHOD.DIRECT,
     HINH_THUC_TT: data.hinhThucThanhToan || PAYMENT_METHOD.CASH,
     NGUOI_BAN: data.nguoiBan || "",
     TEN_NGUOI_BAN: tenNguoiBan,
@@ -301,7 +301,7 @@ function _taoDonHangSingle(data, rollbackActions, ss) {
   }
 
   // Nếu trả góp → tạo hợp đồng
-  if (data.hinhThucBan === "Trả góp" && data.traGop) {
+  if (data.hinhThucBan === SALES_METHOD.INSTALLMENT && data.traGop) {
     const maTG = taoHopDongTraGop({
       maDH: maDH,
       maKH: data.maKH,
@@ -503,7 +503,7 @@ function huyDonHang(maDH) {
 
       // Kiểm tra nếu có trả góp → cập nhật trạng thái hợp đồng và các kỳ liên quan
       const hinhThuc = rowValues[COL_DH.HINH_THUC_BAN - 1];
-      if (hinhThuc === "Trả góp") {
+      if (hinhThuc === SALES_METHOD.INSTALLMENT) {
         const maTG = lookupValue(SHEET_NAMES.TRA_GOP, COL_TG.MA_DH, maDH, COL_TG.MA_TG);
         let oldTGStatus = "";
         const oldLSTGStates = [];

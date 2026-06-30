@@ -70,7 +70,8 @@ const DTO_DEFS = {
     LoaiTraGop: ["LOAI_TRA_GOP", "string"],
     CongTyTC: ["CONG_TY_TC", "string"],
     TrangThai: ["TRANG_THAI", "string"],
-    ChiNhanh: ["CHI_NHANH", "string"]
+    ChiNhanh: ["CHI_NHANH", "string"],
+    NgayThanhKhoan: ["NGAY_THANH_KHOAN", "date"]
   }
 };
 

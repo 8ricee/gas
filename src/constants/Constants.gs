@@ -47,6 +47,49 @@ const SHEET_ORDER = [
 
 const SHEET_HEADERS = {};
 
+const UI_MODES = Object.freeze([
+  "donHang",
+  "khachHang",
+  "nhapKho",
+  "dichVu",
+  "thanhToan",
+  "chuyenKho",
+  "doiTra",
+  "thuMua",
+  "doanhSo",
+  "baoHanh",
+]);
+
+const YES_NO_VALUES = Object.freeze({
+  YES: "✓",
+  NO: "✗",
+});
+
+const EMPLOYEE_ROLES = Object.freeze(["Bán hàng", "Kế toán", "Kỹ thuật"]);
+
+const EMPLOYEE_STATUS = Object.freeze({
+  ACTIVE: "Đang làm",
+  INACTIVE: "Nghỉ việc",
+});
+
+const SALES_METHOD = Object.freeze({
+  DIRECT: "Bán thẳng",
+  INSTALLMENT: "Trả góp",
+});
+
+const SERVICE_TYPES = Object.freeze({
+  TRANSFER_HO: "Chuyển khoản hộ",
+  CASH_WITHDRAWAL: "Rút tiền mặt",
+  PHONE_TOPUP: "Nạp thẻ điện thoại",
+});
+
+const EXCHANGE_TYPES = Object.freeze({
+  RETURN_DEVICE: "Trả máy",
+  EXCHANGE_DEVICE: "Đổi máy",
+  RETURN_GOODS: "Trả hàng",
+  EXCHANGE_GOODS: "Đổi hàng",
+});
+
 const STOCK_STATUS = Object.freeze({
   IN_STOCK: "Còn hàng",
   SOLD: "Đã bán",
@@ -79,6 +122,7 @@ const INSTALLMENT_STATUS = Object.freeze({
   DONE: "Hoàn tất",
   LATE: "Quá hạn",
   CANCELLED: "Đã huỷ",
+  PENDING: "Chờ thanh khoản",
 });
 
 const LSTG_STATUS = Object.freeze({

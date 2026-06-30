@@ -63,7 +63,7 @@ function thucHienThuMua(data) {
             ),
           ) || 0;
 
-        const hinhThucBan = data.hinhThucBan || "Bán thẳng";
+        const hinhThucBan = data.hinhThucBan || SALES_METHOD.DIRECT;
         giaThuMua = Number(data.giaThuMua) || 0;
         tienHoTro = Number(data.tienHoTro) || 0;
         const tienGiamGia = Number(data.tienGiamGia) || 0;
@@ -99,7 +99,7 @@ function thucHienThuMua(data) {
           tienGiamGia: tienGiamGia,
           tradeInDeduction: tradeInDeduction,
           traGop:
-            hinhThucBan === "Trả góp" && data.traGop
+            hinhThucBan === SALES_METHOD.INSTALLMENT && data.traGop
               ? {
                   traTruoc: data.traGop.traTruoc,
                   soKy: data.traGop.soKy,
