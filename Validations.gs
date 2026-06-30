@@ -92,7 +92,7 @@ function _setupDonHangValidations(ss, chiNhanhRule) {
 
   setColumnListValidation(dhSheet, COL_DH.HINH_THUC_BAN, ["Bán thẳng", "Trả góp"]);
   setColumnListValidation(dhSheet, COL_DH.HINH_THUC_TT, [PAYMENT_METHOD.CASH, PAYMENT_METHOD.TRANSFER, PAYMENT_METHOD.POS, PAYMENT_METHOD.MIXED]);
-  setColumnListValidation(dhSheet, COL_DH.NGUON_SP, ["Điện thoại", "Phụ kiện"]);
+  setColumnListValidation(dhSheet, COL_DH.NGUON_SP, [PRODUCT_SOURCE.PHONE, PRODUCT_SOURCE.ACCESSORY]);
   setColumnListValidation(dhSheet, COL_DH.TRANG_THAI, [ORDER_STATUS.DONE, ORDER_STATUS.PROCESSING, ORDER_STATUS.CANCELLED, ORDER_STATUS.EXCHANGED]);
   setColumnListValidation(dhSheet, COL_DH.CO_NHAN_QUA, ["✓", "✗"]);
   dhSheet.getRange(columnToLetter(COL_DH.CHI_NHANH) + "2:" + columnToLetter(COL_DH.CHI_NHANH)).setDataValidation(chiNhanhRule);
@@ -112,7 +112,7 @@ function _setupTraGopValidations(ss, chiNhanhRule) {
   const tgSheet = ss.getSheetByName(SHEET_NAMES.TRA_GOP);
   if (!tgSheet) return;
 
-  setColumnListValidation(tgSheet, COL_TG.LOAI_TRA_GOP, ["Cửa hàng", "Công ty tài chính"]);
+  setColumnListValidation(tgSheet, COL_TG.LOAI_TRA_GOP, [INSTALLMENT_TYPE.STORE, INSTALLMENT_TYPE.FINANCE]);
   setColumnListValidation(tgSheet, COL_TG.TRANG_THAI, [INSTALLMENT_STATUS.RUNNING, INSTALLMENT_STATUS.DONE, INSTALLMENT_STATUS.LATE, INSTALLMENT_STATUS.CANCELLED]);
   tgSheet.getRange(columnToLetter(COL_TG.CHI_NHANH) + "2:" + columnToLetter(COL_TG.CHI_NHANH)).setDataValidation(chiNhanhRule);
 }
@@ -129,7 +129,7 @@ function _setupNhapKhoValidations(ss, chiNhanhRule) {
   const nkSheet = ss.getSheetByName(SHEET_NAMES.NHAP_KHO);
   if (!nkSheet) return;
 
-  setColumnListValidation(nkSheet, COL_NK.NGUON_NHAP, ["Điện thoại", "Phụ kiện"]); // Cột nguồn nhập là loại sản phẩm
+  setColumnListValidation(nkSheet, COL_NK.NGUON_NHAP, [PRODUCT_SOURCE.PHONE, PRODUCT_SOURCE.ACCESSORY]); // Cột nguồn nhập là loại sản phẩm
   const colBranchLetter = columnToLetter(COL_NK.CHI_NHANH);
   nkSheet.getRange(colBranchLetter + "2:" + colBranchLetter).setDataValidation(chiNhanhRule);
 }

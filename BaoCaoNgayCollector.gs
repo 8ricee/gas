@@ -38,7 +38,7 @@ function _collectDonHang(targetDate, branchMetrics, fallbackBranch, transactions
 
       // Tra cứu giá nhập sản phẩm chính
       let giaNhapSP = 0;
-      if (nguonSP === "Điện thoại") {
+      if (nguonSP === PRODUCT_SOURCE.PHONE) {
         giaNhapSP =
           Number(
             lookupValue(
@@ -479,7 +479,7 @@ function _collectDoiTra(targetDate, branchMetrics, fallbackBranch, transactions,
       if (originalOrder) {
         priceOriginal = parseAmountVal(originalOrder.thanhTien);
         let costSP = 0;
-        if (originalOrder.nguonSP === "Điện thoại") {
+        if (originalOrder.nguonSP === PRODUCT_SOURCE.PHONE) {
           costSP =
             Number(
               lookupValue(

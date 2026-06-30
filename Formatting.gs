@@ -281,7 +281,7 @@ function _applyDonHangFormatting(ss, colorMap, branches) {
   const colDHCoNhanQua = columnToLetter(COL_DH.CO_NHAN_QUA);
 
   _applyRulesForSheet(sheet, [
-    { range: colDHNguonSP + "2:" + colDHNguonSP, values: ["Điện thoại", "Phụ kiện"] },
+    { range: colDHNguonSP + "2:" + colDHNguonSP, values: [PRODUCT_SOURCE.PHONE, PRODUCT_SOURCE.ACCESSORY] },
     { range: colDHHinhThucBan + "2:" + colDHHinhThucBan, values: ["Bán thẳng", "Trả góp"] },
     { range: colDHHTTT + "2:" + colDHHTTT, values: [PAYMENT_METHOD.CASH, PAYMENT_METHOD.TRANSFER, PAYMENT_METHOD.POS, PAYMENT_METHOD.MIXED] },
     { range: colDHTrangThai + "2:" + colDHTrangThai, values: [ORDER_STATUS.DONE, ORDER_STATUS.PROCESSING, ORDER_STATUS.CANCELLED, ORDER_STATUS.EXCHANGED] },
@@ -315,7 +315,7 @@ function _applyTraGopFormatting(ss, colorMap, branches) {
   const colTGChiNhanh = columnToLetter(COL_TG.CHI_NHANH);
 
   _applyRulesForSheet(sheet, [
-    { range: colTGLoaiTG + "2:" + colTGLoaiTG, values: ["Cửa hàng", "Công ty tài chính"] },
+    { range: colTGLoaiTG + "2:" + colTGLoaiTG, values: [INSTALLMENT_TYPE.STORE, INSTALLMENT_TYPE.FINANCE] },
     { range: colTGTrangThai + "2:" + colTGTrangThai, values: [INSTALLMENT_STATUS.RUNNING, INSTALLMENT_STATUS.DONE, INSTALLMENT_STATUS.LATE, INSTALLMENT_STATUS.CANCELLED] },
     { range: colTGChiNhanh + "2:" + colTGChiNhanh, values: branches },
   ], colorMap);
@@ -338,7 +338,7 @@ function _applyNhapKhoFormatting(ss, colorMap, branches) {
   const colChiNhanhLetter = columnToLetter(COL_NK.CHI_NHANH);
 
   _applyRulesForSheet(sheet, [
-    { range: colNguonNhapLetter + "2:" + colNguonNhapLetter, values: ["Điện thoại", "Phụ kiện"] },
+    { range: colNguonNhapLetter + "2:" + colNguonNhapLetter, values: [PRODUCT_SOURCE.PHONE, PRODUCT_SOURCE.ACCESSORY] },
     { range: colChiNhanhLetter + "2:" + colChiNhanhLetter, values: branches },
   ], colorMap);
 }

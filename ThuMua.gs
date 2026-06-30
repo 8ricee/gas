@@ -82,7 +82,7 @@ function thucHienThuMua(data) {
           maKH: data.maKH,
           maSP: maSP_Moi,
           imei: data.imei_Moi,
-          nguonSP: "Điện thoại",
+          nguonSP: PRODUCT_SOURCE.PHONE,
           soLuong: 1,
           donGia: giaBanMoi,
           hinhThucBan: hinhThucBan,

@@ -46,6 +46,16 @@ const LSTG_STATUS = Object.freeze({
   CANCELLED: "Đã huỷ",
 });
 
+const INSTALLMENT_TYPE = Object.freeze({
+  STORE: "Cửa hàng",
+  FINANCE: "Công ty tài chính",
+});
+
+const PRODUCT_SOURCE = Object.freeze({
+  PHONE: "Điện thoại",
+  ACCESSORY: "Phụ kiện",
+});
+
 /**
  * Kiểm tra trạng thái có phải là "Huỷ" hay không (chấp nhận cả chữ thường, không dấu)
  * @param {any} value - Trạng thái cần kiểm tra

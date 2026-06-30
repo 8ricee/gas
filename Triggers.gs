@@ -178,7 +178,7 @@ function _onEditDonHang(sheet, row, col, e) {
       const tenDT = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP, COL_DT.TEN_SP);
       if (tenDT) {
         v[COL_DH.TEN_SP - 1] = tenDT;
-        v[COL_DH.NGUON_SP - 1] = "Điện thoại";
+        v[COL_DH.NGUON_SP - 1] = PRODUCT_SOURCE.PHONE;
         const thuongHieu = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP, COL_DT.THUONG_HIEU);
         v[COL_DH.THUONG_HIEU - 1] = thuongHieu || "";
         // Chỉ điền giá trị mặc định nếu ô đó hiện đang trống (tránh ghi đè giá/SL tay đã nhập trước đó)
@@ -199,7 +199,7 @@ function _onEditDonHang(sheet, row, col, e) {
         const tenPK = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, maSP, COL_PK.TEN_SP);
         if (tenPK) {
           v[COL_DH.TEN_SP - 1] = tenPK;
-          v[COL_DH.NGUON_SP - 1] = "Phụ kiện";
+          v[COL_DH.NGUON_SP - 1] = PRODUCT_SOURCE.ACCESSORY;
           const thuongHieuPK = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, maSP, COL_PK.THUONG_HIEU);
           v[COL_DH.THUONG_HIEU - 1] = thuongHieuPK || "";
           // Chỉ điền giá trị mặc định nếu ô đó hiện đang trống
@@ -264,7 +264,7 @@ function _onEditNhapKho(sheet, row, col, e) {
     const maSP = e.value;
     const nguonNhap = v[COL_NK.NGUON_NHAP - 1];
     if (maSP) {
-      if (nguonNhap === "Điện thoại") {
+      if (nguonNhap === PRODUCT_SOURCE.PHONE) {
         const tenDT = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP, COL_DT.TEN_SP);
         v[COL_NK.TEN_SP - 1] = tenDT || "";
       } else {

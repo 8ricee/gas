@@ -24,7 +24,7 @@
 function nhapKho(data) {
   return withDocumentLock(function () {
     const maNK = generateId("NK", SHEET_NAMES.NHAP_KHO);
-    const nguonNhap = data.nguonNhap || "Điện thoại";
+    const nguonNhap = data.nguonNhap || PRODUCT_SOURCE.PHONE;
     let maSP = "";
     let tenSP = "";
     let soLuong = Number(data.soLuong) || 1;
@@ -35,7 +35,7 @@ function nhapKho(data) {
     ]);
     const chiNhanh = data.chiNhanh;
 
-    if (nguonNhap === "Điện thoại") {
+    if (nguonNhap === PRODUCT_SOURCE.PHONE) {
       // Tạo sản phẩm mới trong danh mục điện thoại
       maSP = addDienThoai({
         tenSP: data.tenSP,
@@ -173,7 +173,7 @@ function getTongKetNhapKho(thang, nam) {
       result.tongNhap++;
       result.tongTien += Number(row[7]) || 0;
 
-      if (String(row[2]) === "Điện thoại") {
+      if (String(row[2]) === PRODUCT_SOURCE.PHONE) {
         result.dienThoai.soLuong += Number(row[5]) || 0;
         result.dienThoai.tongTien += Number(row[7]) || 0;
       } else {

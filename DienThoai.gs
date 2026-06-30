@@ -387,7 +387,7 @@ function backfillDienThoaiDates(silent) {
     }
 
     // B. Tìm/Xóa Ngày xuất
-    if (status === "Đã bán" || status === "Đang trả góp") {
+    if (status === STOCK_STATUS.SOLD || status === STOCK_STATUS.INSTALLMENT) {
       if (!currentNgayXuat) {
         let ngayXuat = null;
         // Tìm trong Đơn hàng theo Mã điện thoại

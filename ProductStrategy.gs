@@ -6,7 +6,7 @@
  */
 
 const ProductStrategy = {
-  "Điện thoại": {
+  [PRODUCT_SOURCE.PHONE]: {
     lookup: function(maSP) {
       return {
         tenSP: lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP, COL_DT.TEN_SP) || "",
@@ -81,7 +81,7 @@ const ProductStrategy = {
       if (
         data.hinhThucBan === "Trả góp" &&
         data.traGop &&
-        data.traGop.loaiTraGop === "Cửa hàng"
+        data.traGop.loaiTraGop === INSTALLMENT_TYPE.STORE
       ) {
         trangThaiMoi = STOCK_STATUS.INSTALLMENT;
       }
@@ -95,7 +95,7 @@ const ProductStrategy = {
       updateTrangThaiKhoDT(data.imei || data.maSP, STOCK_STATUS.IN_STOCK);
     }
   },
-  "Phụ kiện": {
+  [PRODUCT_SOURCE.ACCESSORY]: {
     lookup: function(maSP) {
       return {
         tenSP: lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, maSP, COL_PK.TEN_SP) || "",

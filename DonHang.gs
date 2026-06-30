@@ -156,7 +156,7 @@ function _taoDonHangSingle(data, rollbackActions, ss) {
 
   // Lookup thông tin (Tự động thêm KH nếu chưa có)
   const tenKH = ensureKhachHangExists(data.maKH, data.tenKH);
-  const nguonSP = data.nguonSP || "Điện thoại";
+  const nguonSP = data.nguonSP || PRODUCT_SOURCE.PHONE;
   const strategy = ProductStrategy[nguonSP];
   if (!strategy) {
     throw new Error("Loại sản phẩm không hợp lệ: " + nguonSP);
@@ -176,7 +176,7 @@ function _taoDonHangSingle(data, rollbackActions, ss) {
   const deduction = Number(data.tradeInDeduction) || 0;
   const thanhTien = calcThanhTien(soLuong, donGia, tienGiamGia, deduction);
 
-  if (nguonSP === "Phụ kiện" && data.hinhThucBan === "Trả góp") {
+  if (nguonSP === PRODUCT_SOURCE.ACCESSORY && data.hinhThucBan === "Trả góp") {
     throw new Error(
       "Hình thức trả góp chỉ hỗ trợ cho Điện thoại, không áp dụng cho Phụ kiện!",
     );
@@ -311,7 +311,7 @@ function _taoDonHangSingle(data, rollbackActions, ss) {
           : thanhTien,
       traTruoc: data.traGop.traTruoc,
       soKy: Number(data.traGop.soKy) || 1,
-      loaiTraGop: data.traGop.loaiTraGop || "Cửa hàng",
+      loaiTraGop: data.traGop.loaiTraGop || INSTALLMENT_TYPE.STORE,
       congTyTC: data.traGop.congTyTC || "",
       tienMoiKy: Number(data.traGop.tienMoiKy) || 0,
       chiNhanh: chiNhanh,
@@ -443,7 +443,7 @@ function huyDonHang(maDH) {
       };
 
       let oldPhoneStatus = null;
-      if (nguonSP === "Điện thoại") {
+      if (nguonSP === PRODUCT_SOURCE.PHONE) {
         const targetPhoneKey = prodData.imei || prodData.maSP;
         oldPhoneStatus = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.IMEI, targetPhoneKey, COL_DT.TRANG_THAI_KHO);
         if (oldPhoneStatus === null) {
@@ -453,7 +453,7 @@ function huyDonHang(maDH) {
 
       strategy.restoreStock(prodData, chiNhanh, soLuong);
 
-      if (nguonSP === "Điện thoại") {
+      if (nguonSP === PRODUCT_SOURCE.PHONE) {
         const key = prodData.imei || prodData.maSP;
         const status = oldPhoneStatus;
         addRollback(rollbackActions, "Restore phone status", function () {
@@ -580,7 +580,7 @@ function getTongKetDonHang(thang, nam) {
     if (!isCancelStatus(dh.TrangThai) && dh.TrangThai !== ORDER_STATUS.EXCHANGED) {
       result.tongDonHang++;
       result.tongDoanhThu += Number(dh.ThanhTien) || 0;
-      if (dh.NguonSP === "Điện thoại") {
+      if (dh.NguonSP === PRODUCT_SOURCE.PHONE) {
         result.tongDienThoai++;
       } else {
         result.tongPhuKien += Number(dh.SoLuong) || 0;

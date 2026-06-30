@@ -49,7 +49,7 @@ function chotDoanhSoThang(thang, nam) {
   const donHangs = getDonHangTheoThang(thang, nam);
   const dtDonHangs = donHangs.filter(function (dh) {
     return (
-      dh.NguonSP === "Điện thoại" &&
+      dh.NguonSP === PRODUCT_SOURCE.PHONE &&
       !isCancelStatus(dh.TrangThai) &&
       dh.TrangThai !== ORDER_STATUS.EXCHANGED
     );
@@ -714,7 +714,7 @@ function generateSalesReportOnSheet(startDate, endDate, staffVal, gdFilterVal) {
     if (
       ngayBan >= startDate &&
       ngayBan <= endDate &&
-      String(row[COL_DH.NGUON_SP - 1]) === "Điện thoại" &&
+      String(row[COL_DH.NGUON_SP - 1]) === PRODUCT_SOURCE.PHONE &&
       !isCancelStatus(status) &&
       status !== ORDER_STATUS.EXCHANGED
     ) {
@@ -1009,7 +1009,7 @@ function _tinhDoanhSoTuNgayDenNgay(startDate, endDate) {
     return (
       ngayBan >= startDate &&
       ngayBan <= endDate &&
-      String(row[COL_DH.NGUON_SP - 1]) === "Điện thoại" &&
+      String(row[COL_DH.NGUON_SP - 1]) === PRODUCT_SOURCE.PHONE &&
       !isCancelStatus(status) &&
       status !== ORDER_STATUS.EXCHANGED
     );

@@ -18,7 +18,7 @@ function chuyenKho(data) {
       { key: "chiNhanhNguon", label: "Chi nhánh nguồn" },
       { key: "chiNhanhDich", label: "Chi nhánh đích" }
     ]);
-    const nguonSP = data.nguonSP || "Điện thoại";
+    const nguonSP = data.nguonSP || PRODUCT_SOURCE.PHONE;
     const maSP = data.maSP;
     const cnNguon = data.chiNhanhNguon;
     const cnDich = data.chiNhanhDich;
@@ -28,7 +28,7 @@ function chuyenKho(data) {
       throw new Error("Chi nhánh nguồn và chi nhánh đích phải khác nhau!");
     }
 
-    if (nguonSP === "Điện thoại") {
+    if (nguonSP === PRODUCT_SOURCE.PHONE) {
       const ss = SpreadsheetApp.getActiveSpreadsheet();
       const sheet = ss.getSheetByName(SHEET_NAMES.DIEN_THOAI);
       let row = -1;

@@ -20,8 +20,8 @@ function taoHopDongTraGop(data) {
   const conLai = tongTien - traTruocNum;
   const soKy = Number(data.soKy) || 1;
 
-  const loaiTraGop = data.loaiTraGop || "Cửa hàng";
-  const isCTTC = loaiTraGop === "Công ty tài chính";
+  const loaiTraGop = data.loaiTraGop || INSTALLMENT_TYPE.STORE;
+  const isCTTC = loaiTraGop === INSTALLMENT_TYPE.FINANCE;
 
   // Sử dụng số tiền đóng mỗi kỳ được nhập tay truyền từ giao diện (cho cả Cửa hàng và CTTC)
   const tienMoiKy = Number(data.tienMoiKy) || 0;
@@ -257,7 +257,7 @@ function _capNhatTongTraGop(maTG) {
       const maDH = rowValues[COL_TG.MA_DH - 1];
       const maSP = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.MA_SP);
       const nguonSP = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.NGUON_SP);
-      if (nguonSP === "Điện thoại" && maSP) {
+      if (nguonSP === PRODUCT_SOURCE.PHONE && maSP) {
         const imei = lookupValue(SHEET_NAMES.DON_HANG, COL_DH.MA_DH, maDH, COL_DH.IMEI) || "";
         updateTrangThaiKhoDT(imei || maSP, STOCK_STATUS.SOLD);
       }
@@ -467,7 +467,7 @@ function getTraGopDropdown() {
       obj.MA_TG &&
       String(obj.MA_TG).trim() !== "" &&
       String(obj.TRANG_THAI) === INSTALLMENT_STATUS.RUNNING &&
-      String(obj.LOAI_TRA_GOP) === "Cửa hàng"
+      String(obj.LOAI_TRA_GOP) === INSTALLMENT_TYPE.STORE
     ) {
       result.push({
         value: String(obj.MA_TG),
@@ -534,8 +534,8 @@ function _buildTraGopDropdownCache() {
     if (
       obj.MA_TG &&
       String(obj.MA_TG).trim() !== "" &&
-      String(obj.TRANG_THAI) === "Đang trả" &&
-      String(obj.LOAI_TRA_GOP) === "Cửa hàng"
+      String(obj.TRANG_THAI) === INSTALLMENT_STATUS.RUNNING &&
+      String(obj.LOAI_TRA_GOP) === INSTALLMENT_TYPE.STORE
     ) {
       result.push({
         v: String(obj.MA_TG),

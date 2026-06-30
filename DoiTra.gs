@@ -323,7 +323,7 @@ const DoiTraStrategy = {
       context.tenSP_Tra = tenSP_Tra;
       context.nguonSP_Tra = nguonSP_Tra;
 
-      if (nguonSP_Tra === "Phụ kiện") {
+      if (nguonSP_Tra === PRODUCT_SOURCE.ACCESSORY) {
         if (loaiGD === "Đổi hàng") {
           const maSP_Nhan = data.maSP_Nhan;
           if (!maSP_Nhan) {
@@ -369,7 +369,7 @@ const DoiTraStrategy = {
     },
     execute: function(data, context, ss, rollbackActions) {
       const { nguonSP_Tra } = context;
-      if (nguonSP_Tra === "Phụ kiện") {
+      if (nguonSP_Tra === PRODUCT_SOURCE.ACCESSORY) {
         return this._executePhuKien(data, context, ss, rollbackActions);
       } else {
         return this._executeDienThoai(data, context, ss, rollbackActions);
@@ -419,7 +419,7 @@ const DoiTraStrategy = {
         const maDHMoi = taoDonHang({
           maKH: maKH,
           maSP: maSP_Nhan,
-          nguonSP: "Phụ kiện",
+          nguonSP: PRODUCT_SOURCE.ACCESSORY,
           soLuong: 1, // Đổi mặc định 1
           donGia: giaBanMoi,
           hinhThucBan: "Bán thẳng",
