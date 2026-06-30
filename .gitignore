@@ -16,6 +16,7 @@ yarn-error.log*
 
 # Clasp local auth (if logged in locally, though usually global)
 .clasprc.json
+.clasp.json
 
 # Dependency directories
 node_modules/
