@@ -36,20 +36,28 @@
       .withSuccessHandler(function(res) {
         setLoading('btnTaoBH', false);
         showAlertMsg('success', 'Tạo Phiếu Tiếp Nhận thành công: ' + escapeHtml(res));
-        document.getElementById('bh-maKH').value = '';
-        document.getElementById('bh-tenSP').value = '';
-        document.getElementById('bh-tinhTrangLoi').value = '';
-        document.getElementById('bh-phiSuaChua').value = '0';
-        document.getElementById('bh-split-tienMat').value = '0';
-        document.getElementById('bh-split-chuyenKhoan').value = '0';
-        document.getElementById('bh-nguoiSua').value = '';
-        document.getElementById('bh-ghiChu').value = '';
-        updateSplitPaymentAmounts('bh');
+        resetFormBaoHanh();
       })
       .withFailureHandler(function(err) {
         setLoading('btnTaoBH', false);
         showAlertMsg('error', err.message);
       })
       .taoBaoHanh(data);
+  }
+
+  function resetFormBaoHanh() {
+    let chiNhanh = document.getElementById('bh-chiNhanh'); if (chiNhanh) chiNhanh.value = '';
+    let httt = document.getElementById('bh-hinhThucTT'); if (httt) httt.value = 'Tiền mặt';
+    
+    document.getElementById('bh-maKH').value = '';
+    document.getElementById('bh-tenSP').value = '';
+    document.getElementById('bh-tinhTrangLoi').value = '';
+    document.getElementById('bh-phiSuaChua').value = '0';
+    document.getElementById('bh-split-tienMat').value = '0';
+    document.getElementById('bh-split-chuyenKhoan').value = '0';
+    document.getElementById('bh-nguoiSua').value = '';
+    document.getElementById('bh-ghiChu').value = '';
+    
+    updateSplitPaymentAmounts('bh');
   }
 </script>

@@ -353,6 +353,39 @@ function getSheetDataCached(sheetName) {
 }
 
 /**
+ * Lấy toàn bộ dữ liệu của 1 dòng từ cache (dựa trên số dòng 1-indexed của sheet)
+ *
+ * @param {string} sheetName - Tên sheet
+ * @param {number} rowNum - Số dòng trên sheet (1-indexed, thường từ 2 trở lên)
+ * @return {Array|null} Mảng dữ liệu của dòng hoặc null nếu không tồn tại
+ */
+function getCachedRow(sheetName, rowNum) {
+  if (rowNum < 2) return null;
+  const data = getSheetDataCached(sheetName);
+  const rowIndex = rowNum - 2; // Data array is 0-indexed, skips header (row 1)
+  if (rowIndex >= 0 && rowIndex < data.length) {
+    return data[rowIndex];
+  }
+  return null;
+}
+
+/**
+ * Lấy giá trị của 1 ô từ cache (dựa trên dòng và cột 1-indexed)
+ *
+ * @param {string} sheetName - Tên sheet
+ * @param {number} rowNum - Số dòng trên sheet (1-indexed)
+ * @param {number} colNum - Số cột trên sheet (1-indexed)
+ * @return {*} Giá trị ô hoặc rỗng/null
+ */
+function getCachedCellValue(sheetName, rowNum, colNum) {
+  const rowData = getCachedRow(sheetName, rowNum);
+  if (rowData && colNum > 0 && colNum <= rowData.length) {
+    return rowData[colNum - 1];
+  }
+  return "";
+}
+
+/**
  * Tạo mã tự động theo prefix + số thứ tự
  * VD: generateId('DH', 'DonHang') → 'DH001', 'DH002', ...
  *
@@ -752,13 +785,42 @@ function findRow(sheetName, searchCol, searchVal) {
  */
 function showToast(message, title, duration) {
   try {
+    let formattedMessage = String(message || "").trim();
+    
+    // Tự động thêm emoji biểu tượng nếu chưa có để giao diện trực quan hơn
+    const emojiRegex = /^[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/;
+    if (!emojiRegex.test(formattedMessage)) {
+      if (formattedMessage.toLowerCase().indexOf("thành công") !== -1 || 
+          formattedMessage.toLowerCase().indexOf("đã") === 0) {
+        formattedMessage = "✅ " + formattedMessage;
+      } else if (formattedMessage.toLowerCase().indexOf("lỗi") !== -1 || 
+                 formattedMessage.toLowerCase().indexOf("thất bại") !== -1 || 
+                 formattedMessage.toLowerCase().indexOf("sai") !== -1) {
+        formattedMessage = "❌ " + formattedMessage;
+      } else {
+        formattedMessage = "ℹ️ " + formattedMessage;
+      }
+    }
+    
+    // Lấy tên cửa hàng động từ cấu hình
+    let defaultTitle = "BichLoan";
+    try {
+      //const configTitle = getConfig("Tên cửa hàng");
+      const configTitle = "BichLoan";
+      if (configTitle) {
+        defaultTitle = configTitle;
+      }
+    } catch (e) {
+      // Bỏ qua nếu sheet cấu hình chưa sẵn sàng
+    }
+
     SpreadsheetApp.getActiveSpreadsheet().toast(
-      message,
-      title || "VanTran Mobile",
-      duration || 5,
+      formattedMessage,
+      title || defaultTitle,
+      duration || 5
     );
   } catch (e) {
-    Logger.log("Toast: [" + (title || "VanTran Mobile") + "] " + message);
+    Logger.log("Toast: " + message);
   }
 }
 

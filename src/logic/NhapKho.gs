@@ -89,20 +89,20 @@ function nhapKho(data) {
       }
     }
 
-    // Ghi vào sheet NhapKho
-    const rowData = [
-      maNK,
-      new Date(), // NgayNhap
-      nguonNhap,
-      maSP,
-      tenSP,
-      soLuong,
-      giaNhap,
-      soLuong * giaNhap, // ThanhTien
-      data.nhaCungCap || "",
-      data.ghiChu || "",
-      chiNhanh, // 11th column
-    ];
+    // Ghi vào sheet NhapKho tuân thủ Schema
+    const rowData = buildRowData(COL_NK, {
+      MA_NK: maNK,
+      NGAY_NHAP: new Date(),
+      NGUON_NHAP: nguonNhap,
+      MA_SP: maSP,
+      TEN_SP: tenSP,
+      SO_LUONG: soLuong,
+      GIA_NHAP: giaNhap,
+      THANH_TIEN: soLuong * giaNhap,
+      NHA_CUNG_CAP: data.nhaCungCap || "",
+      GHI_CHU: data.ghiChu || "",
+      CHI_NHANH: chiNhanh
+    });
 
     appendRow(SHEET_NAMES.NHAP_KHO, rowData);
     showToast(
@@ -131,19 +131,20 @@ function getLichSuNhapKho(maSP) {
   const result = [];
 
   data.forEach(function (row) {
-    if (String(row[3]) === maSP) {
+    const obj = mapRowToObject(row, SHEET_NAMES.NHAP_KHO);
+    if (String(obj.MA_SP) === maSP) {
       result.push({
-        MaNK: String(row[0]),
-        NgayNhap: row[1],
-        NguonNhap: String(row[2]),
-        MaSP: String(row[3]),
-        TenSP: String(row[4]),
-        SoLuong: Number(row[5]) || 0,
-        GiaNhap: Number(row[6]) || 0,
-        ThanhTien: Number(row[7]) || 0,
-        NhaCungCap: String(row[8]),
-        GhiChu: String(row[9]),
-        ChiNhanh: String(row[10] || ""),
+        MaNK: String(obj.MA_NK),
+        NgayNhap: obj.NGAY_NHAP,
+        NguonNhap: String(obj.NGUON_NHAP),
+        MaSP: String(obj.MA_SP),
+        TenSP: String(obj.TEN_SP),
+        SoLuong: Number(obj.SO_LUONG) || 0,
+        GiaNhap: Number(obj.GIA_NHAP) || 0,
+        ThanhTien: Number(obj.THANH_TIEN) || 0,
+        NhaCungCap: String(obj.NHA_CUNG_CAP),
+        GhiChu: String(obj.GHI_CHU),
+        ChiNhanh: String(obj.CHI_NHANH || ""),
       });
     }
   });
@@ -168,17 +169,18 @@ function getTongKetNhapKho(thang, nam) {
   };
 
   data.forEach(function (row) {
-    const ngay = row[1];
+    const obj = mapRowToObject(row, SHEET_NAMES.NHAP_KHO);
+    const ngay = obj.NGAY_NHAP;
     if (isSameMonthYear(ngay, thang, nam)) {
       result.tongNhap++;
-      result.tongTien += Number(row[7]) || 0;
+      result.tongTien += Number(obj.THANH_TIEN) || 0;
 
-      if (String(row[2]) === PRODUCT_SOURCE.PHONE) {
-        result.dienThoai.soLuong += Number(row[5]) || 0;
-        result.dienThoai.tongTien += Number(row[7]) || 0;
+      if (String(obj.NGUON_NHAP) === PRODUCT_SOURCE.PHONE) {
+        result.dienThoai.soLuong += Number(obj.SO_LUONG) || 0;
+        result.dienThoai.tongTien += Number(obj.THANH_TIEN) || 0;
       } else {
-        result.phuKien.soLuong += Number(row[5]) || 0;
-        result.phuKien.tongTien += Number(row[7]) || 0;
+        result.phuKien.soLuong += Number(obj.SO_LUONG) || 0;
+        result.phuKien.tongTien += Number(obj.THANH_TIEN) || 0;
       }
     }
   });

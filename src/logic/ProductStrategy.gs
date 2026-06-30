@@ -41,20 +41,18 @@ const ProductStrategy = {
             break;
           }
         }
-        if (phoneRow === -1) {
-          phoneRow = findRow(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, data.maSP);
-        }
+        // Remove incorrect fallback using only maSP which ignored branch and stock status.
       }
 
       if (phoneRow === -1) {
         throw new Error(
           "Không tìm thấy điện thoại " +
             (data.imei ? "IMEI: " + data.imei : data.maSP) +
-            " trong hệ thống!",
+            " còn hàng tại chi nhánh " + chiNhanh + "!"
         );
       }
 
-      const trangThaiKho = dtSheet.getRange(phoneRow, COL_DT.TRANG_THAI_KHO).getValue();
+      const trangThaiKho = getCachedCellValue(SHEET_NAMES.DIEN_THOAI, phoneRow, COL_DT.TRANG_THAI_KHO);
       if (trangThaiKho !== STOCK_STATUS.IN_STOCK) {
         throw new Error(
           "Điện thoại " +
@@ -65,7 +63,7 @@ const ProductStrategy = {
         );
       }
       
-      const dtBranch = dtSheet.getRange(phoneRow, COL_DT.CHI_NHANH).getValue();
+      const dtBranch = getCachedCellValue(SHEET_NAMES.DIEN_THOAI, phoneRow, COL_DT.CHI_NHANH);
       if (dtBranch !== chiNhanh) {
         throw new Error(
           "Điện thoại " +
@@ -110,7 +108,7 @@ const ProductStrategy = {
         );
       }
       const pkSheet = ss.getSheetByName(SHEET_NAMES.PHU_KIEN);
-      const tonKho = Number(pkSheet.getRange(pkRow, COL_PK.SO_LUONG_TON).getValue()) || 0;
+      const tonKho = Number(getCachedCellValue(SHEET_NAMES.PHU_KIEN, pkRow, COL_PK.SO_LUONG_TON)) || 0;
       if (tonKho < soLuong) {
         throw new Error(
           "Phụ kiện " +

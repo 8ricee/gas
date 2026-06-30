@@ -53,18 +53,26 @@
       .withSuccessHandler(function(maDV) {
         setLoading('btnTaoDV', false);
         showAlertMsg('success', 'Đã tạo dịch vụ: <strong>' + escapeHtml(maDV) + '</strong>');
-        document.getElementById('dv-maKH').value = '';
-        document.getElementById('dv-soTien').value = 0;
-        document.getElementById('dv-phi').value = 0;
-        document.getElementById('dv-ghiChu').value = '';
-        document.getElementById('dv-nguoiThucHien').value = '';
-        document.getElementById('dv-hinhThucTT').value = 'Tiền mặt';
-        onPaymentMethodChange('dv');
+        resetFormDichVu();
       })
       .withFailureHandler(function(err) {
         setLoading('btnTaoDV', false);
         showAlertMsg('error', 'Lỗi: ' + err.message);
       })
       .taoDichVu(data);
+  }
+
+  function resetFormDichVu() {
+    let chiNhanh = document.getElementById('dv-chiNhanh'); if (chiNhanh) chiNhanh.value = '';
+    let loaiDV = document.getElementById('dv-loaiDV'); if (loaiDV) loaiDV.value = 'Giao dịch chuyển tiền';
+    
+    document.getElementById('dv-maKH').value = '';
+    document.getElementById('dv-soTien').value = 0;
+    document.getElementById('dv-phi').value = 0;
+    document.getElementById('dv-ghiChu').value = '';
+    document.getElementById('dv-nguoiThucHien').value = '';
+    document.getElementById('dv-hinhThucTT').value = 'Tiền mặt';
+    
+    onPaymentMethodChange('dv');
   }
 </script>

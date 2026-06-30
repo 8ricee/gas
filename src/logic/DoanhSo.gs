@@ -13,179 +13,181 @@
  * @return {boolean}
  */
 function chotDoanhSoThang(thang, nam) {
-  const thangNam = ("0" + thang).slice(-2) + "/" + nam;
+  return withDocumentLock(function () {
+    const thangNam = ("0" + thang).slice(-2) + "/" + nam;
 
-  // Kiểm tra đã chốt chưa
-  const daChot = lookupValue(SHEET_NAMES.DOANH_SO, COL_DS.THANG_NAM, thangNam, COL_DS.TRANG_THAI);
-  if (daChot === "Đã chốt") {
-    try {
-      const ui = SpreadsheetApp.getUi();
-      if (ui) {
-        const result = ui.alert(
-          "Cảnh báo",
+    // Kiểm tra đã chốt chưa
+    const daChot = lookupValue(SHEET_NAMES.DOANH_SO, COL_DS.THANG_NAM, thangNam, COL_DS.TRANG_THAI);
+    if (daChot === "Đã chốt") {
+      try {
+        const ui = SpreadsheetApp.getUi();
+        if (ui) {
+          const result = ui.alert(
+            "Cảnh báo",
+            "Doanh số tháng " +
+              thangNam +
+              " đã được chốt trước đó.\n\nBạn có muốn chốt lại (xóa dữ liệu cũ)?",
+            ui.ButtonSet.YES_NO,
+          );
+          if (result !== ui.Button.YES) return false;
+        }
+      } catch (e) {
+        Logger.log(
           "Doanh số tháng " +
             thangNam +
-            " đã được chốt trước đó.\n\nBạn có muốn chốt lại (xóa dữ liệu cũ)?",
-          ui.ButtonSet.YES_NO,
+            " đã được chốt trước đó. Tự động ghi đè trong môi trường không có UI.",
         );
-        if (result !== ui.Button.YES) return false;
       }
-    } catch (e) {
-      Logger.log(
-        "Doanh số tháng " +
-          thangNam +
-          " đã được chốt trước đó. Tự động ghi đè trong môi trường không có UI.",
+
+      // Xóa dữ liệu cũ
+      _xoaDoanhSoThang(thangNam);
+    }
+
+    // Lấy danh sách NV đang làm
+    const allNV = getAllData(SHEET_NAMES.NHAN_VIEN);
+
+    // Lấy đơn hàng trong tháng (chỉ điện thoại, hoàn thành)
+    const donHangs = getDonHangTheoThang(thang, nam);
+    const dtDonHangs = donHangs.filter(function (dh) {
+      return (
+        dh.NguonSP === PRODUCT_SOURCE.PHONE &&
+        !isCancelStatus(dh.TrangThai) &&
+        dh.TrangThai !== ORDER_STATUS.EXCHANGED
       );
-    }
+    });
 
-    // Xóa dữ liệu cũ
-    _xoaDoanhSoThang(thangNam);
-  }
+    // Lấy bảo hành trong tháng
+    const baoHanhs = typeof getBaoHanhTheoThang === 'function' ? getBaoHanhTheoThang(thang, nam) : [];
 
-  // Lấy danh sách NV đang làm
-  const allNV = getAllData(SHEET_NAMES.NHAN_VIEN);
+    // Lấy cấu hình hoa hồng
+    const hhBanApple = getConfigNumber("HH Bán máy - Apple");
+    const hhHTApple = getConfigNumber("HH Hỗ trợ - Apple");
+    const hhBanKhac = getConfigNumber("HH Bán máy - Khác");
+    const hhHTKhac = getConfigNumber("HH Hỗ trợ - Khác");
 
-  // Lấy đơn hàng trong tháng (chỉ điện thoại, hoàn thành)
-  const donHangs = getDonHangTheoThang(thang, nam);
-  const dtDonHangs = donHangs.filter(function (dh) {
-    return (
-      dh.NguonSP === PRODUCT_SOURCE.PHONE &&
-      !isCancelStatus(dh.TrangThai) &&
-      dh.TrangThai !== ORDER_STATUS.EXCHANGED
-    );
-  });
+    // Tổng hợp doanh số theo từng NV
+    const nvDoanhSo = {};
 
-  // Lấy bảo hành trong tháng
-  const baoHanhs = typeof getBaoHanhTheoThang === 'function' ? getBaoHanhTheoThang(thang, nam) : [];
+    allNV.forEach(function (nv) {
+      if (String(nv[COL_NV.TRANG_THAI - 1]) === "Nghỉ việc") return;
 
-  // Lấy cấu hình hoa hồng
-  const hhBanApple = getConfigNumber("HH Bán máy - Apple");
-  const hhHTApple = getConfigNumber("HH Hỗ trợ - Apple");
-  const hhBanKhac = getConfigNumber("HH Bán máy - Khác");
-  const hhHTKhac = getConfigNumber("HH Hỗ trợ - Khác");
+      const maNV = String(nv[COL_NV.MA_NV - 1]);
+      nvDoanhSo[maNV] = {
+        tenNV: nv[COL_NV.HO_TEN - 1],
+        vaiTro: String(nv[COL_NV.VAI_TRO - 1]),
+        coQuyenXuatMay: String(nv[COL_NV.QUYEN_XUAT - 1]) === "✓",
+        soMayBan_Apple: 0,
+        soMayBan_Khac: 0,
+        soMayHoTro_Apple: 0,
+        soMayHoTro_Khac: 0,
+      };
+    });
 
-  // Tổng hợp doanh số theo từng NV
-  const nvDoanhSo = {};
+    // Quét đơn hàng và phân bổ
+    dtDonHangs.forEach(function (dh) {
+      const nguoiBan = String(dh.NguoiBan);
+      const nguoiHoTro = String(dh.NguoiHoTro);
+      const laApple = isApple(dh.ThuongHieu);
 
-  allNV.forEach(function (nv) {
-    if (String(nv[COL_NV.TRANG_THAI - 1]) === "Nghỉ việc") return;
-
-    const maNV = String(nv[COL_NV.MA_NV - 1]);
-    nvDoanhSo[maNV] = {
-      tenNV: nv[COL_NV.HO_TEN - 1],
-      vaiTro: String(nv[COL_NV.VAI_TRO - 1]),
-      coQuyenXuatMay: String(nv[COL_NV.QUYEN_XUAT - 1]) === "✓",
-      soMayBan_Apple: 0,
-      soMayBan_Khac: 0,
-      soMayHoTro_Apple: 0,
-      soMayHoTro_Khac: 0,
-    };
-  });
-
-  // Quét đơn hàng và phân bổ
-  dtDonHangs.forEach(function (dh) {
-    const nguoiBan = String(dh.NguoiBan);
-    const nguoiHoTro = String(dh.NguoiHoTro);
-    const laApple = isApple(dh.ThuongHieu);
-
-    // Tính cho người bán
-    if (nguoiBan && nvDoanhSo[nguoiBan]) {
-      if (laApple) {
-        nvDoanhSo[nguoiBan].soMayBan_Apple++;
-      } else {
-        nvDoanhSo[nguoiBan].soMayBan_Khac++;
+      // Tính cho người bán
+      if (nguoiBan && nvDoanhSo[nguoiBan]) {
+        if (laApple) {
+          nvDoanhSo[nguoiBan].soMayBan_Apple++;
+        } else {
+          nvDoanhSo[nguoiBan].soMayBan_Khac++;
+        }
       }
-    }
 
-    // Tính cho người hỗ trợ
-    if (nguoiHoTro && nvDoanhSo[nguoiHoTro]) {
-      if (laApple) {
-        nvDoanhSo[nguoiHoTro].soMayHoTro_Apple++;
-      } else {
-        nvDoanhSo[nguoiHoTro].soMayHoTro_Khac++;
-      }
-    }
-  });
-
-  // Ghi vào sheet DoanhSo
-  const rows = [];
-
-  Object.keys(nvDoanhSo).forEach(function (maNV) {
-    const nv = nvDoanhSo[maNV];
-
-    // Tính hoa hồng bán (chỉ khi có quyền xuất máy)
-    let hhBan = 0;
-    if (nv.coQuyenXuatMay) {
-      hhBan = nv.soMayBan_Apple * hhBanApple + nv.soMayBan_Khac * hhBanKhac;
-    }
-
-    // Hoa hồng hỗ trợ (luôn được tính)
-    const hhHoTro =
-      nv.soMayHoTro_Apple * hhHTApple + nv.soMayHoTro_Khac * hhHTKhac;
-
-    const tongHoaHong = hhBan + hhHoTro;
-
-    // Doanh thu dịch vụ
-    let doanhThuDV = getTongPhiDichVu(maNV, thang, nam);
-    baoHanhs.forEach(function(bh) {
-      if (String(bh.NguoiSua) === maNV && bh.TrangThai !== "Huỷ") {
-        doanhThuDV += Number(bh.PhiSuaChua) || 0;
+      // Tính cho người hỗ trợ
+      if (nguoiHoTro && nvDoanhSo[nguoiHoTro]) {
+        if (laApple) {
+          nvDoanhSo[nguoiHoTro].soMayHoTro_Apple++;
+        } else {
+          nvDoanhSo[nguoiHoTro].soMayHoTro_Khac++;
+        }
       }
     });
 
-    // Chỉ ghi nếu có doanh số hoặc dịch vụ
-    if (
-      nv.soMayBan_Apple +
-        nv.soMayBan_Khac +
-        nv.soMayHoTro_Apple +
-        nv.soMayHoTro_Khac >
-        0 ||
-      doanhThuDV > 0
-    ) {
-      rows.push([
-        thangNam,
-        maNV,
-        nv.tenNV,
-        nv.vaiTro,
-        nv.coQuyenXuatMay ? "✓" : "✗",
-        nv.soMayBan_Apple,
-        nv.soMayBan_Khac,
-        nv.soMayHoTro_Apple,
-        nv.soMayHoTro_Khac,
-        hhBan,
-        hhHoTro,
-        tongHoaHong,
-        doanhThuDV,
-        0, // Thuong (nhập thủ công)
-        tongHoaHong, // TongThuNhap (chưa tính thưởng)
-        "Đã chốt",
-      ]);
+    // Ghi vào sheet DoanhSo
+    const rows = [];
+
+    Object.keys(nvDoanhSo).forEach(function (maNV) {
+      const nv = nvDoanhSo[maNV];
+
+      // Tính hoa hồng bán (chỉ khi có quyền xuất máy)
+      let hhBan = 0;
+      if (nv.coQuyenXuatMay) {
+        hhBan = nv.soMayBan_Apple * hhBanApple + nv.soMayBan_Khac * hhBanKhac;
+      }
+
+      // Hoa hồng hỗ trợ (luôn được tính)
+      const hhHoTro =
+        nv.soMayHoTro_Apple * hhHTApple + nv.soMayHoTro_Khac * hhHTKhac;
+
+      const tongHoaHong = hhBan + hhHoTro;
+
+      // Doanh thu dịch vụ
+      let doanhThuDV = getTongPhiDichVu(maNV, thang, nam);
+      baoHanhs.forEach(function(bh) {
+        if (String(bh.NguoiSua) === maNV && bh.TrangThai !== "Huỷ") {
+          doanhThuDV += Number(bh.PhiSuaChua) || 0;
+        }
+      });
+
+      // Chỉ ghi nếu có doanh số hoặc dịch vụ
+      if (
+        nv.soMayBan_Apple +
+          nv.soMayBan_Khac +
+          nv.soMayHoTro_Apple +
+          nv.soMayHoTro_Khac >
+          0 ||
+        doanhThuDV > 0
+      ) {
+        rows.push([
+          thangNam,
+          maNV,
+          nv.tenNV,
+          nv.vaiTro,
+          nv.coQuyenXuatMay ? "✓" : "✗",
+          nv.soMayBan_Apple,
+          nv.soMayBan_Khac,
+          nv.soMayHoTro_Apple,
+          nv.soMayHoTro_Khac,
+          hhBan,
+          hhHoTro,
+          tongHoaHong,
+          doanhThuDV,
+          0, // Thuong (nhập thủ công)
+          tongHoaHong, // TongThuNhap (chưa tính thưởng)
+          "Đã chốt",
+        ]);
+      }
+    });
+
+    // Ghi dữ liệu
+    if (rows.length > 0) {
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      const sheet = ss.getSheetByName(SHEET_NAMES.DOANH_SO);
+      const startRow = sheet.getLastRow() + 1;
+      sheet.getRange(startRow, 1, rows.length, rows[0].length).setValues(rows);
+
+      // Format tiền (Tối ưu: gọi setNumberFormat 1 lần duy nhất cho toàn bộ vùng cột tiền tệ liên tiếp)
+      sheet.getRange(startRow, 10, rows.length, 6).setNumberFormat("#,##0");
     }
+
+    showAlert(
+      "✅ Chốt doanh số thành công!",
+      "Tháng: " +
+        thangNam +
+        "\nSố NV có doanh số: " +
+        rows.length +
+        "\nTổng đơn hàng ĐT: " +
+        dtDonHangs.length +
+        "\n\nVui lòng kiểm tra sheet Doanh số để xem chi tiết.",
+    );
+
+    return true;
   });
-
-  // Ghi dữ liệu
-  if (rows.length > 0) {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName(SHEET_NAMES.DOANH_SO);
-    const startRow = sheet.getLastRow() + 1;
-    sheet.getRange(startRow, 1, rows.length, rows[0].length).setValues(rows);
-
-    // Format tiền (Tối ưu: gọi setNumberFormat 1 lần duy nhất cho toàn bộ vùng cột tiền tệ liên tiếp)
-    sheet.getRange(startRow, 10, rows.length, 6).setNumberFormat("#,##0");
-  }
-
-  showAlert(
-    "✅ Chốt doanh số thành công!",
-    "Tháng: " +
-      thangNam +
-      "\nSố NV có doanh số: " +
-      rows.length +
-      "\nTổng đơn hàng ĐT: " +
-      dtDonHangs.length +
-      "\n\nVui lòng kiểm tra sheet Doanh số để xem chi tiết.",
-  );
-
-  return true;
 }
 
 /**

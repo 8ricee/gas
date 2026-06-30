@@ -429,7 +429,9 @@
   }
 
   function resetFormDonHang() {
-    document.getElementById('dh-chiNhanh').value = '';
+    let chiNhanh = document.getElementById('dh-chiNhanh'); if (chiNhanh) chiNhanh.value = '';
+    let nguonSP = document.getElementById('dh-nguonSP'); if (nguonSP) nguonSP.value = 'Điện thoại';
+
     document.getElementById('dh-maKH').value = '';
     document.getElementById('dh-maSP').value = '';
     document.getElementById('dh-soLuong').value = 1;
@@ -459,6 +461,9 @@
     if (secCancel) secCancel.style.display = 'none';
     let cancelInput = document.getElementById('cancel-maDH');
     if (cancelInput) cancelInput.value = '';
+
+    // Cập nhật lại UI dựa trên chi nhánh và nguồn sản phẩm mặc định
+    onDonHangBranchOrNguonChange();
   }
 
   function getDonHangThanhTien() {

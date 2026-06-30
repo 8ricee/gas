@@ -400,47 +400,7 @@
       .withSuccessHandler(function(maTM) {
         setLoading('btnThuMua', false);
         showAlertMsg('success', 'Ghi nhận thu mua thành công! Ma: <strong>' + escapeHtml(maTM) + '</strong>');
-        document.getElementById('tm-tenSP-Thu').value = '';
-        document.getElementById('tm-imei-Thu').value = '';
-        document.getElementById('tm-mauSac-Thu').value = '';
-        document.getElementById('tm-dungLuong-Thu').value = '';
-        document.getElementById('tm-giaThuMua').value = 0;
-        document.getElementById('tm-maSP-Moi').value = '';
-        document.getElementById('tm-donGia-Moi').value = 0;
-        document.getElementById('tm-tienHoTro').value = 0;
-        document.getElementById('tm-coNhanQua').value = '✗';
-        document.getElementById('tm-maQuaTang').value = '';
-        document.getElementById('tm-tienGiamGia').value = 0;
-        document.getElementById('tm-maQuaTangGroup').style.display = 'none';
-        document.getElementById('tm-ghiChu').value = '';
-        document.getElementById('tm-nguoiHoTro').value = '';
-        document.getElementById('tm-tradeInFields').style.display = 'none';
-        document.getElementById('tm-hinhThucBanGroup').style.display = 'none';
-        document.getElementById('tm-hinhThucBan').value = 'Bán thẳng';
-
-        // reset installment inputs
-        document.getElementById('tm-tg-traTruoc').value = 0;
-        document.getElementById('tm-tg-soKy').value = 6;
-        document.getElementById('tm-tg-loai').value = 'Cửa hàng';
-        document.getElementById('tm-tg-congTyTC').value = '';
-        document.getElementById('tm-tg-tienMoiKyInput').value = 0;
-        document.getElementById('tm-tg-summary').style.display = 'none';
-        document.getElementById('tm-traGopSection').classList.remove('show');
-
-        let htttThu = document.getElementById('tm-Thu-hinhThucTT');
-        if (htttThu) {
-          htttThu.value = 'Tiền mặt';
-          onPaymentMethodChange('tm-Thu');
-        }
-        let htttMoi = document.getElementById('tm-Moi-hinhThucTT');
-        if (htttMoi) {
-          htttMoi.value = 'Tiền mặt';
-          onPaymentMethodChange('tm-Moi');
-        }
-
-        if (document.getElementById('tm-maQuaTang').clearTags) {
-          document.getElementById('tm-maQuaTang').clearTags();
-        }
+        resetFormThuMua();
         preloadInventoryData();
       })
       .withFailureHandler(function(err) {
@@ -448,5 +408,57 @@
         showAlertMsg('error', 'Lỗi: ' + err.message);
       })
       .thucHienThuMua(data);
+  }
+
+  function resetFormThuMua() {
+    let chiNhanh = document.getElementById('tm-chiNhanh'); if (chiNhanh) chiNhanh.value = '';
+    let maKH = document.getElementById('tm-maKH'); if (maKH) maKH.value = '';
+    let loaiGD = document.getElementById('tm-loaiGD'); if (loaiGD) loaiGD.value = 'Bán thẳng';
+    let nguoiThucHien = document.getElementById('tm-nguoiThucHien'); if (nguoiThucHien) nguoiThucHien.value = '';
+
+    document.getElementById('tm-tenSP-Thu').value = '';
+    document.getElementById('tm-imei-Thu').value = '';
+    document.getElementById('tm-mauSac-Thu').value = '';
+    document.getElementById('tm-dungLuong-Thu').value = '';
+    document.getElementById('tm-giaThuMua').value = 0;
+    document.getElementById('tm-maSP-Moi').value = '';
+    document.getElementById('tm-donGia-Moi').value = 0;
+    document.getElementById('tm-tienHoTro').value = 0;
+    document.getElementById('tm-coNhanQua').value = '✗';
+    document.getElementById('tm-maQuaTang').value = '';
+    document.getElementById('tm-tienGiamGia').value = 0;
+    document.getElementById('tm-maQuaTangGroup').style.display = 'none';
+    document.getElementById('tm-ghiChu').value = '';
+    document.getElementById('tm-nguoiHoTro').value = '';
+    document.getElementById('tm-tradeInFields').style.display = 'none';
+    document.getElementById('tm-hinhThucBanGroup').style.display = 'none';
+    document.getElementById('tm-hinhThucBan').value = 'Bán thẳng';
+
+    // reset installment inputs
+    document.getElementById('tm-tg-traTruoc').value = 0;
+    document.getElementById('tm-tg-soKy').value = 6;
+    document.getElementById('tm-tg-loai').value = 'Cửa hàng';
+    document.getElementById('tm-tg-congTyTC').value = '';
+    document.getElementById('tm-tg-tienMoiKyInput').value = 0;
+    document.getElementById('tm-tg-summary').style.display = 'none';
+    document.getElementById('tm-traGopSection').classList.remove('show');
+
+    let htttThu = document.getElementById('tm-Thu-hinhThucTT');
+    if (htttThu) {
+      htttThu.value = 'Tiền mặt';
+      onPaymentMethodChange('tm-Thu');
+    }
+    let htttMoi = document.getElementById('tm-Moi-hinhThucTT');
+    if (htttMoi) {
+      htttMoi.value = 'Tiền mặt';
+      onPaymentMethodChange('tm-Moi');
+    }
+
+    if (document.getElementById('tm-maQuaTang').clearTags) {
+      document.getElementById('tm-maQuaTang').clearTags();
+    }
+
+    // Cập nhật lại UI dựa trên loại giao dịch mặc định (Bán thẳng) và chi nhánh mới
+    onThuMuaLoaiGDChange();
   }
 </script>

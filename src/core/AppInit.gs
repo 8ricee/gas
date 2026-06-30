@@ -428,7 +428,7 @@ function migrateImeiToColumn(ss) {
 }
 
 /**
- * Migration function to move or insert the "Trạng thái" column in Thu mua sheet
+ * Migration function to move or insert the "Trạng thái máy" column in Thu mua sheet
  */
 function migrateThuMuaStatusColumn(ss) {
   if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -438,13 +438,25 @@ function migrateThuMuaStatusColumn(ss) {
   const lastCol = sheet.getLastColumn();
   if (lastCol <= 0) return;
 
-  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function (h) {
+  let headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function (h) {
     return String(h).trim();
   });
 
-  const currentIdx = headers.indexOf("Trạng thái");
-  const nguoiThucHienIdx = headers.indexOf("Người thực hiện");
+  // Tìm cột "Trạng thái máy" trước
+  let currentIdx = headers.indexOf("Trạng thái máy");
 
+  // Nếu không thấy "Trạng thái máy", thử tìm "Trạng thái" cũ để đổi tên thành "Trạng thái máy"
+  if (currentIdx === -1) {
+    const oldIdx = headers.indexOf("Trạng thái");
+    if (oldIdx !== -1) {
+      sheet.getRange(1, oldIdx + 1).setValue("Trạng thái máy");
+      headers[oldIdx] = "Trạng thái máy";
+      currentIdx = oldIdx;
+      clearSheetCache(SHEET_NAMES.THU_MUA);
+    }
+  }
+
+  const nguoiThucHienIdx = headers.indexOf("Người thực hiện");
   if (nguoiThucHienIdx === -1) return;
 
   const targetColNum = nguoiThucHienIdx + 2; // Right after Người thực hiện
@@ -461,7 +473,7 @@ function migrateThuMuaStatusColumn(ss) {
 
   // Insert the column at the correct position
   sheet.insertColumnBefore(targetColNum);
-  sheet.getRange(1, targetColNum).setValue("Trạng thái");
+  sheet.getRange(1, targetColNum).setValue("Trạng thái máy");
   
   clearSheetCache(SHEET_NAMES.THU_MUA);
 

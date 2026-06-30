@@ -60,13 +60,7 @@ function _collectDonHang(targetDate, branchMetrics, fallbackBranch, transactions
       } else {
         const pkRow = findPhuKienRow(maSP, branch);
         if (pkRow !== -1) {
-          giaNhapSP =
-            Number(
-              ss
-                .getSheetByName(SHEET_NAMES.PHU_KIEN)
-                .getRange(pkRow, COL_PK.GIA_NHAP)
-                .getValue(),
-            ) || 0;
+          giaNhapSP = Number(getCachedCellValue(SHEET_NAMES.PHU_KIEN, pkRow, COL_PK.GIA_NHAP)) || 0;
         }
       }
       const costSP = giaNhapSP * sl;
@@ -80,13 +74,7 @@ function _collectDonHang(targetDate, branchMetrics, fallbackBranch, transactions
           if (!code) continue;
           const quaRow = findPhuKienRow(code, branch);
           if (quaRow !== -1) {
-            costQua +=
-              Number(
-                ss
-                  .getSheetByName(SHEET_NAMES.PHU_KIEN)
-                  .getRange(quaRow, COL_PK.GIA_NHAP)
-                  .getValue(),
-              ) || 0;
+            costQua += Number(getCachedCellValue(SHEET_NAMES.PHU_KIEN, quaRow, COL_PK.GIA_NHAP)) || 0;
           }
         }
       }
@@ -100,69 +88,43 @@ function _collectDonHang(targetDate, branchMetrics, fallbackBranch, transactions
 
       const cellTM = row[COL_DH.TIEN_MAT - 1];
       const cellCK = row[COL_DH.CHUYEN_KHOAN - 1];
-
-      // Check if we have new columns populated
       const hasNewColumns =
-        (cellTM !== undefined && cellTM !== "") ||
-        (cellCK !== undefined && cellCK !== "");
+        (cellTM !== undefined && cellTM !== "" && cellTM !== null) ||
+        (cellCK !== undefined && cellCK !== "" && cellCK !== null);
 
       if (hasNewColumns) {
         thuTM = Number(cellTM) || 0;
         thuCK = Number(cellCK) || 0;
-
         if (hinhThucBan === "Trả góp") {
           // Nợ (Công nợ) = Thành tiền đơn hàng - Số tiền trả trước đã thu (thuTM + thuCK)
           congNo += Math.max(0, thanhTien - (thuTM + thuCK));
         }
       } else {
         // Fallback cho dữ liệu cũ (chưa chia cột)
-        let amountCollected = thanhTien;
-        let rawAmount = row[COL_DH.THANH_TIEN - 1];
-
+        let amountForPayment = thanhTien;
         if (hinhThucBan === "Trả góp") {
           const traTruocRaw = lookupValue(
             SHEET_NAMES.TRA_GOP,
             COL_TG.MA_DH,
             maDH,
-            COL_TG.TRA_TRUOC,
+            COL_TG.TRA_TRUOC
           );
           const traTruoc = parseAmountVal(traTruocRaw);
-          const conLai = Math.max(0, thanhTien - traTruoc);
-
-          congNo += conLai;
-          amountCollected = traTruoc;
-          rawAmount = traTruocRaw;
+          congNo += Math.max(0, thanhTien - traTruoc);
+          amountForPayment = traTruoc;
         }
 
-        const hybrid = parseHybridAmount(
-          hinhThucTT === "Hỗn hợp" ? rawAmount : "",
-        );
-        if (hybrid) {
-          thuTM += hybrid.tm;
-          thuCK += hybrid.ck;
-        } else {
-          const payment = parseMixedPayment(hinhThucTT, amountCollected);
-          thuTM += payment.tm;
-          thuCK += payment.ck;
-        }
+        const payments = _parsePaymentColumns(cellTM, cellCK, hinhThucTT, amountForPayment);
+        thuTM = payments.tm;
+        thuCK = payments.ck;
       }
 
-      const brKey = branch || fallbackBranch;
-      if (!branchMetrics[brKey]) {
-        branchMetrics[brKey] = {
-          doanhSo: 0,
-          loiNhuan: 0,
-          thuTM: 0,
-          chiTM: 0,
-          thuCK: 0,
-          chiCK: 0,
-        };
-      }
-      branchMetrics[brKey].doanhSo += netRevenue;
-      branchMetrics[brKey].loiNhuan += loiNhuan;
-      branchMetrics[brKey].thuTM += thuTM;
-      branchMetrics[brKey].thuCK += thuCK;
-      branchMetrics[brKey].congNoCTTC += congNo;
+      const metrics = _getInitializedBranchMetric(branchMetrics, branch, fallbackBranch);
+      metrics.doanhSo += netRevenue;
+      metrics.loiNhuan += loiNhuan;
+      metrics.thuTM += thuTM;
+      metrics.thuCK += thuCK;
+      metrics.congNoCTTC += congNo;
 
       transactions.push({
         maGD: maDH,
@@ -213,69 +175,35 @@ function _collectDichVu(targetDate, branchMetrics, fallbackBranch, transactions)
 
       const cellTM = row[COL_DV.TIEN_MAT - 1];
       const cellCK = row[COL_DV.CHUYEN_KHOAN - 1];
-
       const hasNewColumns =
         (cellTM !== undefined && cellTM !== "" && Number(cellTM) !== 0) ||
         (cellCK !== undefined && cellCK !== "" && Number(cellCK) !== 0);
 
-      if (hasNewColumns) {
-        thuTM = Number(cellTM) || 0;
-        thuCK = Number(cellCK) || 0;
+      const payments = _parsePaymentColumns(
+        cellTM,
+        cellCK,
+        hinhThucTT,
+        (loaiDV === "Chuyển khoản hộ" || loaiDV === "Nạp thẻ điện thoại") ? (soTien + phi) : 0
+      );
+      thuTM = payments.tm;
+      thuCK = payments.ck;
 
-        if (loaiDV === "Chuyển khoản hộ" || loaiDV === "Nạp thẻ điện thoại") {
-          chiCK = soTien;
-        } else if (loaiDV === "Rút tiền mặt") {
-          chiTM = soTien;
-        }
-      } else {
-        // Fallback cho dữ liệu cũ (chưa chia cột)
-        const hybrid = parseHybridAmount(
-          hinhThucTT === "Hỗn hợp" ? rawSoTien : "",
-        );
-        if (loaiDV === "Chuyển khoản hộ") {
-          if (hybrid) {
-            thuTM = hybrid.tm;
-            thuCK = hybrid.ck;
-            chiCK = soTien - phi;
-          } else {
-            const payment = parseMixedPayment(hinhThucTT, soTien + phi);
-            thuTM = payment.tm;
-            thuCK = payment.ck;
-            chiCK = soTien;
-          }
-        } else if (loaiDV === "Rút tiền mặt") {
+      if (loaiDV === "Chuyển khoản hộ" || loaiDV === "Nạp thẻ điện thoại") {
+        chiCK = hasNewColumns ? soTien : (thuTM + thuCK - phi);
+      } else if (loaiDV === "Rút tiền mặt") {
+        chiTM = soTien;
+        if (!hasNewColumns) {
           thuCK = soTien + phi;
-          chiTM = soTien;
-        } else if (loaiDV === "Nạp thẻ điện thoại") {
-          if (hybrid) {
-            thuTM = hybrid.tm;
-            thuCK = hybrid.ck;
-            chiCK = soTien - phi;
-          } else {
-            const payment = parseMixedPayment(hinhThucTT, soTien + phi);
-            thuTM = payment.tm;
-            thuCK = payment.ck;
-            chiCK = soTien;
-          }
+          thuTM = 0;
         }
       }
 
-      const brKey = branch || fallbackBranch;
-      if (!branchMetrics[brKey]) {
-        branchMetrics[brKey] = {
-          doanhSo: 0,
-          loiNhuan: 0,
-          thuTM: 0,
-          chiTM: 0,
-          thuCK: 0,
-          chiCK: 0,
-        };
-      }
-      branchMetrics[brKey].loiNhuan += loiNhuan;
-      branchMetrics[brKey].thuTM += thuTM;
-      branchMetrics[brKey].chiTM += chiTM;
-      branchMetrics[brKey].thuCK += thuCK;
-      branchMetrics[brKey].chiCK += chiCK;
+      const metrics = _getInitializedBranchMetric(branchMetrics, branch, fallbackBranch);
+      metrics.loiNhuan += loiNhuan;
+      metrics.thuTM += thuTM;
+      metrics.chiTM += chiTM;
+      metrics.thuCK += thuCK;
+      metrics.chiCK += chiCK;
 
       transactions.push({
         maGD: maDV,
@@ -341,42 +269,13 @@ function _collectRepayments(targetDate, branchMetrics, fallbackBranch, transacti
 
       const cellTM = row[COL_LSTG.TIEN_MAT - 1];
       const cellCK = row[COL_LSTG.CHUYEN_KHOAN - 1];
+      const payments = _parsePaymentColumns(cellTM, cellCK, hinhThucTT, soTienDaTra);
+      thuTM = payments.tm;
+      thuCK = payments.ck;
 
-      const hasNewColumns =
-        (cellTM !== undefined && cellTM !== "" && Number(cellTM) !== 0) ||
-        (cellCK !== undefined && cellCK !== "" && Number(cellCK) !== 0);
-
-      if (hasNewColumns) {
-        thuTM = Number(cellTM) || 0;
-        thuCK = Number(cellCK) || 0;
-      } else {
-        // Fallback cho dữ liệu cũ (chưa chia cột)
-        const hybrid = parseHybridAmount(
-          hinhThucTT === "Hỗn hợp" ? rawSoTienDaTra : "",
-        );
-        if (hybrid) {
-          thuTM = hybrid.tm;
-          thuCK = hybrid.ck;
-        } else {
-          const payment = parseMixedPayment(hinhThucTT, soTienDaTra);
-          thuTM = payment.tm;
-          thuCK = payment.ck;
-        }
-      }
-
-      const brKey = branch || fallbackBranch;
-      if (!branchMetrics[brKey]) {
-        branchMetrics[brKey] = {
-          doanhSo: 0,
-          loiNhuan: 0,
-          thuTM: 0,
-          chiTM: 0,
-          thuCK: 0,
-          chiCK: 0,
-        };
-      }
-      branchMetrics[brKey].thuTM += thuTM;
-      branchMetrics[brKey].thuCK += thuCK;
+      const metrics = _getInitializedBranchMetric(branchMetrics, branch, fallbackBranch);
+      metrics.thuTM += thuTM;
+      metrics.thuCK += thuCK;
 
       transactions.push({
         maGD: maLS,
@@ -402,30 +301,21 @@ function _collectRepayments(targetDate, branchMetrics, fallbackBranch, transacti
 function _collectNhapKho(targetDate, branchMetrics, fallbackBranch, transactions) {
   const imports = getAllData(SHEET_NAMES.NHAP_KHO);
   imports.forEach(function (row) {
-    const ngayNhap = row[1];
+    const obj = mapRowToObject(row, SHEET_NAMES.NHAP_KHO);
+    const ngayNhap = obj.NGAY_NHAP;
     if (ngayNhap instanceof Date && _isSameDay(ngayNhap, targetDate)) {
-      const maNK = String(row[0]);
-      const nguonNhap = String(row[2]);
-      const tenSP = String(row[4]);
-      const sl = Number(row[5]) || 0;
-      const thanhTien = Number(row[7]) || 0;
-      const nhaCC = String(row[8] || "");
-      const branch = String(row[10] || "").trim();
+      const maNK = String(obj.MA_NK);
+      const nguonNhap = String(obj.NGUON_NHAP);
+      const tenSP = String(obj.TEN_SP);
+      const sl = Number(obj.SO_LUONG) || 0;
+      const thanhTien = Number(obj.THANH_TIEN) || 0;
+      const nhaCC = String(obj.NHA_CUNG_CAP || "");
+      const branch = String(obj.CHI_NHANH || "").trim();
 
       const chiCK = thanhTien;
 
-      const brKey = branch || fallbackBranch;
-      if (!branchMetrics[brKey]) {
-        branchMetrics[brKey] = {
-          doanhSo: 0,
-          loiNhuan: 0,
-          thuTM: 0,
-          chiTM: 0,
-          thuCK: 0,
-          chiCK: 0,
-        };
-      }
-      branchMetrics[brKey].chiCK += chiCK;
+      const metrics = _getInitializedBranchMetric(branchMetrics, branch, fallbackBranch);
+      metrics.chiCK += chiCK;
 
       transactions.push({
         maGD: maNK,
@@ -504,13 +394,7 @@ function _collectDoiTra(targetDate, branchMetrics, fallbackBranch, transactions,
             originalOrder.chiNhanh,
           );
           if (pkRow !== -1) {
-            costSP =
-              Number(
-                ss
-                  .getSheetByName(SHEET_NAMES.PHU_KIEN)
-                  .getRange(pkRow, COL_PK.GIA_NHAP)
-                  .getValue(),
-              ) || 0;
+            costSP = Number(getCachedCellValue(SHEET_NAMES.PHU_KIEN, pkRow, COL_PK.GIA_NHAP)) || 0;
           }
         }
         costOriginal = costSP * originalOrder.soLuong;
@@ -522,13 +406,7 @@ function _collectDoiTra(targetDate, branchMetrics, fallbackBranch, transactions,
             if (!code) continue;
             const quaRow = findPhuKienRow(code, originalOrder.chiNhanh);
             if (quaRow !== -1) {
-              costOriginal +=
-                Number(
-                  ss
-                    .getSheetByName(SHEET_NAMES.PHU_KIEN)
-                    .getRange(quaRow, COL_PK.GIA_NHAP)
-                    .getValue(),
-                ) || 0;
+              costOriginal += Number(getCachedCellValue(SHEET_NAMES.PHU_KIEN, quaRow, COL_PK.GIA_NHAP)) || 0;
             }
           }
         }
@@ -539,80 +417,27 @@ function _collectDoiTra(targetDate, branchMetrics, fallbackBranch, transactions,
 
       const cellTM = row[COL_DT_TRA.TIEN_MAT - 1];
       const cellCK = row[COL_DT_TRA.CHUYEN_KHOAN - 1];
+      const payments = _parsePaymentColumns(cellTM, cellCK, hinhThucTT, Math.abs(hoanTien));
 
-      const hasNewColumns =
-        (cellTM !== undefined && cellTM !== "" && Number(cellTM) !== 0) ||
-        (cellCK !== undefined && cellCK !== "" && Number(cellCK) !== 0);
-
-      if (hasNewColumns) {
-        const valTM = Number(cellTM) || 0;
-        const valCK = Number(cellCK) || 0;
-
-        if (hoanTien >= 0) {
-          chiTM = valTM;
-          chiCK = valCK;
-        } else {
-          thuTM = valTM;
-          thuCK = valCK;
-        }
+      if (hoanTien >= 0) {
+        chiTM = payments.tm;
+        chiCK = payments.ck;
       } else {
-        // Fallback cho dữ liệu cũ (chưa chia cột)
-        const hybrid = parseHybridAmount(
-          hinhThucTT === "Hỗn hợp" ? rawHoanTien : "",
-        );
-        if (loaiGD === "Trả máy") {
-          if (hybrid) {
-            chiTM = hybrid.tm;
-            chiCK = hybrid.ck;
-          } else {
-            const payment = parseMixedPayment(hinhThucTT, hoanTien);
-            chiTM = payment.tm;
-            chiCK = payment.ck;
-          }
-        } else {
-          if (hoanTien >= 0) {
-            if (hybrid) {
-              chiTM = hybrid.tm;
-              chiCK = hybrid.ck;
-            } else {
-              const payment = parseMixedPayment(hinhThucTT, hoanTien);
-              chiTM = payment.tm;
-              chiCK = payment.ck;
-            }
-          } else {
-            if (hybrid) {
-              thuTM = hybrid.tm;
-              thuCK = hybrid.ck;
-            } else {
-              const payment = parseMixedPayment(hinhThucTT, Math.abs(hoanTien));
-              thuTM = payment.tm;
-              thuCK = payment.ck;
-            }
-          }
-        }
+        thuTM = payments.tm;
+        thuCK = payments.ck;
       }
 
       lossDoanhSo = -priceOriginal;
       lossLoiNhuan = -(priceOriginal - costOriginal);
       lossLoiNhuan += phi;
 
-      const brKey = branch || fallbackBranch;
-      if (!branchMetrics[brKey]) {
-        branchMetrics[brKey] = {
-          doanhSo: 0,
-          loiNhuan: 0,
-          thuTM: 0,
-          chiTM: 0,
-          thuCK: 0,
-          chiCK: 0,
-        };
-      }
-      branchMetrics[brKey].doanhSo += lossDoanhSo;
-      branchMetrics[brKey].loiNhuan += lossLoiNhuan;
-      branchMetrics[brKey].thuTM += thuTM;
-      branchMetrics[brKey].chiTM += chiTM;
-      branchMetrics[brKey].thuCK += thuCK;
-      branchMetrics[brKey].chiCK += chiCK;
+      const metrics = _getInitializedBranchMetric(branchMetrics, branch, fallbackBranch);
+      metrics.doanhSo += lossDoanhSo;
+      metrics.loiNhuan += lossLoiNhuan;
+      metrics.thuTM += thuTM;
+      metrics.chiTM += chiTM;
+      metrics.thuCK += thuCK;
+      metrics.chiCK += chiCK;
 
       transactions.push({
         maGD: maDT,
@@ -667,43 +492,14 @@ function _collectThuMua(targetDate, branchMetrics, fallbackBranch, transactions)
       } else {
         const cellTM = row[COL_TM.TIEN_MAT - 1];
         const cellCK = row[COL_TM.CHUYEN_KHOAN - 1];
-
-        const hasNewColumns =
-          (cellTM !== undefined && cellTM !== "") ||
-          (cellCK !== undefined && cellCK !== "");
-
-        if (hasNewColumns) {
-          chiTM = Number(cellTM) || 0;
-          chiCK = Number(cellCK) || 0;
-        } else {
-          // Fallback cho dữ liệu cũ (chưa chia cột)
-          const hybrid = parseHybridAmount(
-            hinhThucTT === "Hỗn hợp" ? rawTongTienTra : "",
-          );
-          if (hybrid) {
-            chiTM = hybrid.tm;
-            chiCK = hybrid.ck;
-          } else {
-            const payment = parseMixedPayment(hinhThucTT, tongTienTra);
-            chiTM = payment.tm;
-            chiCK = payment.ck;
-          }
-        }
+        const payments = _parsePaymentColumns(cellTM, cellCK, hinhThucTT, tongTienTra);
+        chiTM = payments.tm;
+        chiCK = payments.ck;
       }
 
-      const brKey = branch || fallbackBranch;
-      if (!branchMetrics[brKey]) {
-        branchMetrics[brKey] = {
-          doanhSo: 0,
-          loiNhuan: 0,
-          thuTM: 0,
-          chiTM: 0,
-          thuCK: 0,
-          chiCK: 0,
-        };
-      }
-      branchMetrics[brKey].chiTM += chiTM;
-      branchMetrics[brKey].chiCK += chiCK;
+      const metrics = _getInitializedBranchMetric(branchMetrics, branch, fallbackBranch);
+      metrics.chiTM += chiTM;
+      metrics.chiCK += chiCK;
 
       transactions.push({
         maGD: maTM,
@@ -754,46 +550,18 @@ function _collectBaoHanh(targetDate, branchMetrics, fallbackBranch, transactions
 
       const cellTM = row[COL_BH.TIEN_MAT - 1];
       const cellCK = row[COL_BH.CHUYEN_KHOAN - 1];
-
-      const hasNewColumns =
-        (cellTM !== undefined && cellTM !== "" && Number(cellTM) !== 0) ||
-        (cellCK !== undefined && cellCK !== "" && Number(cellCK) !== 0);
-
-      if (hasNewColumns) {
-        thuTM = Number(cellTM) || 0;
-        thuCK = Number(cellCK) || 0;
-      } else {
-        const hinhThucTT = String(row[COL_BH.HINH_THUC_TT - 1]);
-        const hybrid = parseHybridAmount(
-          hinhThucTT === "Hỗn hợp" ? rawPhiSuaChua : "",
-        );
-        if (hybrid) {
-          thuTM = hybrid.tm;
-          thuCK = hybrid.ck;
-        } else {
-          const payment = parseMixedPayment(hinhThucTT, phiSuaChua);
-          thuTM = payment.tm;
-          thuCK = payment.ck;
-        }
-      }
+      const hinhThucTT = String(row[COL_BH.HINH_THUC_TT - 1]);
+      const payments = _parsePaymentColumns(cellTM, cellCK, hinhThucTT, phiSuaChua);
+      thuTM = payments.tm;
+      thuCK = payments.ck;
 
       const loiNhuan = phiSuaChua;
 
-      const brKey = branch || fallbackBranch;
-      if (!branchMetrics[brKey]) {
-        branchMetrics[brKey] = {
-          doanhSo: 0,
-          loiNhuan: 0,
-          thuTM: 0,
-          chiTM: 0,
-          thuCK: 0,
-          chiCK: 0,
-        };
-      }
-      branchMetrics[brKey].thuTM += thuTM;
-      branchMetrics[brKey].thuCK += thuCK;
-      branchMetrics[brKey].loiNhuan += loiNhuan;
-      branchMetrics[brKey].doanhSo += phiSuaChua;
+      const metrics = _getInitializedBranchMetric(branchMetrics, branch, fallbackBranch);
+      metrics.thuTM += thuTM;
+      metrics.thuCK += thuCK;
+      metrics.loiNhuan += loiNhuan;
+      metrics.doanhSo += phiSuaChua;
 
       transactions.push({
         maGD: maBH,
@@ -829,4 +597,56 @@ function _isSameDay(d1, d2) {
     d1.getMonth() === d2.getMonth() &&
     d1.getFullYear() === d2.getFullYear()
   );
+}
+
+/**
+ * Khởi tạo hoặc lấy nhánh metric cho chi nhánh
+ * @private
+ */
+function _getInitializedBranchMetric(branchMetrics, branch, fallbackBranch) {
+  const brKey = (branch || fallbackBranch || "").trim();
+  if (!branchMetrics[brKey]) {
+    branchMetrics[brKey] = {
+      doanhSo: 0,
+      loiNhuan: 0,
+      thuTM: 0,
+      chiTM: 0,
+      thuCK: 0,
+      chiCK: 0,
+      congNoCTTC: 0
+    };
+  }
+  return branchMetrics[brKey];
+}
+
+/**
+ * Phân tích các cột thanh toán tiền mặt và chuyển khoản, hỗ trợ fallback dữ liệu cũ
+ * @private
+ */
+function _parsePaymentColumns(cellTM, cellCK, hinhThucTT, amountVal) {
+  const hasNewColumns =
+    (cellTM !== undefined && cellTM !== "" && cellTM !== null) ||
+    (cellCK !== undefined && cellCK !== "" && cellCK !== null);
+
+  if (hasNewColumns) {
+    return {
+      tm: Number(cellTM) || 0,
+      ck: Number(cellCK) || 0
+    };
+  }
+
+  // Fallback cho dữ liệu cũ (chưa chia cột)
+  const hybrid = parseHybridAmount(hinhThucTT === "Hỗn hợp" ? amountVal : "");
+  if (hybrid) {
+    return {
+      tm: hybrid.tm,
+      ck: hybrid.ck
+    };
+  }
+
+  const payment = parseMixedPayment(hinhThucTT, amountVal);
+  return {
+    tm: payment.tm,
+    ck: payment.ck
+  };
 }

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <?!= HtmlService.createHtmlOutputFromFile('ui/SidebarStyles').getContent(); ?>
+</head>
+<body>
+
+  <!-- Alert message -->
+  <div id="toastContainer" class="toast-container"></div>
+  <div id="alertBox" class="alert" style="display:none;"></div>
+
+  <!-- Navigation Tabs -->
+  <div class="nav-tabs" id="navTabs">
+    <span class="nav-tab active" data-section="donHang">Đơn hàng</span>
+    <span class="nav-tab" data-section="khachHang">Khách hàng</span>
+    <span class="nav-tab" data-section="nhapKho">Nhập kho</span>
+    <span class="nav-tab" data-section="dichVu">Dịch vụ</span>
+    <span class="nav-tab" data-section="thanhToan">Trả góp</span>
+    <span class="nav-tab" data-section="chuyenKho">Chuyển kho</span>
+    <span class="nav-tab" data-section="doiTra">Đổi trả</span>
+    <span class="nav-tab" data-section="thuMua">Thu mua</span>
+    <span class="nav-tab" data-section="doanhSo">Doanh số</span>
+    <span class="nav-tab" data-section="baoHanh">Bảo hành</span>
+    <span class="nav-tab" onclick="refreshSystemData(event)">Làm mới</span>
+  </div>
+
+  <!-- ==================== FORM: DON HANG ==================== -->
+  <?!= HtmlService.createHtmlOutputFromFile('ui/FormDonHang').getContent(); ?>
+
+  <!-- ==================== FORM: KHACH HANG ==================== -->
+  <?!= HtmlService.createHtmlOutputFromFile('ui/FormKhachHang').getContent(); ?>
+
+  <!-- ==================== FORM: NHAP KHO ==================== -->
+  <?!= HtmlService.createHtmlOutputFromFile('ui/FormNhapKho').getContent(); ?>
+
+  <!-- ==================== FORM: DICH VU ==================== -->
+  <?!= HtmlService.createHtmlOutputFromFile('ui/FormDichVu').getContent(); ?>
+
+  <!-- ==================== FORM: THANH TOAN TRẢ GOP ==================== -->
+  <?!= HtmlService.createHtmlOutputFromFile('ui/FormThanhToan').getContent(); ?>
+
+  <!-- ==================== FORM: CHUYEN KHO ==================== -->
+  <?!= HtmlService.createHtmlOutputFromFile('ui/FormChuyenKho').getContent(); ?>
+
+  <!-- ==================== FORM: DOI TRA ==================== -->
+  <?!= HtmlService.createHtmlOutputFromFile('ui/FormDoiTra').getContent(); ?>
+
+  <!-- ==================== FORM: THU MUA ==================== -->
+  <?!= HtmlService.createHtmlOutputFromFile('ui/FormThuMua').getContent(); ?>
+
+  <!-- ==================== FORM: DOANH SO ==================== -->
+  <?!= HtmlService.createHtmlOutputFromFile('ui/FormDoanhSo').getContent(); ?>
+
+  <!-- ==================== FORM: BAO HANH ==================== -->
+  <?!= HtmlService.createHtmlOutputFromFile('ui/FormBaoHanh').getContent(); ?>
+
+  <!-- Datalist suggestions for product conditions -->
+  <datalist id="tinhTrangList">
+    <option value="Mới 100%">
+    <option value="Like New">
+    <option value="Đã qua sử dụng">
+    <option value="99%">
+    <option value="98%">
+    <option value="95%">
+    <option value="90%">
+  </datalist>
+
+  <!-- ==================== JAVASCRIPT ==================== -->
+  <script>
+    // Set initial mode from template evaluation
+    var initialMode = "<?!= mode ?>";
+  </script>
+  <?!= HtmlService.createHtmlOutputFromFile('ui/SidebarScriptsCommon').getContent(); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('ui/SidebarScriptsSearch').getContent(); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('ui/SidebarScriptsPayment').getContent(); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('ui/SidebarScriptsComponents').getContent(); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('ui/SidebarScriptsDonHang').getContent(); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('ui/SidebarScriptsKhachHang').getContent(); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('ui/SidebarScriptsNhapKho').getContent(); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('ui/SidebarScriptsDichVu').getContent(); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('ui/SidebarScriptsThanhToan').getContent(); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('ui/SidebarScriptsChuyenKho').getContent(); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('ui/SidebarScriptsDoiTra').getContent(); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('ui/SidebarScriptsThuMua').getContent(); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('ui/SidebarScriptsDoanhSo').getContent(); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('ui/SidebarScriptsBaoHanh').getContent(); ?>
+  <script>
+    // Khởi tạo ứng dụng sau khi toàn bộ code đã được tải
+    init();
+  </script>
+
+</body>
+</html>

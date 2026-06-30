@@ -147,74 +147,78 @@ function _onEditLichSuTraGop(sheet, row, col, e) {
  * Auto-calculate cho sheet DonHang (Đơn hàng)
  */
 function _onEditDonHang(sheet, row, col, e) {
-  const lastCol = sheet.getLastColumn();
-  if (lastCol === 0) return;
-  const range = sheet.getRange(row, 1, 1, lastCol);
-  const v = range.getValues()[0];
+  // Trích xuất an toàn giá trị chỉnh sửa (tương thích dán đè dữ liệu hàng loạt)
+  const val = e.value !== undefined ? e.value : sheet.getRange(row, col).getValue();
 
   // Auto tính ThanhTien khi SoLuong hoặc DonGia hoặc TienGiamGia hoặc TienThuMua thay đổi
   if (col === COL_DH.SO_LUONG || col === COL_DH.DON_GIA || col === COL_DH.TIEN_GIAM_GIA || col === COL_DH.TIEN_THU_MUA) {
-    const soLuong = Number(v[COL_DH.SO_LUONG - 1]) || 0;
-    const donGia = Number(v[COL_DH.DON_GIA - 1]) || 0;
-    const giamGia = Number(v[COL_DH.TIEN_GIAM_GIA - 1]) || 0;
-    const tienThuMua = Number(v[COL_DH.TIEN_THU_MUA - 1]) || 0;
-    v[COL_DH.THANH_TIEN - 1] = calcThanhTien(soLuong, donGia, giamGia, tienThuMua);
+    const soLuong = Number(sheet.getRange(row, COL_DH.SO_LUONG).getValue()) || 0;
+    const donGia = Number(sheet.getRange(row, COL_DH.DON_GIA).getValue()) || 0;
+    const giamGia = Number(sheet.getRange(row, COL_DH.TIEN_GIAM_GIA).getValue()) || 0;
+    const tienThuMua = Number(sheet.getRange(row, COL_DH.TIEN_THU_MUA).getValue()) || 0;
+    sheet.getRange(row, COL_DH.THANH_TIEN).setValue(calcThanhTien(soLuong, donGia, giamGia, tienThuMua));
   }
 
   // Auto lookup TenKH khi nhập MaKH
   if (col === COL_DH.MA_KH) {
-    const maKH = e.value;
-    if (maKH) {
-      const tenKH = lookupValue(SHEET_NAMES.KHACH_HANG, COL_KH.MA_KH, maKH, COL_KH.HO_TEN);
-      v[COL_DH.TEN_KH - 1] = tenKH || "";
+    if (val) {
+      const tenKH = lookupValue(SHEET_NAMES.KHACH_HANG, COL_KH.MA_KH, val, COL_KH.HO_TEN);
+      sheet.getRange(row, COL_DH.TEN_KH).setValue(tenKH || "");
     }
   }
 
   // Auto lookup TenSP, NguonSP, ThuongHieu khi nhập MaSP
   if (col === COL_DH.MA_SP) {
-    const maSP = e.value;
-    if (maSP) {
+    if (val) {
       // Thử tìm trong Điện thoại trước
-      const tenDT = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP, COL_DT.TEN_SP);
+      const tenDT = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, val, COL_DT.TEN_SP);
       if (tenDT) {
-        v[COL_DH.TEN_SP - 1] = tenDT;
-        v[COL_DH.NGUON_SP - 1] = PRODUCT_SOURCE.PHONE;
-        const thuongHieu = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP, COL_DT.THUONG_HIEU);
-        v[COL_DH.THUONG_HIEU - 1] = thuongHieu || "";
-        // Chỉ điền giá trị mặc định nếu ô đó hiện đang trống (tránh ghi đè giá/SL tay đã nhập trước đó)
-        if (!v[COL_DH.DON_GIA - 1]) {
-          const giaBan = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP, COL_DT.GIA_BAN);
-          v[COL_DH.DON_GIA - 1] = giaBan || 0;
+        sheet.getRange(row, COL_DH.TEN_SP).setValue(tenDT);
+        sheet.getRange(row, COL_DH.NGUON_SP).setValue(PRODUCT_SOURCE.PHONE);
+        const thuongHieu = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, val, COL_DT.THUONG_HIEU);
+        sheet.getRange(row, COL_DH.THUONG_HIEU).setValue(thuongHieu || "");
+        
+        const donGiaCell = sheet.getRange(row, COL_DH.DON_GIA);
+        if (!donGiaCell.getValue()) {
+          const giaBan = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, val, COL_DT.GIA_BAN);
+          donGiaCell.setValue(giaBan || 0);
         }
-        if (!v[COL_DH.SO_LUONG - 1]) {
-          v[COL_DH.SO_LUONG - 1] = 1; // Điện thoại luôn mặc định SL = 1
+        
+        const soLuongCell = sheet.getRange(row, COL_DH.SO_LUONG);
+        if (!soLuongCell.getValue()) {
+          soLuongCell.setValue(1); // Điện thoại luôn mặc định SL = 1
         }
+        
         // Tính lại thành tiền
-        const soLuong = Number(v[COL_DH.SO_LUONG - 1]) || 0;
-        const donGia = Number(v[COL_DH.DON_GIA - 1]) || 0;
-        const giamGia = Number(v[COL_DH.TIEN_GIAM_GIA - 1]) || 0;
-        v[COL_DH.THANH_TIEN - 1] = calcThanhTien(soLuong, donGia, giamGia, 0);
+        const soLuong = Number(soLuongCell.getValue()) || 0;
+        const donGia = Number(donGiaCell.getValue()) || 0;
+        const giamGia = Number(sheet.getRange(row, COL_DH.TIEN_GIAM_GIA).getValue()) || 0;
+        sheet.getRange(row, COL_DH.THANH_TIEN).setValue(calcThanhTien(soLuong, donGia, giamGia, 0));
       } else {
         // Thử tìm trong Phụ kiện
-        const tenPK = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, maSP, COL_PK.TEN_SP);
+        const tenPK = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, val, COL_PK.TEN_SP);
         if (tenPK) {
-          v[COL_DH.TEN_SP - 1] = tenPK;
-          v[COL_DH.NGUON_SP - 1] = PRODUCT_SOURCE.ACCESSORY;
-          const thuongHieuPK = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, maSP, COL_PK.THUONG_HIEU);
-          v[COL_DH.THUONG_HIEU - 1] = thuongHieuPK || "";
-          // Chỉ điền giá trị mặc định nếu ô đó hiện đang trống
-          if (!v[COL_DH.DON_GIA - 1]) {
-            const giaBanPK = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, maSP, COL_PK.GIA_BAN);
-            v[COL_DH.DON_GIA - 1] = giaBanPK || 0;
+          sheet.getRange(row, COL_DH.TEN_SP).setValue(tenPK);
+          sheet.getRange(row, COL_DH.NGUON_SP).setValue(PRODUCT_SOURCE.ACCESSORY);
+          const thuongHieuPK = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, val, COL_PK.THUONG_HIEU);
+          sheet.getRange(row, COL_DH.THUONG_HIEU).setValue(thuongHieuPK || "");
+          
+          const donGiaCell = sheet.getRange(row, COL_DH.DON_GIA);
+          if (!donGiaCell.getValue()) {
+            const giaBanPK = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, val, COL_PK.GIA_BAN);
+            donGiaCell.setValue(giaBanPK || 0);
           }
-          if (!v[COL_DH.SO_LUONG - 1]) {
-            v[COL_DH.SO_LUONG - 1] = 1;
+          
+          const soLuongCell = sheet.getRange(row, COL_DH.SO_LUONG);
+          if (!soLuongCell.getValue()) {
+            soLuongCell.setValue(1);
           }
+          
           // Tính lại thành tiền
-          const soLuong = Number(v[COL_DH.SO_LUONG - 1]) || 0;
-          const donGia = Number(v[COL_DH.DON_GIA - 1]) || 0;
-          const giamGia = Number(v[COL_DH.TIEN_GIAM_GIA - 1]) || 0;
-          v[COL_DH.THANH_TIEN - 1] = calcThanhTien(soLuong, donGia, giamGia, 0);
+          const soLuong = Number(soLuongCell.getValue()) || 0;
+          const donGia = Number(donGiaCell.getValue()) || 0;
+          const giamGia = Number(sheet.getRange(row, COL_DH.TIEN_GIAM_GIA).getValue()) || 0;
+          sheet.getRange(row, COL_DH.THANH_TIEN).setValue(calcThanhTien(soLuong, donGia, giamGia, 0));
         }
       }
     }
@@ -222,57 +226,48 @@ function _onEditDonHang(sheet, row, col, e) {
 
   // Auto lookup TenNguoiBan + QuyenXuatMay khi nhập NguoiBan (Sử dụng dynamic enum COL_NV)
   if (col === COL_DH.NGUOI_BAN) {
-    const maNVBan = e.value;
-    if (maNVBan) {
-      const tenNVBan = lookupValue(SHEET_NAMES.NHAN_VIEN, COL_NV.MA_NV, maNVBan, COL_NV.HO_TEN);
-      v[COL_DH.TEN_NGUOI_BAN - 1] = tenNVBan || "";
-      const quyenXM = lookupValue(SHEET_NAMES.NHAN_VIEN, COL_NV.MA_NV, maNVBan, COL_NV.QUYEN_XUAT);
-      v[COL_DH.QUYEN_XUAT - 1] = quyenXM || "✗";
+    if (val) {
+      const tenNVBan = lookupValue(SHEET_NAMES.NHAN_VIEN, COL_NV.MA_NV, val, COL_NV.HO_TEN);
+      sheet.getRange(row, COL_DH.TEN_NGUOI_BAN).setValue(tenNVBan || "");
+      const quyenXM = lookupValue(SHEET_NAMES.NHAN_VIEN, COL_NV.MA_NV, val, COL_NV.QUYEN_XUAT);
+      sheet.getRange(row, COL_DH.QUYEN_XUAT).setValue(quyenXM || "✗");
     }
   }
 
   // Auto lookup TenNguoiHoTro khi nhập NguoiHoTro (Sử dụng dynamic enum COL_NV)
   if (col === COL_DH.NGUOI_HO_TRO) {
-    const maNVHT = e.value;
-    if (maNVHT) {
-      const tenNVHT = lookupValue(SHEET_NAMES.NHAN_VIEN, COL_NV.MA_NV, maNVHT, COL_NV.HO_TEN);
-      v[COL_DH.TEN_NGUOI_HO_TRO - 1] = tenNVHT || "";
+    if (val) {
+      const tenNVHT = lookupValue(SHEET_NAMES.NHAN_VIEN, COL_NV.MA_NV, val, COL_NV.HO_TEN);
+      sheet.getRange(row, COL_DH.TEN_NGUOI_HO_TRO).setValue(tenNVHT || "");
     }
   }
-
-  range.setValues([v]);
 }
 
 /**
  * Auto-calculate cho sheet NhapKho (Nhập kho)
  */
 function _onEditNhapKho(sheet, row, col, e) {
-  const lastCol = sheet.getLastColumn();
-  if (lastCol === 0) return;
-  const range = sheet.getRange(row, 1, 1, lastCol);
-  const v = range.getValues()[0];
+  // Trích xuất an toàn giá trị chỉnh sửa (tương thích dán đè dữ liệu hàng loạt)
+  const val = e.value !== undefined ? e.value : sheet.getRange(row, col).getValue();
 
   // Auto tính ThanhTien khi SoLuong hoặc GiaNhap thay đổi
   if (col === COL_NK.SO_LUONG || col === COL_NK.GIA_NHAP) {
-    const soLuong = Number(v[COL_NK.SO_LUONG - 1]) || 0;
-    const giaNhap = Number(v[COL_NK.GIA_NHAP - 1]) || 0;
-    v[COL_NK.THANH_TIEN - 1] = calcThanhTien(soLuong, giaNhap, 0, 0);
+    const soLuong = Number(sheet.getRange(row, COL_NK.SO_LUONG).getValue()) || 0;
+    const giaNhap = Number(sheet.getRange(row, COL_NK.GIA_NHAP).getValue()) || 0;
+    sheet.getRange(row, COL_NK.THANH_TIEN).setValue(calcThanhTien(soLuong, giaNhap, 0, 0));
   }
 
   // Auto lookup TenSP khi nhập MaSP
   if (col === COL_NK.MA_SP) {
-    const maSP = e.value;
-    const nguonNhap = v[COL_NK.NGUON_NHAP - 1];
-    if (maSP) {
+    const nguonNhap = sheet.getRange(row, COL_NK.NGUON_NHAP).getValue();
+    if (val) {
       if (nguonNhap === PRODUCT_SOURCE.PHONE) {
-        const tenDT = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, maSP, COL_DT.TEN_SP);
-        v[COL_NK.TEN_SP - 1] = tenDT || "";
+        const tenDT = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.MA_DT, val, COL_DT.TEN_SP);
+        sheet.getRange(row, COL_NK.TEN_SP).setValue(tenDT || "");
       } else {
-        const tenPK = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, maSP, COL_PK.TEN_SP);
-        v[COL_NK.TEN_SP - 1] = tenPK || "";
+        const tenPK = lookupValue(SHEET_NAMES.PHU_KIEN, COL_PK.MA_PK, val, COL_PK.TEN_SP);
+        sheet.getRange(row, COL_NK.TEN_SP).setValue(tenPK || "");
       }
     }
   }
-
-  range.setValues([v]);
 }

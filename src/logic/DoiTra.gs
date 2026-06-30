@@ -20,8 +20,8 @@ const DoiTraStrategy = {
   "Quà tặng kèm": {
     validate: function(data, context, ss) {
       const { dhRow, dhSheet, chiNhanh, maDH } = context;
-      const maQuaCu = String(dhSheet.getRange(dhRow, COL_DH.MA_QUA_TANG).getValue() || "");
-      const coNhanQua = dhSheet.getRange(dhRow, COL_DH.CO_NHAN_QUA).getValue();
+      const maQuaCu = String(getCachedCellValue(SHEET_NAMES.DON_HANG, dhRow, COL_DH.MA_QUA_TANG) || "");
+      const coNhanQua = getCachedCellValue(SHEET_NAMES.DON_HANG, dhRow, COL_DH.CO_NHAN_QUA);
 
       if (coNhanQua !== "✓" || !maQuaCu) {
         throw new Error(
@@ -56,7 +56,7 @@ const DoiTraStrategy = {
             );
           }
           const tonQuaMoi =
-            Number(pkSheet.getRange(newRow, COL_PK.SO_LUONG_TON).getValue()) ||
+            Number(getCachedCellValue(SHEET_NAMES.PHU_KIEN, newRow, COL_PK.SO_LUONG_TON)) ||
             0;
           const requiredQty = codeCounts[code];
           if (tonQuaMoi < requiredQty) {
@@ -89,7 +89,7 @@ const DoiTraStrategy = {
             throw new Error("Quà tặng mới '" + newCode + "' không tồn tại ở chi nhánh " + chiNhanh);
           }
           
-          const tonQuaMoi = Number(pkSheet.getRange(newRow, COL_PK.SO_LUONG_TON).getValue()) || 0;
+          const tonQuaMoi = Number(getCachedCellValue(SHEET_NAMES.PHU_KIEN, newRow, COL_PK.SO_LUONG_TON)) || 0;
           if (tonQuaMoi < 1) {
             throw new Error("Quà tặng mới '" + newCode + "' đã hết hàng tại chi nhánh " + chiNhanh + "!");
           }
@@ -100,13 +100,13 @@ const DoiTraStrategy = {
     },
     execute: function(data, context, ss, rollbackActions) {
       const { dhRow, dhSheet, chiNhanh, maDH, maKH, tenKH, maDT, maQuaCu } = context;
-      const originalBranch = dhSheet.getRange(dhRow, COL_DH.CHI_NHANH).getValue() || chiNhanh;
+      const originalBranch = getCachedCellValue(SHEET_NAMES.DON_HANG, dhRow, COL_DH.CHI_NHANH) || chiNhanh;
       
       const exchanges = data.giftExchanges || [];
       const pkSheet = ss.getSheetByName(SHEET_NAMES.PHU_KIEN);
       
       let finalMaQua = maQuaCu;
-      let finalTenQua = dhSheet.getRange(dhRow, COL_DH.TEN_QUA_TANG).getValue() || "";
+      let finalTenQua = getCachedCellValue(SHEET_NAMES.DON_HANG, dhRow, COL_DH.TEN_QUA_TANG) || "";
       
       const returnedGiftsList = [];
       const issuedGiftsList = [];
@@ -122,7 +122,7 @@ const DoiTraStrategy = {
           const newCode = String(item.newCode).trim();
           
           const newRow = findPhuKienRow(newCode, chiNhanh);
-          const newName = pkSheet.getRange(newRow, COL_PK.TEN_SP).getValue() || "";
+          const newName = getCachedCellValue(SHEET_NAMES.PHU_KIEN, newRow, COL_PK.TEN_SP) || "";
           
           trackingOldCodes.push(oldCode);
           trackingOldNames.push(item.oldName || oldCode);
@@ -183,14 +183,14 @@ const DoiTraStrategy = {
           const code = maQuaMoiList[i].trim();
           if (!code) continue;
           const newRow = findPhuKienRow(code, chiNhanh);
-          const giftName = pkSheet.getRange(newRow, COL_PK.TEN_SP).getValue() || "";
+          const giftName = getCachedCellValue(SHEET_NAMES.PHU_KIEN, newRow, COL_PK.TEN_SP) || "";
           tenQuaMoiList.push(giftName);
         }
         finalMaQua = maQuaMoi;
         finalTenQua = tenQuaMoiList.join(", ");
 
         trackingOldCodes.push(maQuaCu);
-        trackingOldNames.push(dhSheet.getRange(dhRow, COL_DH.TEN_QUA_TANG).getValue() || "");
+        trackingOldNames.push(getCachedCellValue(SHEET_NAMES.DON_HANG, dhRow, COL_DH.TEN_QUA_TANG) || "");
         trackingNewCodes.push(maQuaMoi);
         trackingNewNames.push(finalTenQua);
 
@@ -232,9 +232,9 @@ const DoiTraStrategy = {
         });
       }
 
-      const oldMaQua = dhSheet.getRange(dhRow, COL_DH.MA_QUA_TANG).getValue();
-      const oldTenQua = dhSheet.getRange(dhRow, COL_DH.TEN_QUA_TANG).getValue();
-      const oldNote = dhSheet.getRange(dhRow, COL_DH.GHI_CHU).getValue();
+      const oldMaQua = getCachedCellValue(SHEET_NAMES.DON_HANG, dhRow, COL_DH.MA_QUA_TANG);
+      const oldTenQua = getCachedCellValue(SHEET_NAMES.DON_HANG, dhRow, COL_DH.TEN_QUA_TANG);
+      const oldNote = getCachedCellValue(SHEET_NAMES.DON_HANG, dhRow, COL_DH.GHI_CHU);
 
       updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.MA_QUA_TANG, finalMaQua);
       updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.TEN_QUA_TANG, finalTenQua);
@@ -261,50 +261,26 @@ const DoiTraStrategy = {
         }
       });
 
-      const rowData = [];
-      rowData[COL_DT_TRA.MA_DT - 1] = maDT;
-      rowData[COL_DT_TRA.NGAY_DT - 1] = new Date();
-      rowData[COL_DT_TRA.MA_DH - 1] = maDH;
-      rowData[COL_DT_TRA.MA_KH - 1] = maKH;
-      rowData[COL_DT_TRA.TEN_KH - 1] = tenKH;
-      rowData[COL_DT_TRA.LOAI_GD - 1] = "Đổi quà";
-      rowData[COL_DT_TRA.MA_SP_TRA - 1] = trackingOldCodes.join(", ");
-      rowData[COL_DT_TRA.TEN_SP_TRA - 1] = trackingOldNames.join(", ");
-      rowData[COL_DT_TRA.IMEI_TRA - 1] = "";
-      rowData[COL_DT_TRA.MA_SP_NHAN - 1] = trackingNewCodes.join(", ");
-      rowData[COL_DT_TRA.TEN_SP_NHAN - 1] = trackingNewNames.join(", ");
-      rowData[COL_DT_TRA.IMEI_NHAN - 1] = "";
-      rowData[COL_DT_TRA.TIEN_HOAN_TRA - 1] = 0;
-      rowData[COL_DT_TRA.PHI_DOI_TRA - 1] = Number(data.phiDoiTra) || 0;
-      rowData[COL_DT_TRA.HINH_THUC_TT - 1] =
-        data.hinhThucThanhToan || "Tiền mặt";
-      rowData[COL_DT_TRA.CHI_NHANH - 1] = chiNhanh;
-      rowData[COL_DT_TRA.NGUOI_THUC_HIEN - 1] = data.nguoiThucHien || "";
-      rowData[COL_DT_TRA.TRANG_THAI - 1] = ORDER_STATUS.DONE;
-      rowData[COL_DT_TRA.GHI_CHU - 1] = data.ghiChu || "";
-
-      const totalPay = Number(data.phiDoiTra) || 0;
-      const paymentSplit = calculatePaymentSplit(data, totalPay);
-      rowData[COL_DT_TRA.TIEN_MAT - 1] = paymentSplit.tienMat;
-      rowData[COL_DT_TRA.CHUYEN_KHOAN - 1] = paymentSplit.chuyenKhoan;
-
-      const dtSheet = ss.getSheetByName(SHEET_NAMES.DOI_TRA);
-      const dtRow = appendRow(SHEET_NAMES.DOI_TRA, rowData);
-      (function (capturedMaDT) {
-        rollbackActions.push(function () {
-          try {
-            const ssRollback = SpreadsheetApp.getActiveSpreadsheet();
-            const sheet = ssRollback.getSheetByName(SHEET_NAMES.DOI_TRA);
-            const r = findRow(SHEET_NAMES.DOI_TRA, COL_DT_TRA.MA_DT, capturedMaDT);
-            if (r !== -1) {
-              sheet.deleteRow(r);
-              clearSheetCache(SHEET_NAMES.DOI_TRA);
-            }
-          } catch (err) {
-            Logger.log("Rollback failed to delete exchange record " + capturedMaDT + ": " + err.message);
-          }
-        });
-      })(maDT);
+      _ghiNhanGiaoDichDoiTra({
+        maDT: maDT,
+        maDH: maDH,
+        maKH: maKH,
+        tenKH: tenKH,
+        loaiGD: "Đổi quà",
+        maSP_Tra: trackingOldCodes.join(", "),
+        tenSP_Tra: trackingOldNames.join(", "),
+        imei_Tra: "",
+        maSP_Nhan: trackingNewCodes.join(", "),
+        tenSP_Nhan: trackingNewNames.join(", "),
+        imei_Nhan: "",
+        tienHoanTra: 0,
+        phiDoiTra: Number(data.phiDoiTra) || 0,
+        hinhThucThanhToan: data.hinhThucThanhToan || "Tiền mặt",
+        chiNhanh: chiNhanh,
+        nguoiThucHien: data.nguoiThucHien || "",
+        ghiChu: data.ghiChu || "",
+        data: data
+      }, rollbackActions);
 
       showToast("✅ Đổi quà tặng thành công đơn " + maDH);
       return maDT;
@@ -315,9 +291,9 @@ const DoiTraStrategy = {
   "Sản phẩm chính": {
     validate: function(data, context, ss) {
       const { dhRow, dhSheet, chiNhanh, loaiGD } = context;
-      const maSP_Tra = dhSheet.getRange(dhRow, COL_DH.MA_SP).getValue();
-      const tenSP_Tra = dhSheet.getRange(dhRow, COL_DH.TEN_SP).getValue();
-      const nguonSP_Tra = dhSheet.getRange(dhRow, COL_DH.NGUON_SP).getValue();
+      const maSP_Tra = getCachedCellValue(SHEET_NAMES.DON_HANG, dhRow, COL_DH.MA_SP);
+      const tenSP_Tra = getCachedCellValue(SHEET_NAMES.DON_HANG, dhRow, COL_DH.TEN_SP);
+      const nguonSP_Tra = getCachedCellValue(SHEET_NAMES.DON_HANG, dhRow, COL_DH.NGUON_SP);
       
       context.maSP_Tra = maSP_Tra;
       context.tenSP_Tra = tenSP_Tra;
@@ -341,7 +317,7 @@ const DoiTraStrategy = {
             );
           }
           const tonMoi =
-            Number(pkSheet.getRange(pkRow, COL_PK.SO_LUONG_TON).getValue()) ||
+            Number(getCachedCellValue(SHEET_NAMES.PHU_KIEN, pkRow, COL_PK.SO_LUONG_TON)) ||
             0;
           if (tonMoi < 1) {
             throw new Error(
@@ -353,8 +329,8 @@ const DoiTraStrategy = {
           }
           
           context.maSP_Nhan = maSP_Nhan;
-          context.tenSP_Nhan = pkSheet.getRange(pkRow, COL_PK.TEN_SP).getValue() || "";
-          context.giaBanMoi = Number(pkSheet.getRange(pkRow, COL_PK.GIA_BAN).getValue()) || 0;
+          context.tenSP_Nhan = getCachedCellValue(SHEET_NAMES.PHU_KIEN, pkRow, COL_PK.TEN_SP) || "";
+          context.giaBanMoi = Number(getCachedCellValue(SHEET_NAMES.PHU_KIEN, pkRow, COL_PK.GIA_BAN)) || 0;
         }
       } else {
         // Điện thoại
@@ -378,12 +354,10 @@ const DoiTraStrategy = {
     
     _executePhuKien: function(data, context, ss, rollbackActions) {
       const { dhRow, dhSheet, chiNhanh, maDH, maKH, tenKH, maDT, loaiGD, maSP_Tra, tenSP_Tra, maSP_Nhan, tenSP_Nhan, giaBanMoi } = context;
-      const soLuong = Number(dhSheet.getRange(dhRow, COL_DH.SO_LUONG).getValue()) || 1;
+      const soLuong = Number(getCachedCellValue(SHEET_NAMES.DON_HANG, dhRow, COL_DH.SO_LUONG)) || 1;
 
       // 1. Chuyển trạng thái đơn hàng gốc sang "Đổi trả"
-      const oldDHStatus = dhSheet
-        .getRange(dhRow, COL_DH.TRANG_THAI)
-        .getValue();
+      const oldDHStatus = getCachedCellValue(SHEET_NAMES.DON_HANG, dhRow, COL_DH.TRANG_THAI);
       updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.TRANG_THAI, ORDER_STATUS.EXCHANGED);
       rollbackActions.push(function () {
         try {
@@ -400,9 +374,7 @@ const DoiTraStrategy = {
 
       // 2. Hoàn trả kho phụ kiện cũ vào chi nhánh của đơn hàng gốc (nếu chọn cộng kho)
       if (data.congKho !== false) {
-        const originalBranch = dhSheet
-          .getRange(dhRow, COL_DH.CHI_NHANH)
-          .getValue();
+        const originalBranch = getCachedCellValue(SHEET_NAMES.DON_HANG, dhRow, COL_DH.CHI_NHANH);
         updateTonKhoPhuKien(maSP_Tra, soLuong, "nhap", originalBranch);
         rollbackActions.push(function () {
           try {
@@ -451,50 +423,26 @@ const DoiTraStrategy = {
       const tienHoanTra = Number(data.tienHoanTra) || 0;
       const phiDoiTra = Number(data.phiDoiTra) || 0;
 
-      const rowData = [];
-      rowData[COL_DT_TRA.MA_DT - 1] = maDT;
-      rowData[COL_DT_TRA.NGAY_DT - 1] = new Date();
-      rowData[COL_DT_TRA.MA_DH - 1] = maDH;
-      rowData[COL_DT_TRA.MA_KH - 1] = maKH;
-      rowData[COL_DT_TRA.TEN_KH - 1] = tenKH;
-      rowData[COL_DT_TRA.LOAI_GD - 1] = loaiGD;
-      rowData[COL_DT_TRA.MA_SP_TRA - 1] = maSP_Tra;
-      rowData[COL_DT_TRA.TEN_SP_TRA - 1] = tenSP_Tra;
-      rowData[COL_DT_TRA.IMEI_TRA - 1] = "";
-      rowData[COL_DT_TRA.MA_SP_NHAN - 1] = maSP_Nhan || "";
-      rowData[COL_DT_TRA.TEN_SP_NHAN - 1] = tenSP_Nhan || "";
-      rowData[COL_DT_TRA.IMEI_NHAN - 1] = "";
-      rowData[COL_DT_TRA.TIEN_HOAN_TRA - 1] = tienHoanTra;
-      rowData[COL_DT_TRA.PHI_DOI_TRA - 1] = phiDoiTra;
-      rowData[COL_DT_TRA.HINH_THUC_TT - 1] =
-        data.hinhThucThanhToan || "Tiền mặt";
-      rowData[COL_DT_TRA.CHI_NHANH - 1] = chiNhanh;
-      rowData[COL_DT_TRA.NGUOI_THUC_HIEN - 1] = data.nguoiThucHien || "";
-      rowData[COL_DT_TRA.TRANG_THAI - 1] = ORDER_STATUS.DONE;
-      rowData[COL_DT_TRA.GHI_CHU - 1] = data.ghiChu || "";
-
-      const totalPay = tienHoanTra > 0 ? tienHoanTra : phiDoiTra;
-      const paymentSplit = calculatePaymentSplit(data, totalPay);
-      rowData[COL_DT_TRA.TIEN_MAT - 1] = paymentSplit.tienMat;
-      rowData[COL_DT_TRA.CHUYEN_KHOAN - 1] = paymentSplit.chuyenKhoan;
-
-      const dtSheet = ss.getSheetByName(SHEET_NAMES.DOI_TRA);
-      const dtRow = appendRow(SHEET_NAMES.DOI_TRA, rowData);
-      (function (capturedMaDT) {
-        rollbackActions.push(function () {
-          try {
-            const ssRollback = SpreadsheetApp.getActiveSpreadsheet();
-            const sheet = ssRollback.getSheetByName(SHEET_NAMES.DOI_TRA);
-            const r = findRow(SHEET_NAMES.DOI_TRA, COL_DT_TRA.MA_DT, capturedMaDT);
-            if (r !== -1) {
-              sheet.deleteRow(r);
-              clearSheetCache(SHEET_NAMES.DOI_TRA);
-            }
-          } catch (err) {
-            Logger.log("Rollback failed to delete exchange record " + capturedMaDT + ": " + err.message);
-          }
-        });
-      })(maDT);
+      _ghiNhanGiaoDichDoiTra({
+        maDT: maDT,
+        maDH: maDH,
+        maKH: maKH,
+        tenKH: tenKH,
+        loaiGD: loaiGD,
+        maSP_Tra: maSP_Tra,
+        tenSP_Tra: tenSP_Tra,
+        imei_Tra: "",
+        maSP_Nhan: maSP_Nhan || "",
+        tenSP_Nhan: tenSP_Nhan || "",
+        imei_Nhan: "",
+        tienHoanTra: tienHoanTra,
+        phiDoiTra: phiDoiTra,
+        hinhThucThanhToan: data.hinhThucThanhToan || "Tiền mặt",
+        chiNhanh: chiNhanh,
+        nguoiThucHien: data.nguoiThucHien || "",
+        ghiChu: data.ghiChu || "",
+        data: data
+      }, rollbackActions);
 
       showToast("✅ Ghi nhận Đổi trả phụ kiện thành công: " + maDT);
       return maDT;
@@ -504,7 +452,7 @@ const DoiTraStrategy = {
       const { dhRow, dhSheet, chiNhanh, maDH, maKH, tenKH, maDT, loaiGD, maSP_Tra, tenSP_Tra, maSP_Nhan } = context;
       
       const imei_Tra =
-        dhSheet.getRange(dhRow, COL_DH.IMEI).getValue() ||
+        getCachedCellValue(SHEET_NAMES.DON_HANG, dhRow, COL_DH.IMEI) ||
         lookupValue(
           SHEET_NAMES.DIEN_THOAI,
           COL_DT.MA_DT,
@@ -513,9 +461,7 @@ const DoiTraStrategy = {
         ) || "";
 
       // 1. Đổi trạng thái đơn hàng gốc sang "Đổi trả" để trừ doanh thu/hoa hồng
-      const oldDHStatus = dhSheet
-        .getRange(dhRow, COL_DH.TRANG_THAI)
-        .getValue();
+      const oldDHStatus = getCachedCellValue(SHEET_NAMES.DON_HANG, dhRow, COL_DH.TRANG_THAI);
       updateCell(SHEET_NAMES.DON_HANG, dhRow, COL_DH.TRANG_THAI, ORDER_STATUS.EXCHANGED);
       rollbackActions.push(function () {
         try {
@@ -562,10 +508,7 @@ const DoiTraStrategy = {
       if (maTG) {
         const tgRow = findRow(SHEET_NAMES.TRA_GOP, COL_TG.MA_TG, maTG);
         if (tgRow !== -1) {
-          oldTGStatus = ss
-            .getSheetByName(SHEET_NAMES.TRA_GOP)
-            .getRange(tgRow, COL_TG.TRANG_THAI)
-            .getValue();
+          oldTGStatus = getCachedCellValue(SHEET_NAMES.TRA_GOP, tgRow, COL_TG.TRANG_THAI);
           const lstgSheet = ss.getSheetByName(SHEET_NAMES.LICH_SU_TRA_GOP);
           const lastRow = lstgSheet.getLastRow();
           if (lastRow > 1) {
@@ -692,50 +635,26 @@ const DoiTraStrategy = {
       const tienHoanTra = Number(data.tienHoanTra) || 0;
       const phiDoiTra = Number(data.phiDoiTra) || 0;
 
-      const rowData = [];
-      rowData[COL_DT_TRA.MA_DT - 1] = maDT;
-      rowData[COL_DT_TRA.NGAY_DT - 1] = new Date();
-      rowData[COL_DT_TRA.MA_DH - 1] = maDH;
-      rowData[COL_DT_TRA.MA_KH - 1] = maKH;
-      rowData[COL_DT_TRA.TEN_KH - 1] = tenKH;
-      rowData[COL_DT_TRA.LOAI_GD - 1] = loaiGD;
-      rowData[COL_DT_TRA.MA_SP_TRA - 1] = maSP_Tra;
-      rowData[COL_DT_TRA.TEN_SP_TRA - 1] = tenSP_Tra;
-      rowData[COL_DT_TRA.IMEI_TRA - 1] = imei_Tra;
-      rowData[COL_DT_TRA.MA_SP_NHAN - 1] = maSP_Nhan || "";
-      rowData[COL_DT_TRA.TEN_SP_NHAN - 1] = tenSP_Nhan || "";
-      rowData[COL_DT_TRA.IMEI_NHAN - 1] = imei_Nhan || "";
-      rowData[COL_DT_TRA.TIEN_HOAN_TRA - 1] = tienHoanTra;
-      rowData[COL_DT_TRA.PHI_DOI_TRA - 1] = phiDoiTra;
-      rowData[COL_DT_TRA.HINH_THUC_TT - 1] =
-        data.hinhThucThanhToan || "Tiền mặt";
-      rowData[COL_DT_TRA.CHI_NHANH - 1] = chiNhanh;
-      rowData[COL_DT_TRA.NGUOI_THUC_HIEN - 1] = data.nguoiThucHien || "";
-      rowData[COL_DT_TRA.TRANG_THAI - 1] = ORDER_STATUS.DONE;
-      rowData[COL_DT_TRA.GHI_CHU - 1] = data.ghiChu || "";
-
-      const totalPay = tienHoanTra > 0 ? tienHoanTra : phiDoiTra;
-      const paymentSplit = calculatePaymentSplit(data, totalPay);
-      rowData[COL_DT_TRA.TIEN_MAT - 1] = paymentSplit.tienMat;
-      rowData[COL_DT_TRA.CHUYEN_KHOAN - 1] = paymentSplit.chuyenKhoan;
-
-      const dtSheet = ss.getSheetByName(SHEET_NAMES.DOI_TRA);
-      const dtRow = appendRow(SHEET_NAMES.DOI_TRA, rowData);
-      (function (capturedMaDT) {
-        rollbackActions.push(function () {
-          try {
-            const ssRollback = SpreadsheetApp.getActiveSpreadsheet();
-            const sheet = ssRollback.getSheetByName(SHEET_NAMES.DOI_TRA);
-            const r = findRow(SHEET_NAMES.DOI_TRA, COL_DT_TRA.MA_DT, capturedMaDT);
-            if (r !== -1) {
-              sheet.deleteRow(r);
-              clearSheetCache(SHEET_NAMES.DOI_TRA);
-            }
-          } catch (err) {
-            Logger.log("Rollback failed to delete exchange record " + capturedMaDT + ": " + err.message);
-          }
-        });
-      })(maDT);
+      _ghiNhanGiaoDichDoiTra({
+        maDT: maDT,
+        maDH: maDH,
+        maKH: maKH,
+        tenKH: tenKH,
+        loaiGD: loaiGD,
+        maSP_Tra: maSP_Tra,
+        tenSP_Tra: tenSP_Tra,
+        imei_Tra: imei_Tra,
+        maSP_Nhan: maSP_Nhan || "",
+        tenSP_Nhan: tenSP_Nhan || "",
+        imei_Nhan: imei_Nhan || "",
+        tienHoanTra: tienHoanTra,
+        phiDoiTra: phiDoiTra,
+        hinhThucThanhToan: data.hinhThucThanhToan || "Tiền mặt",
+        chiNhanh: chiNhanh,
+        nguoiThucHien: data.nguoiThucHien || "",
+        ghiChu: data.ghiChu || "",
+        data: data
+      }, rollbackActions);
 
       showToast("✅ Ghi nhận Đổi trả thành công: " + maDT);
       return maDT;
@@ -775,7 +694,7 @@ function thucHienDoiTra(data) {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const dhSheet = ss.getSheetByName(SHEET_NAMES.DON_HANG);
 
-    const dhStatus = dhSheet.getRange(dhRow, COL_DH.TRANG_THAI).getValue();
+    const dhStatus = getCachedCellValue(SHEET_NAMES.DON_HANG, dhRow, COL_DH.TRANG_THAI);
     if (isCancelStatus(dhStatus) || dhStatus === ORDER_STATUS.EXCHANGED) {
       throw new Error(
         "Đơn hàng " +
@@ -786,8 +705,8 @@ function thucHienDoiTra(data) {
       );
     }
 
-    const maKH = dhSheet.getRange(dhRow, COL_DH.MA_KH).getValue();
-    const tenKH = dhSheet.getRange(dhRow, COL_DH.TEN_KH).getValue();
+    const maKH = getCachedCellValue(SHEET_NAMES.DON_HANG, dhRow, COL_DH.MA_KH);
+    const tenKH = getCachedCellValue(SHEET_NAMES.DON_HANG, dhRow, COL_DH.TEN_KH);
 
     // Prepare strategy context
     const context = {
@@ -813,5 +732,54 @@ function thucHienDoiTra(data) {
     return _executeWithRollback(function (rollbackActions) {
       return strategy.execute(data, context, ss, rollbackActions);
     });
+  });
+}
+
+/**
+ * Ghi nhận giao dịch đổi trả vào bảng DoiTra và thiết lập rollback tự động
+ * @private
+ */
+function _ghiNhanGiaoDichDoiTra(params, rollbackActions) {
+  const rowData = [];
+  rowData[COL_DT_TRA.MA_DT - 1] = params.maDT;
+  rowData[COL_DT_TRA.NGAY_DT - 1] = new Date();
+  rowData[COL_DT_TRA.MA_DH - 1] = params.maDH;
+  rowData[COL_DT_TRA.MA_KH - 1] = params.maKH;
+  rowData[COL_DT_TRA.TEN_KH - 1] = params.tenKH;
+  rowData[COL_DT_TRA.LOAI_GD - 1] = params.loaiGD;
+  rowData[COL_DT_TRA.MA_SP_TRA - 1] = params.maSP_Tra || "";
+  rowData[COL_DT_TRA.TEN_SP_TRA - 1] = params.tenSP_Tra || "";
+  rowData[COL_DT_TRA.IMEI_TRA - 1] = params.imei_Tra || "";
+  rowData[COL_DT_TRA.MA_SP_NHAN - 1] = params.maSP_Nhan || "";
+  rowData[COL_DT_TRA.TEN_SP_NHAN - 1] = params.tenSP_Nhan || "";
+  rowData[COL_DT_TRA.IMEI_NHAN - 1] = params.imei_Nhan || "";
+  rowData[COL_DT_TRA.TIEN_HOAN_TRA - 1] = Number(params.tienHoanTra) || 0;
+  rowData[COL_DT_TRA.PHI_DOI_TRA - 1] = Number(params.phiDoiTra) || 0;
+  rowData[COL_DT_TRA.HINH_THUC_TT - 1] = params.hinhThucThanhToan || "Tiền mặt";
+  rowData[COL_DT_TRA.CHI_NHANH - 1] = params.chiNhanh;
+  rowData[COL_DT_TRA.NGUOI_THUC_HIEN - 1] = params.nguoiThucHien || "";
+  rowData[COL_DT_TRA.TRANG_THAI - 1] = ORDER_STATUS.DONE;
+  rowData[COL_DT_TRA.GHI_CHU - 1] = params.ghiChu || "";
+
+  const totalPay = params.tienHoanTra > 0 ? params.tienHoanTra : params.phiDoiTra;
+  const paymentSplit = calculatePaymentSplit(params.data, totalPay);
+  rowData[COL_DT_TRA.TIEN_MAT - 1] = paymentSplit.tienMat;
+  rowData[COL_DT_TRA.CHUYEN_KHOAN - 1] = paymentSplit.chuyenKhoan;
+
+  appendRow(SHEET_NAMES.DOI_TRA, rowData);
+
+  const capturedMaDT = params.maDT;
+  rollbackActions.push(function () {
+    try {
+      const ssRollback = SpreadsheetApp.getActiveSpreadsheet();
+      const sheet = ssRollback.getSheetByName(SHEET_NAMES.DOI_TRA);
+      const r = findRow(SHEET_NAMES.DOI_TRA, COL_DT_TRA.MA_DT, capturedMaDT);
+      if (r !== -1) {
+        sheet.deleteRow(r);
+        clearSheetCache(SHEET_NAMES.DOI_TRA);
+      }
+    } catch (err) {
+      Logger.log("Rollback failed to delete exchange record " + capturedMaDT + ": " + err.message);
+    }
   });
 }

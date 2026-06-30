@@ -230,7 +230,7 @@ SCHEMA[SHEET_NAMES.THU_MUA] = [
   ["HINH_THUC_TT", "Hình thức thanh toán"],
   ["CHI_NHANH", "Chi nhánh"],
   ["NGUOI_THUC_HIEN", "Người thực hiện"],
-  ["TRANG_THAI", "Trạng thái"],
+  ["TRANG_THAI", "Trạng thái máy"],
   ["GHI_CHU", "Ghi chú"],
   ["TIEN_MAT", "Tiền mặt"],
   ["CHUYEN_KHOAN", "Chuyển khoản"]

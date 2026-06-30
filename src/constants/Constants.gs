@@ -5,6 +5,48 @@
  * ============================================================
  */
 
+const SHEET_NAMES = {
+  CAU_HINH: "Cấu hình",
+  NHAN_VIEN: "Nhân viên",
+  DIEN_THOAI: "Điện thoại",
+  PHU_KIEN: "Phụ kiện",
+  KHACH_HANG: "Khách hàng",
+  DON_HANG: "Đơn hàng",
+  DICH_VU: "Dịch vụ",
+  TRA_GOP: "Trả góp",
+  LICH_SU_TRA_GOP: "Lịch sử trả góp",
+  DOANH_SO: "Doanh số",
+  NHAP_KHO: "Nhập kho",
+  DOI_TRA: "Đổi trả",
+  THU_MUA: "Thu mua",
+  BAO_CAO_NGAY: "Báo cáo ngày",
+  BAO_CAO_DOANH_SO: "Báo cáo doanh số",
+  TON_KHO: "Tồn kho",
+  BAO_HANH: "Bảo hành",
+};
+
+const SHEET_ORDER = [
+  SHEET_NAMES.CAU_HINH,
+  SHEET_NAMES.NHAN_VIEN,
+  SHEET_NAMES.DIEN_THOAI,
+  SHEET_NAMES.PHU_KIEN,
+  SHEET_NAMES.TON_KHO,
+  SHEET_NAMES.KHACH_HANG,
+  SHEET_NAMES.DON_HANG,
+  SHEET_NAMES.DICH_VU,
+  SHEET_NAMES.TRA_GOP,
+  SHEET_NAMES.LICH_SU_TRA_GOP,
+  SHEET_NAMES.DOANH_SO,
+  SHEET_NAMES.NHAP_KHO,
+  SHEET_NAMES.DOI_TRA,
+  SHEET_NAMES.THU_MUA,
+  SHEET_NAMES.BAO_CAO_NGAY,
+  SHEET_NAMES.BAO_CAO_DOANH_SO,
+  SHEET_NAMES.BAO_HANH,
+];
+
+const SHEET_HEADERS = {};
+
 const STOCK_STATUS = Object.freeze({
   IN_STOCK: "Còn hàng",
   SOLD: "Đã bán",

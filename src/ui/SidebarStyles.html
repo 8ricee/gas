@@ -246,7 +246,7 @@
     background: #b3261e;
   }
 
-  /* ==================== ALERTS ==================== */
+  /* ==================== ALERTS & TOASTS ==================== */
   .alert {
     padding: 10px 12px;
     border-radius: 4px;
@@ -276,6 +276,89 @@
     background: #e8f0fe;
     color: #1a73e8;
     border: 1px solid #a8c7fa;
+  }
+
+  .toast-container {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+  }
+
+  .toast-item {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 500;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    animation: toastSlideIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    pointer-events: auto;
+    transition: all 0.3s ease;
+    border-left: 5px solid transparent;
+  }
+
+  @keyframes toastSlideIn {
+    from {
+      transform: translateY(-20px) scale(0.95);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+  }
+
+  .toast-item.hide {
+    transform: translateY(-15px) scale(0.9);
+    opacity: 0;
+    margin-top: -50px;
+    padding-top: 0;
+    padding-bottom: 0;
+    height: 0;
+    overflow: hidden;
+  }
+
+  .toast-success {
+    background: #e6f4ea;
+    color: #137333;
+    border-left-color: #137333;
+  }
+
+  .toast-error {
+    background: #fce8e6;
+    color: #c5221f;
+    border-left-color: #c5221f;
+  }
+
+  .toast-info {
+    background: #e8f0fe;
+    color: #1a73e8;
+    border-left-color: #1a73e8;
+  }
+
+  .toast-close {
+    cursor: pointer;
+    opacity: 0.5;
+    font-size: 18px;
+    border: none;
+    background: none;
+    color: inherit;
+    padding: 0 2px;
+    line-height: 1;
+    transition: opacity 0.2s ease;
+  }
+
+  .toast-close:hover {
+    opacity: 0.9;
   }
 
   /* ==================== LOADING ==================== */

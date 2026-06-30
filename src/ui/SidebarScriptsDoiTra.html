@@ -299,15 +299,7 @@
       .withSuccessHandler(function(maDT) {
         setLoading('btnDoiTra', false);
         showAlertMsg('success', 'Ghi nhận thành công! Mã giao dịch: <strong>' + escapeHtml(maDT) + '</strong>');
-        document.getElementById('dt-maDH').value = '';
-        document.getElementById('dt-infoBox').style.display = 'none';
-        document.getElementById('dt-doiTuongGroup').style.display = 'none';
-        document.getElementById('dt-phiDoiTra').value = 0;
-        document.getElementById('dt-tienHoanTra').value = 0;
-        document.getElementById('dt-ghiChu').value = '';
-        document.getElementById('dt-maSP-Nhan').value = '';
-        document.getElementById('dt-nguoiThucHien').value = '';
-        originalOrderData = null;
+        resetFormDoiTra();
         preloadInventoryData();
       })
       .withFailureHandler(function(err) {
@@ -315,5 +307,30 @@
         showAlertMsg('error', 'Lỗi: ' + err.message);
       })
       .thucHienDoiTra(data);
+  }
+
+  function resetFormDoiTra() {
+    document.getElementById('dt-maDH').value = '';
+    document.getElementById('dt-infoBox').style.display = 'none';
+    
+    let doiTuong = document.getElementById('dt-doiTuong'); if (doiTuong) doiTuong.value = 'Sản phẩm chính';
+    let doiTuongGroup = document.getElementById('dt-doiTuongGroup'); if (doiTuongGroup) doiTuongGroup.style.display = 'none';
+    
+    let loaiGD = document.getElementById('dt-loaiGD'); if (loaiGD) loaiGD.innerHTML = '';
+    let chiNhanh = document.getElementById('dt-chiNhanh'); if (chiNhanh) chiNhanh.value = '';
+    
+    document.getElementById('dt-phiDoiTra').value = 0;
+    document.getElementById('dt-tienHoanTra').value = 0;
+    document.getElementById('dt-ghiChu').value = '';
+    document.getElementById('dt-maSP-Nhan').value = '';
+    
+    let nguoiTH = document.getElementById('dt-nguoiThucHien'); if (nguoiTH) nguoiTH.value = '';
+    let httt = document.getElementById('dt-hinhThucTT'); if (httt) httt.value = 'Tiền mặt';
+    
+    let newProdGroup = document.getElementById('dt-newProductGroup'); if (newProdGroup) newProdGroup.style.display = 'none';
+    let giftContainer = document.getElementById('dt-giftExchangeContainer'); if (giftContainer) giftContainer.style.display = 'none';
+    let giftList = document.getElementById('dt-giftExchangeList'); if (giftList) giftList.innerHTML = '';
+
+    originalOrderData = null;
   }
 </script>

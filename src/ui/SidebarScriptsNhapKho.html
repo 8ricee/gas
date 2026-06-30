@@ -94,6 +94,9 @@
   }
 
   function resetFormNhapKho() {
+    let chiNhanh = document.getElementById('nk-chiNhanh'); if (chiNhanh) chiNhanh.value = '';
+    let nguonNhap = document.getElementById('nk-nguonNhap'); if (nguonNhap) nguonNhap.value = 'Điện thoại';
+
     // Điện thoại
     let tenSP = document.getElementById('nk-tenSP'); if (tenSP) tenSP.value = '';
     let imei = document.getElementById('nk-imei'); if (imei) imei.value = '';
@@ -122,6 +125,19 @@
       infoBox.style.display = 'none';
       infoBox.innerHTML = '';
     }
+
+    onNguonNhapChange();
+  }
+
+  function onNguonNhapChange() {
+    let val = document.getElementById('nk-nguonNhap').value;
+    let dtFields = document.getElementById('nk-dtFields');
+    let pkMoiFields = document.getElementById('nk-pkMoiFields');
+    let pkCuFields = document.getElementById('nk-pkCuFields');
+
+    if (dtFields) dtFields.style.display = (val === 'Điện thoại') ? 'block' : 'none';
+    if (pkMoiFields) pkMoiFields.style.display = (val === 'Phụ kiện - Mới') ? 'block' : 'none';
+    if (pkCuFields) pkCuFields.style.display = (val === 'Phụ kiện - Cũ') ? 'block' : 'none';
   }
 
   function loadPhuKienCuDropdown() {

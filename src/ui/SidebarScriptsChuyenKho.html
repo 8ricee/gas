@@ -56,8 +56,7 @@
       .withSuccessHandler(function() {
         setLoading('btnChuyenKho', false);
         showAlertMsg('success', 'Đã chuyển kho thành công sản phẩm: ' + escapeHtml(maSP));
-        document.getElementById('ck-maSP').value = '';
-        document.getElementById('ck-soLuong').value = 1;
+        resetFormChuyenKho();
         preloadInventoryData(onChuyenKhoBranchOrNguonChange);
       })
       .withFailureHandler(function(err) {
@@ -65,5 +64,15 @@
         showAlertMsg('error', 'Lỗi: ' + err.message);
       })
       .chuyenKho(data);
+  }
+
+  function resetFormChuyenKho() {
+    let cnNguon = document.getElementById('ck-cnNguon'); if (cnNguon) cnNguon.value = '';
+    let cnDich = document.getElementById('ck-cnDich'); if (cnDich) cnDich.value = '';
+    let nguonSP = document.getElementById('ck-nguonSP'); if (nguonSP) nguonSP.value = 'Điện thoại';
+    let maSP = document.getElementById('ck-maSP'); if (maSP) maSP.value = '';
+    let soLuong = document.getElementById('ck-soLuong'); if (soLuong) soLuong.value = 1;
+
+    onChuyenKhoBranchOrNguonChange();
   }
 </script>

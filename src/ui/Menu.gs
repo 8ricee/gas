@@ -47,7 +47,7 @@ function createCustomMenu() {
  * Hiển thị sidebar Quản lý cửa hàng (Bảng điều khiển chung)
  */
 function showSidebar() {
-  const html = HtmlService.createTemplateFromFile("Sidebar");
+  const html = HtmlService.createTemplateFromFile("ui/Sidebar");
   html.mode = "donHang"; // Mặc định mở phần Đơn hàng
   const output = html
     .evaluate()

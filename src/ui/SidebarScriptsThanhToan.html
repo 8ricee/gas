@@ -57,13 +57,7 @@
       .withSuccessHandler(function(result) {
         setLoading('btnThanhToan', false);
         showAlertMsg('success', 'Đã ghi nhận thanh toán kỳ ' + escapeHtml(kySo));
-        loadTraGopDropdown();
-        document.getElementById('tt-maTG').value = '';
-        document.getElementById('tt-kySo').value = '';
-        let kyList = document.getElementById('tt-kySo-list');
-        if (kyList) kyList.innerHTML = '';
-        document.getElementById('tt-soTien').value = 0;
-        document.getElementById('tt-ghiChu').value = '';
+        resetFormThanhToan();
       })
       .withFailureHandler(function(err) {
         setLoading('btnThanhToan', false);
@@ -76,5 +70,21 @@
     google.script.run.withSuccessHandler(function(items) {
       populateDatalist('tt-maTG', 'tt-maTG-list', items);
     }).getTraGopDropdown();
+  }
+
+  function resetFormThanhToan() {
+    loadTraGopDropdown();
+    document.getElementById('tt-maTG').value = '';
+    document.getElementById('tt-kySo').value = '';
+    let kyList = document.getElementById('tt-kySo-list');
+    if (kyList) kyList.innerHTML = '';
+    document.getElementById('tt-soTien').value = 0;
+    document.getElementById('tt-ghiChu').value = '';
+    
+    let httt = document.getElementById('tt-hinhThucTT');
+    if (httt) {
+      httt.value = 'Tiền mặt';
+      onPaymentMethodChange('tt');
+    }
   }
 </script>

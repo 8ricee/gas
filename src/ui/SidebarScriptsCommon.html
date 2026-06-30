@@ -29,23 +29,72 @@
     });
   });
 
-  // ==================== ALERT ====================
-  function showAlertMsg(type, msg) {
-    let box = document.getElementById('alertBox');
-    box.className = 'alert alert-' + type + ' show';
-    if (type === 'success' || type === 'info') {
-      box.innerHTML = escapeHtml(msg).replace(/\n/g, '<br>');
-    } else {
-      box.textContent = msg;
-    }
-    // Auto hide after 5s for success
-    if (type === 'success') {
-      setTimeout(function() { box.classList.remove('show'); }, 5000);
+  // Kích hoạt tab ban đầu một cách đồng bộ ngay khi load trang
+  if (typeof initialMode !== 'undefined' && initialMode) {
+    let activeTab = document.querySelector('.nav-tab[data-section="' + initialMode + '"]');
+    if (activeTab) {
+      activeTab.click();
     }
   }
 
+  // ==================== ALERT & TOASTS ====================
+  function showAlertMsg(type, msg) {
+    let container = document.getElementById('toastContainer');
+    if (!container) {
+      // Fallback cho alertBox cũ nếu không có container
+      let box = document.getElementById('alertBox');
+      if (box) {
+        box.style.display = 'block';
+        box.className = 'alert alert-' + type + ' show';
+        box.innerHTML = msg.replace(/\n/g, '<br>');
+        return;
+      }
+    }
+
+    // Tạo mới phần tử Toast
+    let toast = document.createElement('div');
+    toast.className = 'toast-item toast-' + type;
+
+    let content = document.createElement('div');
+    content.style.flex = "1";
+    if (type === 'success' || type === 'info') {
+      content.innerHTML = msg.replace(/\n/g, '<br>');
+    } else {
+      content.textContent = msg;
+    }
+
+    let closeBtn = document.createElement('button');
+    closeBtn.className = 'toast-close';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.onclick = function() {
+      toast.classList.add('hide');
+      setTimeout(function() { toast.remove(); }, 350);
+    };
+
+    toast.appendChild(content);
+    toast.appendChild(closeBtn);
+    container.appendChild(toast);
+
+    // Thời gian hiển thị tương ứng với loại thông báo
+    let duration = type === 'success' ? 5000 : (type === 'info' ? 7000 : 10000);
+    setTimeout(function() {
+      if (toast.parentNode) {
+        toast.classList.add('hide');
+        setTimeout(function() { toast.remove(); }, 350);
+      }
+    }, duration);
+  }
+
   function hideAlert() {
-    document.getElementById('alertBox').classList.remove('show');
+    let container = document.getElementById('toastContainer');
+    if (container) {
+      container.innerHTML = '';
+    }
+    let box = document.getElementById('alertBox');
+    if (box) {
+      box.style.display = 'none';
+      box.classList.remove('show');
+    }
   }
 
   // ==================== LOADING ====================
@@ -124,13 +173,7 @@
         populateSelect('tm-thuongHieu-Thu', data.brands);
       }
 
-      // Load initial mode tab (needs to run after populate select/datalists)
-      if (typeof initialMode !== 'undefined' && initialMode) {
-        let activeTab = document.querySelector('.nav-tab[data-section="' + initialMode + '"]');
-        if (activeTab) {
-          activeTab.click();
-        }
-      }
+      // Tab ban đầu đã được kích hoạt đồng bộ khi load trang
     }).getInitialSidebarData();
 
     // Preload khách hàng trong background sau 1.5 giây để tìm kiếm nhanh

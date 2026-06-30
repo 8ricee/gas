@@ -7,49 +7,12 @@
 
 // ======================== CONSTANTS ========================
 
-const SHEET_NAMES = {
-  CAU_HINH: "Cấu hình",
-  NHAN_VIEN: "Nhân viên",
-  DIEN_THOAI: "Điện thoại",
-  PHU_KIEN: "Phụ kiện",
-  KHACH_HANG: "Khách hàng",
-  DON_HANG: "Đơn hàng",
-  DICH_VU: "Dịch vụ",
-  TRA_GOP: "Trả góp",
-  LICH_SU_TRA_GOP: "Lịch sử trả góp",
-  DOANH_SO: "Doanh số",
-  NHAP_KHO: "Nhập kho",
-  DOI_TRA: "Đổi trả",
-  THU_MUA: "Thu mua",
-  BAO_CAO_NGAY: "Báo cáo ngày",
-  BAO_CAO_DOANH_SO: "Báo cáo doanh số",
-  TON_KHO: "Tồn kho",
-  BAO_HANH: "Bảo hành",
-};
+// SHEET_NAMES and SHEET_ORDER have been moved to constants/Constants.gs to resolve load-order issues.
 
-const SHEET_ORDER = [
-  SHEET_NAMES.CAU_HINH,
-  SHEET_NAMES.NHAN_VIEN,
-  SHEET_NAMES.DIEN_THOAI,
-  SHEET_NAMES.PHU_KIEN,
-  SHEET_NAMES.TON_KHO,
-  SHEET_NAMES.KHACH_HANG,
-  SHEET_NAMES.DON_HANG,
-  SHEET_NAMES.DICH_VU,
-  SHEET_NAMES.TRA_GOP,
-  SHEET_NAMES.LICH_SU_TRA_GOP,
-  SHEET_NAMES.DOANH_SO,
-  SHEET_NAMES.NHAP_KHO,
-  SHEET_NAMES.DOI_TRA,
-  SHEET_NAMES.THU_MUA,
-  SHEET_NAMES.BAO_CAO_NGAY,
-  SHEET_NAMES.BAO_CAO_DOANH_SO,
-  SHEET_NAMES.BAO_HANH,
-];
 
 // ======================== SHEET HEADERS (VIETNAMESE) ========================
 
-const SHEET_HEADERS = {};
+// SHEET_HEADERS has been moved to constants/Constants.gs to resolve load-order issues.
 
 // ======================== DEFAULT CONFIG ========================
 
@@ -173,11 +136,16 @@ function onOpen() {
  * Serves the HTML interface (Sidebar.html) when accessed as a Web App
  */
 function doGet(e) {
-  const html = HtmlService.createTemplateFromFile("Sidebar");
-  html.mode = (e && e.parameter && e.parameter.mode) || "donHang";
+  const html = HtmlService.createTemplateFromFile("ui/Sidebar");
+  const validModes = ["donHang", "khachHang", "nhapKho", "dichVu", "thanhToan", "chuyenKho", "doiTra", "thuMua", "doanhSo", "baoHanh"];
+  let mode = (e && e.parameter && e.parameter.mode) || "donHang";
+  if (validModes.indexOf(mode) === -1) {
+    mode = "donHang";
+  }
+  html.mode = mode;
   return html
     .evaluate()
-    .setTitle("VanTran Mobile — Hệ thống Dịch vụ & Buôn bán Trả góp")
+    .setTitle("BichLoan")
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT)
     .addMetaTag("viewport", "width=device-width, initial-scale=1");
 }
