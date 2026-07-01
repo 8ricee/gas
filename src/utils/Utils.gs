@@ -225,7 +225,10 @@ function getColMapFromSheet(sheetName) {
     const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
     const map = {};
     for (let i = 0; i < headers.length; i++) {
-      map[String(headers[i]).trim().toLowerCase()] = i + 1;
+      const headerStr = String(headers[i]).trim().toLowerCase();
+      if (headerStr && map[headerStr] === undefined) {
+        map[headerStr] = i + 1;
+      }
     }
     return map;
   } catch (e) {

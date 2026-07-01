@@ -69,6 +69,7 @@ function getConditionalColorMap() {
     [LSTG_STATUS.PAID]: { bg: "#e6f4ea", fg: "#137333" },
     [PK_STATUS.ACTIVE]: { bg: "#e6f4ea", fg: "#137333" },
     [YES_NO_VALUES.YES]: { bg: "#e6f4ea", fg: "#137333" },
+    "New": { bg: "#e6f4ea", fg: "#137333" },
     "Mới 100%": { bg: "#e6f4ea", fg: "#137333" },
     [PAYMENT_METHOD.CASH]: { bg: "#e6f4ea", fg: "#137333" },
     [SERVICE_TYPES.CASH_WITHDRAWAL]: { bg: "#e6f4ea", fg: "#137333" },
@@ -112,6 +113,7 @@ function getConditionalColorMap() {
     [PAYMENT_METHOD.TRANSFER]: { bg: "#e8f0fe", fg: "#1a73e8" },
     [SERVICE_TYPES.TRANSFER_HO]: { bg: "#e8f0fe", fg: "#1a73e8" },
     "Sạc": { bg: "#e8f0fe", fg: "#1a73e8" },
+    "Chính hãng 99": { bg: "#e8f0fe", fg: "#1a73e8" },
     "Like New": { bg: "#e8f0fe", fg: "#1a73e8" },
     "Điện thoại": { bg: "#e8f0fe", fg: "#1a73e8" },
 

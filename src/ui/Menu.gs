@@ -35,7 +35,6 @@ function createCustomMenu() {
         .createMenu("Hệ thống")
         .addItem("Khởi tạo hệ thống", "setupSheets")
         .addItem("Đồng bộ & Chuẩn hóa toàn bộ hệ thống", "menuNormalizeSystem")
-        .addItem("Di chuyển IMEI sang cột riêng", "migrateImeiToColumn")
         .addItem("Làm mới bộ nhớ đệm", "menuClearAllCaches"),
     )
     .addToUi();
@@ -200,3 +199,5 @@ function menuClearAllCaches() {
     showAlert("Lỗi", "Không thể xóa bộ nhớ đệm: " + e.message);
   }
 }
+
+

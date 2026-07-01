@@ -245,7 +245,7 @@ function _applyDienThoaiFormatting(ss, colorMap, brands, branches) {
 
   _applyRulesForSheet(sheet, [
     { range: colThuongHieuLetter + "2:" + colThuongHieuLetter, values: brands },
-    { range: colTinhTrangLetter + "2:" + colTinhTrangLetter, values: ["Mới 100%", "Like New", "__NOT_EMPTY__"] },
+    { range: colTinhTrangLetter + "2:" + colTinhTrangLetter, values: ["New", "Chính hãng 99", "Đã qua sử dụng", "Mới 100%", "Like New", "__NOT_EMPTY__"] },
     {
       range: colTrangThaiLetter + "2:" + colTrangThaiLetter,
       values: [STOCK_STATUS.IN_STOCK, STOCK_STATUS.SOLD, STOCK_STATUS.INSTALLMENT, STOCK_STATUS.RETURNED, STOCK_STATUS.FAULTY],
@@ -370,7 +370,7 @@ function _applyThuMuaFormatting(ss, colorMap, brands, branches) {
 
   _applyRulesForSheet(sheet, [
     { range: colTMBrand + "2:" + colTMBrand, values: brands },
-    { range: colTMTinhTrang + "2:" + colTMTinhTrang, values: ["Mới 100%", "Like New", "__NOT_EMPTY__"] },
+    { range: colTMTinhTrang + "2:" + colTMTinhTrang, values: ["New", "Chính hãng 99", "Đã qua sử dụng", "Mới 100%", "Like New", "__NOT_EMPTY__"] },
     { range: colTMLoaiGD + "2:" + colTMLoaiGD, values: ["Bán thẳng", "Thu cũ đổi mới"] },
     { range: colTMHTTT + "2:" + colTMHTTT, values: ["Tiền mặt", "Chuyển khoản", "Quẹt thẻ (POS)", "Trả góp", "Hỗn hợp"] },
     { range: colTMChiNhanh + "2:" + colTMChiNhanh, values: branches },

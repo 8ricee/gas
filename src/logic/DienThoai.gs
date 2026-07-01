@@ -115,7 +115,7 @@ function addDienThoai(data) {
   rowData[COL_DT.IMEI - 1] = data.imei || "";
   rowData[COL_DT.MAU_SAC - 1] = data.mauSac || "";
   rowData[COL_DT.DUNG_LUONG - 1] = data.dungLuong || "";
-  rowData[COL_DT.TINH_TRANG - 1] = data.tinhTrang || "Mới 100%";
+  rowData[COL_DT.TINH_TRANG - 1] = data.tinhTrang || "New";
   rowData[COL_DT.GIA_NHAP - 1] = Number(data.giaNhap) || 0;
   rowData[COL_DT.GIA_BAN - 1] = Number(data.giaBan) || 0;
   rowData[COL_DT.GIA_TRA_GOP - 1] = Number(data.giaTraGop) || 0;
