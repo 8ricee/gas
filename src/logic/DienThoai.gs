@@ -105,7 +105,10 @@ function addDienThoai(data) {
     }
   }
 
-  const maDT = generateId("DT", SHEET_NAMES.DIEN_THOAI);
+  const maDT = String(data.maDT || "").trim();
+  if (!maDT) {
+    throw new Error("Mã điện thoại không được để trống!");
+  }
 
   // Tạo mảng dữ liệu với độ dài lớn nhất là 15
   const rowData = [];
@@ -113,6 +116,7 @@ function addDienThoai(data) {
   rowData[COL_DT.TEN_SP - 1] = data.tenSP || "";
   rowData[COL_DT.THUONG_HIEU - 1] = data.thuongHieu || "";
   rowData[COL_DT.IMEI - 1] = data.imei || "";
+  rowData[COL_DT.IMEI_2 - 1] = data.imei2 || "";
   rowData[COL_DT.MAU_SAC - 1] = data.mauSac || "";
   rowData[COL_DT.DUNG_LUONG - 1] = data.dungLuong || "";
   rowData[COL_DT.TINH_TRANG - 1] = data.tinhTrang || "New";

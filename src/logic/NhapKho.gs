@@ -38,12 +38,14 @@ function nhapKho(data) {
     if (nguonNhap === PRODUCT_SOURCE.PHONE) {
       // Tạo sản phẩm mới trong danh mục điện thoại
       maSP = addDienThoai({
+        maDT: data.maDT,
         tenSP: data.tenSP,
         thuongHieu: data.thuongHieu,
         imei: data.imei,
+        imei2: data.imei2 || "",
         mauSac: data.mauSac,
         dungLuong: data.dungLuong,
-        tinhTrang: data.tinhTrang || "Mới 100%",
+        tinhTrang: data.tinhTrang || "New",
         giaNhap: giaNhap,
         giaBan: Number(data.giaBan) || 0,
         giaTraGop: Number(data.giaTraGop) || 0,
