@@ -86,22 +86,21 @@ function getDienThoaiDropdown(chiNhanh) {
  * @return {string} Mã DT mới
  */
 function addDienThoai(data) {
-  // Kiểm tra IMEI trùng
+  // Kiểm tra trùng IMEI 1 (quét chéo cả hai cột IMEI và IMEI 2)
   if (data.imei) {
-    const existing = lookupValue(
-      SHEET_NAMES.DIEN_THOAI,
-      COL_DT.IMEI,
-      data.imei,
-      COL_DT.MA_DT,
-    );
-    if (existing) {
-      throw new Error(
-        'IMEI "' +
-          data.imei +
-          '" đã tồn tại trong hệ thống (Mã: ' +
-          existing +
-          ")",
-      );
+    const existingImei = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.IMEI, data.imei, COL_DT.MA_DT) ||
+                         (COL_DT.IMEI_2 ? lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.IMEI_2, data.imei, COL_DT.MA_DT) : null);
+    if (existingImei) {
+      throw new Error('IMEI 1 "' + data.imei + '" đã tồn tại trong hệ thống (Mã dòng máy: ' + existingImei + ')');
+    }
+  }
+
+  // Kiểm tra trùng IMEI 2 (quét chéo cả hai cột IMEI và IMEI 2)
+  if (data.imei2) {
+    const existingImei2 = lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.IMEI, data.imei2, COL_DT.MA_DT) ||
+                          (COL_DT.IMEI_2 ? lookupValue(SHEET_NAMES.DIEN_THOAI, COL_DT.IMEI_2, data.imei2, COL_DT.MA_DT) : null);
+    if (existingImei2) {
+      throw new Error('IMEI 2 "' + data.imei2 + '" đã tồn tại trong hệ thống (Mã dòng máy: ' + existingImei2 + ')');
     }
   }
 
