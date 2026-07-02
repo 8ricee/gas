@@ -87,6 +87,41 @@ function generateDailyReport(fromDate, toDate) {
   }
 
   // --- 2. GHI BÁO CÁO LÊN SHEET ---
+  // Đọc các giá trị "Tiền mặt đầu ngày" cũ để bảo toàn (không bị clear mất khi reload)
+  const existingStartCash = {};
+  try {
+    const lastRow = reportSheet.getLastRow();
+    const lastCol = reportSheet.getLastColumn();
+    if (lastRow >= 8 && lastCol >= 2) {
+      // Đọc tối đa 25 dòng đầu để tìm dòng Tiền mặt đầu ngày trước khi xóa
+      const allVals = reportSheet.getRange(6, 1, Math.min(25, lastRow - 5), lastCol).getValues();
+      let startCashRowVals = null;
+      let headerRowVals = null;
+      for (let i = 0; i < allVals.length; i++) {
+        const rowName = String(allVals[i][0]).trim();
+        if (allVals[i][0] === "Chỉ tiêu") {
+          headerRowVals = allVals[i];
+        }
+        if (rowName.indexOf("Tiền mặt đầu ngày") !== -1) {
+          startCashRowVals = allVals[i];
+          break;
+        }
+      }
+      
+      if (startCashRowVals && headerRowVals) {
+        for (let j = 1; j < headerRowVals.length - 1; j++) {
+          const branchName = String(headerRowVals[j]).trim();
+          const cashVal = Number(startCashRowVals[j]) || 0;
+          if (branchName && cashVal > 0) {
+            existingStartCash[branchName] = cashVal;
+          }
+        }
+      }
+    }
+  } catch (e) {
+    Logger.log("Không thể đọc Tiền mặt đầu ngày cũ: " + e.message);
+  }
+
   const totalRows = reportSheet.getMaxRows();
   const totalCols = reportSheet.getMaxColumns();
   if (totalRows >= 6) {
@@ -161,7 +196,7 @@ function generateDailyReport(fromDate, toDate) {
   const totalSummaryColIdx = numActiveBranches + 2;
 
   // Ghi bảng tổng hợp chỉ tiêu tài chính
-  _writeSummaryTableToSheet(reportSheet, branchMetrics, activeBranches, totalSummaryColIdx);
+  _writeSummaryTableToSheet(reportSheet, branchMetrics, activeBranches, totalSummaryColIdx, existingStartCash);
 
   // Ghi chi tiết giao dịch các chi nhánh nếu không phải báo cáo tổng hợp nhiều ngày
   if (!isMultiDay) {
@@ -218,7 +253,9 @@ function _initBranchMetrics(branches, fallbackBranch) {
  * Ghi bảng tổng hợp chỉ tiêu tài chính lên reportSheet
  * @private
  */
-function _writeSummaryTableToSheet(reportSheet, branchMetrics, activeBranches, totalSummaryColIdx) {
+function _writeSummaryTableToSheet(reportSheet, branchMetrics, activeBranches, totalSummaryColIdx, existingStartCash) {
+  existingStartCash = existingStartCash || {};
+
   const summaryTitleRange = reportSheet.getRange(6, 1, 1, totalSummaryColIdx);
   summaryTitleRange.merge();
   summaryTitleRange
@@ -252,26 +289,51 @@ function _writeSummaryTableToSheet(reportSheet, branchMetrics, activeBranches, t
     { name: "7. Công nợ Cửa hàng", key: "congNoCH" },
     { name: "8. Công nợ CTTC", key: "congNoCTTC" },
     { name: "9. Dòng tiền ròng trong ngày", key: "netCash" },
+    { name: "10. Tiền mặt đầu ngày (nhập tay)", key: "startCash" },
+    { name: "11. Tiền mặt cuối ngày (tổng hợp)", key: "endCash" },
   ];
 
   const summaryData = [];
-  metricsList.forEach(function (m) {
+  const startRow = 8;
+  const lastBranchColLetter = columnToLetter(activeBranches.length + 1);
+
+  metricsList.forEach(function (m, rowIndex) {
     const row = [m.name];
     let totalVal = 0;
-    activeBranches.forEach(function (b) {
-      let val = 0;
-      if (m.key === "netCash") {
-        val =
-          branchMetrics[b].thuTM +
-          branchMetrics[b].thuCK -
-          (branchMetrics[b].chiTM + branchMetrics[b].chiCK);
-      } else {
-        val = branchMetrics[b][m.key];
-      }
-      row.push(val);
-      totalVal += val;
-    });
-    row.push(totalVal);
+
+    if (m.key === "startCash") {
+      activeBranches.forEach(function (b) {
+        const val = existingStartCash[b] || 0;
+        row.push(val);
+      });
+      const totalFormula = "=SUM(B" + (startRow + 9) + ":" + lastBranchColLetter + (startRow + 9) + ")";
+      row.push(totalFormula);
+    } else if (m.key === "endCash") {
+      activeBranches.forEach(function (b, idx) {
+        const colLetter = columnToLetter(idx + 2);
+        // Công thức: Tiền mặt đầu ngày (Row 17) + Tiền mặt Thu (Row 10) - Tiền mặt Chi (Row 11)
+        const formula = "=" + colLetter + (startRow + 9) + "+" + colLetter + (startRow + 2) + "-" + colLetter + (startRow + 3);
+        row.push(formula);
+      });
+      // Công thức Tổng cộng: =SUM(B18:lastBranchColLetter18)
+      const totalFormula = "=SUM(B" + (startRow + 10) + ":" + lastBranchColLetter + (startRow + 10) + ")";
+      row.push(totalFormula);
+    } else {
+      activeBranches.forEach(function (b) {
+        let val = 0;
+        if (m.key === "netCash") {
+          val =
+            branchMetrics[b].thuTM +
+            branchMetrics[b].thuCK -
+            (branchMetrics[b].chiTM + branchMetrics[b].chiCK);
+        } else {
+          val = branchMetrics[b][m.key];
+        }
+        row.push(val);
+        totalVal += val;
+      });
+      row.push(totalVal);
+    }
     summaryData.push(row);
   });
 
@@ -289,11 +351,22 @@ function _writeSummaryTableToSheet(reportSheet, branchMetrics, activeBranches, t
   reportSheet
     .getRange(8, 2, summaryData.length, totalSummaryColIdx - 1)
     .setNumberFormat("#,##0");
-  const netCashRowIdx = 8 + summaryData.length - 1;
+  
+  // Dòng tiền ròng nổi bật (Blue)
+  const netCashRowIdx = 8 + 8;
   reportSheet
     .getRange(netCashRowIdx, 1, 1, totalSummaryColIdx)
     .setFontColor("#1a73e8")
-    .setFontWeight("bold"); // Dòng tiền ròng nổi bật
+    .setFontWeight("bold");
+
+  // Tiền mặt cuối ngày nổi bật (Soft Green background & Green font)
+  const endCashRowIdx = 8 + 10;
+  reportSheet
+    .getRange(endCashRowIdx, 1, 1, totalSummaryColIdx)
+    .setFontColor("#137333")
+    .setBackground("#e6f4ea")
+    .setFontWeight("bold");
+
   reportSheet
     .getRange(8, totalSummaryColIdx, summaryData.length, 1)
     .setFontWeight("bold"); // Cột tổng cộng in đậm
@@ -318,7 +391,7 @@ function _writeSummaryTableToSheet(reportSheet, branchMetrics, activeBranches, t
  * @private
  */
 function _writeDetailedTablesToSheet(reportSheet, transactions, activeBranches, fallbackBranch) {
-  let startRow = 18;
+  let startRow = 20;
 
   activeBranches.forEach(function (branchName) {
     const branchTxs = transactions.filter(function (tx) {
